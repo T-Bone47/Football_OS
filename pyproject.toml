@@ -1,0 +1,7 @@
+# Intentionally minimal — see docs/ARCHITECTURE_DECISIONS.md ADR-003.
+# Real dependency installs go through requirements.txt until apps/worker
+# needs to import apps/api's code as a package.
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["apps/api"]
+testpaths = ["tests"]
