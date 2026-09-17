@@ -1,0 +1,33 @@
+# NOT executed here (no CI runner in this sandbox) — verify on first push.
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: fios
+          POSTGRES_PASSWORD: fios
+          POSTGRES_DB: fios_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Run migrations
+        run: alembic upgrade head
+        env:
+          DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
+      - name: Run tests
+        run: pytest -v
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
