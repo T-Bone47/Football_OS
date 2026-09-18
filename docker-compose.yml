@@ -1,6 +1,7 @@
-# Target shape per architecture doc §5/§47. NOT executed in the sandbox this
-# was authored in (no Docker there) — verify with `docker compose up` in a
-# real dev environment before relying on it.
+# Target shape per architecture doc §5/§47, expanded per Slice-2 asks
+# (§7-14, §39-42: health checks, MinIO bootstrap, service-name-aware config).
+# STILL NOT RUN — this sandbox has no Docker. Verify with `docker compose up`
+# on a machine that actually has it before trusting this.
 services:
   postgres:
     image: postgres:16
@@ -10,10 +11,20 @@ services:
       POSTGRES_DB: fios
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fios -d fios"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7
     ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   minio:
     image: minio/minio
@@ -23,13 +34,48 @@ services:
       MINIO_ROOT_PASSWORD: fios12345
     ports: ["9000:9000", "9001:9001"]
     volumes: ["miniodata:/data"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # §11: create the bronze bucket idempotently instead of relying on someone
+  # opening the console by hand. Runs once, exits, doesn't restart in a loop.
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 fios fios12345 &&
+      mc mb --ignore-existing local/football-os-bronze &&
+      echo 'bucket ready'
+      "
 
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     env_file: .env
-    depends_on: [postgres, redis, minio]
+    environment:
+      # §41/§42: service names inside Docker, not localhost. .env.example
+      # keeps localhost defaults for running the API directly on the host.
+      DATABASE_URL: postgresql+asyncpg://fios:fios@postgres:5432/fios
+      REDIS_URL: redis://redis:6379/0
+      SNAPSHOT_STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: football-os-bronze
+      S3_ACCESS_KEY: fios
+      S3_SECRET_KEY: fios12345
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     ports: ["8000:8000"]
 
 volumes:
