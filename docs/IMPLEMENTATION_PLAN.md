@@ -20,7 +20,7 @@
 | Network | This sandbox can reach `raw.githubusercontent.com` (StatsBomb open data lives there) but **cannot** reach `api-football.com` or `football-data.org` — those domains aren't on the sandbox's egress allowlist |
 | Provider credentials | No `API_FOOTBALL_KEY` / `FOOTBALL_DATA_ORG_KEY` supplied |
 
-These three constraints (no Docker, no reach to two of the three providers, no keys) are environmental, not architectural — they don't change what gets built, only what gets *verified where*. See "Environment reality" below.
+These three constraints (no Docker, no reach to two of the three providers, no keys) are environmental, not architectural — they don't change what gets built, only what gets *verified where*. See "Environment reality" below. (A follow-up session's prompt assumed these had lifted because "a real development machine" was now available; re-checked directly — same sandbox, same `docker: not found`, same `403` from both provider domains. Still true as of the Slice 2 session.)
 
 ## Scope check (per superpowers:writing-plans)
 
@@ -32,7 +32,7 @@ This document carries the **phase-level roadmap**. A full bite-sized `Task N` pl
 
 | Phase | Scope | Status |
 |---|---|---|
-| 0 — Data Foundation | Repo, config, provenance schema, ingestion-run model, snapshot store, provider protocol + adapters, Alembic, CI skeleton | **IN_PROGRESS — this session covers slice 1 of 2** |
+| 0 — Data Foundation | Repo, config, provenance schema, ingestion-run model (now actually driving fetch→snapshot→validate), snapshot store (local + S3), provider registry, capability registry, Pandera/Pydantic validation, ingestion API, Alembic, CI skeleton | **Slice 1 + Slice 2 both done.** MinIO-backed / Docker-backed / live-API verification specifically still isn't — see Development Status |
 | 1 — Data Platform | Full API-Football + football-data.org ingestion (live), StatsBomb bulk pull, validation (Pandera), identity resolution, normalization → canonical model | PLANNED |
 | 2 — Player Intelligence | Feature store, role discovery (PCA/UMAP + clustering), embeddings, pgvector similarity | PLANNED |
 | 3 — Valuation | Transfer-value dataset, baseline → XGBoost/LightGBM, SHAP, market-gap | PLANNED |
@@ -65,6 +65,6 @@ This sandbox is good for exactly what it did today: audit, plan, write real code
 
 ## Immediate next steps (not started)
 
-1. Get `API_FOOTBALL_KEY` / `FOOTBALL_DATA_ORG_KEY` (even free/trial tiers) so the two remaining adapters can be live-verified, not just mock-verified.
-2. Clone this repo locally (or via Claude Code) where Docker Compose, MinIO, and both provider domains are reachable, and run the Phase 0 "Definition of Done" checklist (build brief §59) end-to-end.
-3. Phase 0 slice 2: ingestion-run lifecycle wiring (the `IngestionRun` state machine actually driving a fetch → snapshot → validate cycle, not just the schema), Pandera schemas, provider capability registry (build brief §7).
+1. On a machine with real Docker + network egress: `docker compose up -d --build`, confirm all 5 services healthy, re-run the full test suite pointed at the Dockerized Postgres, and add a genuine `test_minio_snapshot_store.py` integration test against the real MinIO bucket (the current one uses `moto`, which is a mock, not a substitute for this).
+2. Get `API_FOOTBALL_KEY` / `FOOTBALL_DATA_ORG_KEY` and run `LIVE_PROVIDER_TESTS=1 pytest -k live` (already wired, currently skips) — then call `CapabilityRegistry.mark_verified` for whatever those calls actually confirm, don't hand-edit the seed data.
+3. Phase 1 proper: bulk ingestion (not one-record-at-a-time), Silver normalization, canonical `Competition`/`Season`/`Club`/`Match`/`Player`, identity resolution. Per the scope-check in `docs/IMPLEMENTATION_PLAN.md`'s own opening, this gets its own `docs/plans/0002-data-platform.md` written when it starts, not now.

@@ -49,3 +49,27 @@ Only decisions where we chose between real alternatives get an ADR (per build br
 **Trade-offs:** The repo tree doesn't yet visually match the target layout in full. Preferred over empty directories that exist only to "look complete" — ponytail: no scaffolding for later.
 
 **Status:** Accepted.
+
+---
+
+## ADR-005: Local backend stays sync-blocking; S3 backend uses `asyncio.to_thread`
+
+**Context:** §16 of the Slice-2 brief explicitly asks for this decision to be made and documented, not left implicit. `boto3` has no native async API.
+
+**Decision:** `LocalFilesystemSnapshotStore` keeps its direct synchronous file I/O (flagged inline since Slice 1) — it's fine at today's volume and changing it isn't this slice's job. `S3SnapshotStore` wraps every `boto3` call in `asyncio.to_thread`, so it doesn't block the event loop even though the underlying client is synchronous.
+
+**Trade-offs:** Two different concurrency styles for two implementations of the same protocol. Consistent would mean either making local I/O properly async too (real work, no payoff yet) or accepting a blocking S3 backend (real payoff loss under concurrent ingestion). Asymmetric-but-correct beat symmetric-but-wrong.
+
+**Status:** Accepted.
+
+---
+
+## ADR-006: Capability registry stores "documented" and "verified" as separate columns
+
+**Context:** §21/§22 ask for a capability registry; §55 (both documents) is emphatic that VERIFIED must mean an operation actually ran. Those two requirements collide if a capability table has one boolean.
+
+**Decision:** `available` reflects what the architecture doc already asserts a provider supports (seeded at migration time from the spec itself — see migration 0002's docstring). `last_verified` is only ever set by `CapabilityRegistry.mark_verified()`, called exactly once, right after `IngestionService` gets a real `SUCCESS`. A row can be `available=True, last_verified=NULL` indefinitely — that's not a bug, it's an honest "we expect this to work, nobody's confirmed it yet."
+
+**Trade-offs:** Slightly more ceremony than a single `available` flag. Worth it because "the spec says this provider supports fixtures" and "we successfully pulled fixtures from it" are different claims, and conflating them is exactly the kind of fabricated verification both documents rule out.
+
+**Status:** Accepted.
