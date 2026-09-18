@@ -10,9 +10,18 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://fios:fios@localhost:5432/fios"
     redis_url: str = "redis://localhost:6379/0"
 
-    # local | s3 — s3 backend lands in Phase 1 (ADR-001)
+    # local | s3 (ADR-001: local was the Phase-0-slice-1 interim; s3 lands here)
     snapshot_storage_backend: str = "local"
     snapshot_storage_path: str = "./data/bronze"
+
+    # Only read when snapshot_storage_backend == "s3". endpoint_url distinguishes
+    # MinIO (http://minio:9000 in Docker, http://localhost:9000 from the host)
+    # from real AWS S3/R2 (leave endpoint unset).
+    s3_bucket: str | None = None
+    s3_endpoint: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+    s3_region: str = "us-east-1"
 
     api_football_key: str | None = None
     football_data_org_key: str | None = None
