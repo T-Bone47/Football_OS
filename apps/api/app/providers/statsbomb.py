@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from app.providers.base import RawResponse
+from app.providers.errors import classify_http_status_error, classify_transport_error
 from app.providers.http import request_with_retry_config
 
 _BASE_URL = "https://raw.githubusercontent.com/statsbomb/open-data/master/data"
@@ -33,7 +34,12 @@ class StatsBombProvider:
         if resource not in _RESOURCES:
             raise ValueError(f"StatsBomb adapter does not support resource '{resource}'")
         url = f"{_BASE_URL}{_RESOURCES[resource].format(**params)}"
-        response = await self._get_with_retry(url)
+        try:
+            response = await self._get_with_retry(url)
+        except httpx.HTTPStatusError as exc:
+            raise classify_http_status_error(exc) from exc
+        except httpx.TransportError as exc:
+            raise classify_transport_error(exc) from exc
         return self._to_raw_response(response, url)
 
     @request_with_retry_config(max_attempts=3)

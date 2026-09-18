@@ -1,13 +1,24 @@
-"""API-Football adapter (architecture doc §7). Requires API_FOOTBALL_KEY.
+"""API-Football adapter (architecture doc §7; connectivity-forensics doc
+§1-§21 for the specific decisions below).
 
-NOT live-verified in this environment: v3.football.api-sports.io is outside
-this sandbox's network allowlist, and no key is configured. Auth-header
-wiring and error handling are unit-tested against a mocked transport
-(tests/unit/test_provider_protocol.py). Live behaviour must be confirmed
-against a real key before this is trusted for Phase 1 ingestion.
+Base URL is the direct API-Sports host, not the website
+(v3.football.api-sports.io, not api-football.com — doc §1), and it's
+configurable rather than hardcoded so a host change is a one-line env edit.
+Auth is `x-apisports-key`, not `Authorization: Bearer` (§2).
+
+Verification status: DNS resolves for this host from this sandbox; the
+actual HTTP request is rejected by this sandbox's OWN egress proxy before
+it reaches api-sports.io at all (`x-deny-reason: host_not_allowed` — a
+header this environment's own proxy adds, confirmed identical with and
+without a valid key). That is NOT evidence the key or the adapter is wrong;
+it means this specific sandbox can't reach the host. See
+docs/DEVELOPMENT_STATUS.md and ADR-007. Auth-header wiring, retry policy,
+and error classification are unit-tested against a mocked transport
+(tests/unit/test_provider_protocol.py, tests/unit/test_provider_errors.py).
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from typing import Any
 
@@ -15,9 +26,8 @@ import httpx
 
 from app.config import get_settings
 from app.providers.base import RawResponse
+from app.providers.errors import ProviderBadRequestError, classify_http_status_error, classify_transport_error
 from app.providers.http import request_with_retry_config
-
-_BASE_URL = "https://v3.football.api-sports.io"
 
 
 class ApiFootballProvider:
@@ -29,7 +39,7 @@ class ApiFootballProvider:
             if not settings.api_football_key:
                 raise RuntimeError("API_FOOTBALL_KEY is not configured")
             client = httpx.AsyncClient(
-                base_url=_BASE_URL,
+                base_url=settings.api_football_base_url,
                 headers={"x-apisports-key": settings.api_football_key},
                 timeout=30.0,
             )
@@ -39,7 +49,13 @@ class ApiFootballProvider:
         self._client = client
 
     async def fetch(self, resource: str, **params: Any) -> RawResponse:
-        response = await self._get_with_retry(resource, params)
+        try:
+            response = await self._get_with_retry(resource, params)
+        except httpx.HTTPStatusError as exc:
+            raise classify_http_status_error(exc) from exc
+        except httpx.TransportError as exc:
+            raise classify_transport_error(exc) from exc
+        self._raise_if_envelope_has_errors(response)
         return self._to_raw_response(response)
 
     @request_with_retry_config(max_attempts=3)
@@ -47,6 +63,17 @@ class ApiFootballProvider:
         response = await self._client.get(f"/{resource}", params=params)
         response.raise_for_status()
         return response
+
+    def _raise_if_envelope_has_errors(self, response: httpx.Response) -> None:
+        """§18: HTTP 200 != usable data — API-Football puts request-level
+        errors inside the envelope, not the status code."""
+        try:
+            payload = json.loads(response.content)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return  # not JSON — let downstream validation classify this
+        errors = payload.get("errors") if isinstance(payload, dict) else None
+        if errors:
+            raise ProviderBadRequestError(f"API-Football returned errors in a 200 response: {errors}")
 
     def _to_raw_response(self, response: httpx.Response) -> RawResponse:
         return RawResponse(
