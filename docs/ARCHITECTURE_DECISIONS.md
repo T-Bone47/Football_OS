@@ -73,3 +73,15 @@ Only decisions where we chose between real alternatives get an ADR (per build br
 **Trade-offs:** Slightly more ceremony than a single `available` flag. Worth it because "the spec says this provider supports fixtures" and "we successfully pulled fixtures from it" are different claims, and conflating them is exactly the kind of fabricated verification both documents rule out.
 
 **Status:** Accepted.
+
+---
+
+## ADR-007: `ProviderUnavailableError` is distinct from `ProviderNetworkError`
+
+**Context:** This sandbox's own egress proxy returns `403` with `x-deny-reason: host_not_allowed` for hosts outside its allowlist — confirmed identical with and without a valid credential, for both API-Football and football-data.org. A generic `ProviderNetworkError` (DNS/TCP/TLS-level) or `ProviderAuthorizationError` (IP/domain restriction on the provider's own dashboard) would both misdescribe this: the request never reaches the provider at all, and it has nothing to do with the credential or the provider's own access controls.
+
+**Decision:** `ProviderUnavailableError` names this specific case — "our own environment's egress policy, not their network, not their auth" — detected by checking `response.headers["x-deny-reason"] == "host_not_allowed"` on a 403.
+
+**Trade-offs:** One more exception class for what's currently a single-sandbox quirk. Worth it because collapsing it into `ProviderAuthorizationError` would be a false claim about the *provider's* access control, and collapsing it into `ProviderNetworkError` would suggest a DNS/TLS problem that isn't there (DNS resolves; TLS to the sandbox's own proxy completes) — imprecise classification is exactly what this whole diagnostic effort exists to avoid.
+
+**Status:** Accepted. Superseded automatically the day this runs somewhere with the host actually allowlisted — the classification function only fires on that specific header, so it degrades to "doesn't fire" rather than "fires incorrectly" elsewhere.

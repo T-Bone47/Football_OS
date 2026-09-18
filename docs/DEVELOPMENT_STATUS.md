@@ -62,3 +62,27 @@ Updated at the end of each session. Statuses: PLANNED / IN_PROGRESS / IMPLEMENTE
 ## Deferred, still (unchanged reasoning from Slice 1, ADR-004)
 
 Frontend, worker/Celery-Dramatiq, canonical football entities, identity resolution — none of these are needed by Slice 2 and building them now would be exactly the "infrastructure for its own sake" the brief's §63 warns against.
+
+## Provider connectivity forensics (this session)
+
+Real credentials were supplied (via an uploaded `.env`, merged into the local `.env` — never committed, never printed, `.env` confirmed absent from `git status` throughout). Diagnosis, not assumption:
+
+| Check | API-Football | football-data.org |
+|---|---|---|
+| DNS | PASS (resolves to real IPs) | PASS |
+| TLS to the responding host | PASS | PASS |
+| HTTP reachability (request actually reaches the provider) | **FAIL** | **FAIL** |
+| Root cause | `x-deny-reason: host_not_allowed` — this sandbox's own egress proxy, confirmed identical with and without the real key | same |
+| Credential | SET (real key loaded, never live-tested — can't be, given the above) | SET (same) |
+| Authentication / Authorization / Quota | UNKNOWN — request never reached far enough to test these | UNKNOWN |
+
+This is **not** "API-Football is blocked" (the thing the brief explicitly says not to write) — it's a specific, verified layer: this sandbox's own network allowlist, not DNS, not TLS, not the provider's WAF, not the credential, not an IP/domain restriction on the API-Football dashboard side. `python -m app.providers.diagnostics` (built this session) reproduces this classification live and is exactly what will report differently — genuinely, not by assumption — the moment this runs somewhere with these two hosts allowlisted.
+
+**Added this session, all real and tested:**
+- `ProviderNetworkError` / `ProviderAuthenticationError` / `ProviderAuthorizationError` / `ProviderRateLimitError` / `ProviderBadRequestError` / `ProviderServerError` / `ProviderSchemaError` / `ProviderUnavailableError` — VERIFIED (unit tests cover every classification branch, including the sandbox-specific one)
+- Diagnostics CLI (`app/providers/diagnostics.py`) — VERIFIED as logic (mocked-transport tests cover 401/403-IP-restriction/429/200 cases this sandbox can't safely trigger live) and VERIFIED as a real run against real credentials in this environment (output captured in the session's forensic report)
+- API-Football envelope-errors check (HTTP 200 with non-empty `errors[]` → `ProviderBadRequestError`) — VERIFIED, unit-tested
+- Configurable base URLs (`API_FOOTBALL_BASE_URL`, `FOOTBALL_DATA_BASE_URL`) instead of hardcoded constants — VERIFIED (existing StatsBomb path still passes; API-Football/football-data.org paths still pass their mocked tests)
+- Renamed `football_data_org_key` → `football_data_token` to match the real credential's actual env var name — VERIFIED (existing + new tests pass)
+
+**Caught by actually running the suite, not by review** (two real bugs, both fixed): pydantic-settings reads a real `.env` file as a source independent of `monkeypatch.delenv`, so a test that assumed "delete the env var = no key" broke the moment a real `.env` existed on disk; and `from app.config import get_settings` binds a local name in `api_football.py` that patching `app.config.get_settings` doesn't reach. Both are now fixed at the actual test, not worked around.
