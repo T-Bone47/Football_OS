@@ -23,8 +23,13 @@ class Settings(BaseSettings):
     s3_secret_key: str | None = None
     s3_region: str = "us-east-1"
 
+    # §1: the website (api-football.com) and the API host are different layers —
+    # base URLs are explicit config, not something buried in each adapter, so a
+    # wrong host is a one-line env fix, not a code change.
     api_football_key: str | None = None
-    football_data_org_key: str | None = None
+    api_football_base_url: str = "https://v3.football.api-sports.io"
+    football_data_token: str | None = None
+    football_data_base_url: str = "https://api.football-data.org/v4"
 
 
 @lru_cache
