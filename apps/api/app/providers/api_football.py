@@ -15,6 +15,7 @@ import httpx
 
 from app.config import get_settings
 from app.providers.base import RawResponse
+from app.providers.http import request_with_retry_config
 
 _BASE_URL = "https://v3.football.api-sports.io"
 
@@ -38,8 +39,16 @@ class ApiFootballProvider:
         self._client = client
 
     async def fetch(self, resource: str, **params: Any) -> RawResponse:
+        response = await self._get_with_retry(resource, params)
+        return self._to_raw_response(response)
+
+    @request_with_retry_config(max_attempts=3)
+    async def _get_with_retry(self, resource: str, params: dict) -> httpx.Response:
         response = await self._client.get(f"/{resource}", params=params)
         response.raise_for_status()
+        return response
+
+    def _to_raw_response(self, response: httpx.Response) -> RawResponse:
         return RawResponse(
             content=response.content,
             content_type=response.headers.get("content-type", "application/json"),

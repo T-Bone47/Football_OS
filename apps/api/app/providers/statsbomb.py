@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 
 from app.providers.base import RawResponse
+from app.providers.http import request_with_retry_config
 
 _BASE_URL = "https://raw.githubusercontent.com/statsbomb/open-data/master/data"
 
@@ -32,8 +33,16 @@ class StatsBombProvider:
         if resource not in _RESOURCES:
             raise ValueError(f"StatsBomb adapter does not support resource '{resource}'")
         url = f"{_BASE_URL}{_RESOURCES[resource].format(**params)}"
+        response = await self._get_with_retry(url)
+        return self._to_raw_response(response, url)
+
+    @request_with_retry_config(max_attempts=3)
+    async def _get_with_retry(self, url: str) -> httpx.Response:
         response = await self._client.get(url)
         response.raise_for_status()
+        return response
+
+    def _to_raw_response(self, response: httpx.Response, url: str) -> RawResponse:
         return RawResponse(
             content=response.content,
             content_type=response.headers.get("content-type", "application/json"),
