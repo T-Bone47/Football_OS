@@ -2,6 +2,14 @@
 provider by name instead of an if/elif chain scattered through the app.
 Lazy factories — instantiating ApiFootballProvider (which needs a key) only
 happens when something actually requests it.
+
+Active vs. optional (provider-finalization phase): `default_registry` only
+auto-registers the CURRENTLY ACTIVE providers. football-data.org's adapter
+is fully implemented and still registerable — see
+`register_optional_providers()` — it's just not wired in by default while
+API-Football is the only enabled provider. This is a registration-time
+distinction, not a deletion: the generic register()/get() interface doesn't
+know or care which providers are "active".
 """
 from __future__ import annotations
 
@@ -31,11 +39,20 @@ class ProviderRegistry:
 
 
 def build_default_registry() -> ProviderRegistry:
+    """Active providers only. See ADR-008 for why football-data.org isn't here."""
     registry = ProviderRegistry()
     registry.register("statsbomb", StatsBombProvider)
     registry.register("api-football", ApiFootballProvider)
-    registry.register("football-data-org", FootballDataOrgProvider)
     return registry
+
+
+def register_optional_providers(registry: ProviderRegistry) -> None:
+    """Re-enable providers that exist and work but aren't active by default.
+    Call this explicitly (e.g. registry.register(..) directly, or this
+    helper for all of them) when you actually want football-data.org back —
+    nothing about the adapter itself changed, it's still real, tested code.
+    """
+    registry.register("football-data-org", FootballDataOrgProvider)
 
 
 default_registry = build_default_registry()
