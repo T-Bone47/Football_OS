@@ -31,6 +31,7 @@ class ProviderDiagnostics:
     quota: str = "UNKNOWN"
     reason: str = ""
     http_status: int | None = None
+    is_optional: bool = False
 
 
 def _check_dns(hostname: str) -> str:
@@ -114,14 +115,25 @@ async def diagnose_api_football(settings: Settings) -> ProviderDiagnostics:
 
 
 async def diagnose_football_data_org(settings: Settings) -> ProviderDiagnostics:
-    diag = ProviderDiagnostics(provider="football-data.org", base_url=settings.football_data_base_url)
+    diag = ProviderDiagnostics(
+        provider="football-data.org", base_url=settings.football_data_base_url, is_optional=True
+    )
+    if not settings.football_data_token:
+        diag.credential_present = "MISSING"
+        diag.reason = (
+            "OPTIONAL / DISABLED — not configured. Football Intelligence OS runs on "
+            "API-Football alone right now; this isn't a failure, it's inactive by choice "
+            "(see ADR-008). Set FOOTBALL_DATA_TOKEN to re-enable and diagnose it for real."
+        )
+        return diag
+
     hostname = httpx.URL(settings.football_data_base_url).host
     diag.dns = _check_dns(hostname)
     if diag.dns == "FAIL":
         diag.reason = "DNS FAILURE"
         return diag
 
-    diag.credential_present = "SET" if settings.football_data_token else "MISSING"
+    diag.credential_present = "SET"
 
     unauth = await _probe(settings.football_data_base_url, "/areas", None)
     if isinstance(unauth, Exception):
@@ -141,10 +153,6 @@ async def diagnose_football_data_org(settings: Settings) -> ProviderDiagnostics:
         return diag
 
     diag.http_reachable = "PASS"
-
-    if diag.credential_present == "MISSING":
-        diag.reason = "API HOST REACHABLE, TOKEN MISSING"
-        return diag
 
     authed = await _probe(
         settings.football_data_base_url, "/areas", {"X-Auth-Token": settings.football_data_token}
@@ -176,10 +184,14 @@ async def diagnose_football_data_org(settings: Settings) -> ProviderDiagnostics:
 
 
 def _format(diag: ProviderDiagnostics) -> str:
-    lines = [
-        diag.provider,
-        "-" * len(diag.provider),
-        f"Base URL: {diag.base_url}",
+    label = f"{diag.provider} [OPTIONAL / DISABLED]" if diag.is_optional and diag.credential_present == "MISSING" else diag.provider
+    lines = [label, "-" * len(label), f"Base URL: {diag.base_url}"]
+
+    if diag.is_optional and diag.credential_present == "MISSING":
+        lines += ["", "Reason:", diag.reason]
+        return "\n".join(lines)
+
+    lines += [
         "",
         f"DNS: {diag.dns}",
         f"TLS: {diag.tls}",
@@ -203,6 +215,9 @@ async def _main() -> None:
     print("FOOTBALL INTELLIGENCE OS")
     print("PROVIDER CONNECTIVITY DIAGNOSTICS")
     print("=" * 33)
+    print()
+    print(f"Active provider: API-Football{'  (OK)' if api_football.reason == 'Authenticated API request succeeded.' else ''}")
+    print("Optional providers: football-data.org")
     print()
     print(_format(api_football))
     print()

@@ -76,3 +76,16 @@ async def test_key_present_but_rejected(monkeypatch):
     diag = await _diagnose_with_responses(monkeypatch, [unauth_403, authed_401])
     assert diag.authentication == "FAIL"
     assert "REJECTED" in diag.reason
+
+
+async def test_football_data_org_not_configured_is_optional_not_failed(monkeypatch):
+    from app.providers.diagnostics import diagnose_football_data_org
+
+    settings = Settings(football_data_token=None, api_football_key=None, _env_file=None)
+    diag = await diagnose_football_data_org(settings)
+
+    assert diag.is_optional is True
+    assert diag.credential_present == "MISSING"
+    assert "OPTIONAL / DISABLED" in diag.reason
+    # Must not have attempted network diagnosis for an intentionally-inactive provider
+    assert diag.dns == "NOT RUN"
