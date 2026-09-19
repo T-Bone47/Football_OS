@@ -85,3 +85,15 @@ Only decisions where we chose between real alternatives get an ADR (per build br
 **Trade-offs:** One more exception class for what's currently a single-sandbox quirk. Worth it because collapsing it into `ProviderAuthorizationError` would be a false claim about the *provider's* access control, and collapsing it into `ProviderNetworkError` would suggest a DNS/TLS problem that isn't there (DNS resolves; TLS to the sandbox's own proxy completes) — imprecise classification is exactly what this whole diagnostic effort exists to avoid.
 
 **Status:** Accepted. Superseded automatically the day this runs somewhere with the host actually allowlisted — the classification function only fires on that specific header, so it degrades to "doesn't fire" rather than "fires incorrectly" elsewhere.
+
+---
+
+## ADR-008: API-Football is the only actively-registered provider; football-data.org stays implemented but inactive
+
+**Context:** Two fully-implemented, tested provider adapters exist (API-Football, football-data.org) plus StatsBomb. The current build only needs one football-fixtures-style provider active; carrying a second "required" credential adds setup friction with no present benefit, and previously made diagnostics report a scary failure for a provider nobody's actually trying to use yet.
+
+**Decision:** `providers/registry.py`'s `default_registry` only auto-registers `statsbomb` and `api-football`. `football-data-org`'s adapter, config fields, capability-registry rows, and tests are all untouched — `register_optional_providers()` adds it back in one call. Diagnostics treats a football-data.org with no token configured as `OPTIONAL / DISABLED` (skips the network check entirely) rather than walking it through the full pipeline to a predictable failure; if a token *is* configured, it's diagnosed for real like any other provider — "optional in the registry" and "not configured" are different, independently-true things.
+
+**Trade-offs:** Re-enabling football-data.org requires knowing to call `register_optional_providers()` — a small discoverability cost versus just always having it active. Worth it because "why does setup require a second API key I'm not using yet" was real friction with no corresponding value right now.
+
+**Status:** Accepted. Reverses no prior ADR — ADR-001 through ADR-007 are unaffected; this only changes what's *registered by default*, not any of the underlying architecture they cover.

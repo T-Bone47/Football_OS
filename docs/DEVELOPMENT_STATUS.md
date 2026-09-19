@@ -86,3 +86,19 @@ This is **not** "API-Football is blocked" (the thing the brief explicitly says n
 - Renamed `football_data_org_key` → `football_data_token` to match the real credential's actual env var name — VERIFIED (existing + new tests pass)
 
 **Caught by actually running the suite, not by review** (two real bugs, both fixed): pydantic-settings reads a real `.env` file as a source independent of `monkeypatch.delenv`, so a test that assumed "delete the env var = no key" broke the moment a real `.env` existed on disk; and `from app.config import get_settings` binds a local name in `api_football.py` that patching `app.config.get_settings` doesn't reach. Both are now fixed at the actual test, not worked around.
+
+## Provider finalization: API-Football as sole active provider (this session)
+
+Per ADR-008. `football-data.org`'s adapter, config, and capability-registry rows are untouched — it's registerable via `register_optional_providers()`, just not in `default_registry`.
+
+| Item | Status |
+|---|---|
+| `default_registry` (statsbomb + api-football only) | VERIFIED |
+| `register_optional_providers()` re-adds football-data.org | VERIFIED (unit test) |
+| Diagnostics: football-data.org shows `OPTIONAL / DISABLED` when unconfigured, doesn't fail overall health | VERIFIED (unit test with no token; also confirmed live in this session — this sandbox's own `.env` has a real token, so diagnostics correctly ran the full check instead of short-circuiting, and reported the same sandbox-egress-block reason as API-Football) |
+| `.env.example` — football-data.org vars commented out of the active section, with a note on how to re-enable | VERIFIED |
+| Adapter-level (not just classifier-level) error wiring: 401/429/500/timeout through the real `ApiFootballProvider.fetch()` | VERIFIED — 4 new tests |
+| Full suite | **45 passed, 1 skipped** (unchanged: the opt-in live test) |
+| Live API-Football verification | Still **BLOCKED** in this sandbox for the same reason as every prior session — a diagnostic run reported from Oliver's own machine showed a genuine PASS across DNS/TLS/HTTP/auth/authz/quota, which I'm reporting as *his* result, not mine; I have not independently observed a successful live call from anywhere I control |
+
+One process note worth being direct about: a reconnaissance `grep` in this session wasn't scoped away from `.env` and printed the real `FOOTBALL_DATA_TOKEN` value in a tool-output line — caught and disclosed immediately, `.env` itself was never at risk (still untracked, still absent from git history), but it's a real lapse against the "never print the key" rule both this project's docs and I have held to everywhere else. Token rotation was recommended as a precaution.
