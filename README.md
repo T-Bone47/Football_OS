@@ -35,7 +35,11 @@ curl -X POST http://localhost:8000/api/v1/ingestion/runs \
 curl http://localhost:8000/api/v1/ingestion/runs/<run_id>
 ```
 
-`statsbomb`/`competitions` works with zero configuration (free, keyless, real data). `api-football` and `football-data-org` need `API_FOOTBALL_KEY` / `FOOTBALL_DATA_ORG_KEY` in `.env` and, in this sandboxed environment specifically, network egress those two domains don't currently have.
+`statsbomb`/`competitions` works with zero configuration (free, keyless, real data). `api-football` is the only active external provider (see ADR-008) and needs `API_FOOTBALL_KEY` in `.env` — get one from the dashboard at `https://dashboard.api-football.com/profile?access`, **not** from `https://www.api-football.com/`, which is the documentation/marketing site, not the API host. The API host is `https://v3.football.api-sports.io`, auth header `x-apisports-key`.
+
+`football-data-org` is fully implemented and tested but not active by default — see ADR-008 for why, and `.env.example` for how to bring it back.
+
+Run `python -m app.providers.diagnostics` (from `apps/api`, with `PYTHONPATH=apps/api`) any time you want a sanitized DNS/TLS/auth/quota report for the active provider without ever printing the key. In this project's own sandboxed dev environment, that command's honest answer is a sandbox-egress block, not a provider problem — see `docs/DEVELOPMENT_STATUS.md`.
 
 ## Tests
 
