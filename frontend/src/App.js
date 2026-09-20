@@ -3,8 +3,10 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ArrowRight, CheckCircle2, CircleAlert, LogOut, ShieldCheck } from "lucide-react";
-import Sidebar from "@/components/Sidebar";
+import AppShell from "@/components/AppShell";
 import IntelligencePage from "@/pages/IntelligencePage";
+import PlayerSearchPage from "@/pages/PlayerSearchPage";
+import PlayerProfilePage from "@/pages/PlayerProfilePage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -72,10 +74,10 @@ const ProtectedRoute = ({ children }) => {
 const Dashboard = ({ user }) => {
   const navigate = useNavigate();
   const logout = async () => { await axios.post(`${API}/auth/logout`, {}, { withCredentials: true }); navigate("/login", { replace: true }); };
-  return <div className="app-shell" data-testid="dashboard-page"><Sidebar /><main className="workspace"><header className="workspace-header"><div><p className="eyebrow" data-testid="dashboard-eyebrow">FOOTBALL INTELLIGENCE OS / OVERVIEW</p><h1 data-testid="dashboard-heading">Good morning, {user.name.split(" ")[0]}.</h1><p className="workspace-subtitle" data-testid="dashboard-subtitle">Your decision room is connected and ready.</p></div><button className="logout-button" data-testid="logout-button" onClick={logout}><LogOut size={16} /> Sign out</button></header><section className="status-strip" data-testid="session-status"><span className="live-dot" /> <strong data-testid="session-status-label">SESSION ACTIVE</strong><span data-testid="session-user-email">{user.email}</span></section><section className="dashboard-grid" data-testid="dashboard-feature-grid">{['Player intelligence', 'Market signals', 'Match intelligence'].map((title, index) => <article className="intelligence-card" key={title} data-testid={`dashboard-card-${index + 1}`}><span className="card-number">0{index + 1}</span><h2 data-testid={`dashboard-card-title-${index + 1}`}>{title}</h2><p data-testid={`dashboard-card-status-${index + 1}`}>Connect a data source to begin.</p><span className="card-state" data-testid={`dashboard-card-state-${index + 1}`}>BACKEND DEPENDENCY</span></article>)}</section></main></div>;
+  return <AppShell><div data-testid="dashboard-page"><header className="workspace-header"><div><p className="eyebrow" data-testid="dashboard-eyebrow">FOOTBALL INTELLIGENCE OS / OVERVIEW</p><h1 data-testid="dashboard-heading">Good morning, {user.name.split(" ")[0]}.</h1><p className="workspace-subtitle" data-testid="dashboard-subtitle">Your decision room is connected and ready.</p></div><button className="logout-button" data-testid="logout-button" onClick={logout}><LogOut size={16} /> Sign out</button></header><section className="status-strip" data-testid="session-status"><span className="live-dot" /> <strong data-testid="session-status-label">SESSION ACTIVE</strong><span data-testid="session-user-email">{user.email}</span></section><section className="dashboard-grid" data-testid="dashboard-feature-grid">{['Player intelligence', 'Market signals', 'Match intelligence'].map((title, index) => <article className="intelligence-card" key={title} data-testid={`dashboard-card-${index + 1}`}><span className="card-number">0{index + 1}</span><h2 data-testid={`dashboard-card-title-${index + 1}`}>{title}</h2><p data-testid={`dashboard-card-status-${index + 1}`}>Connect a data source to begin.</p><span className="card-state" data-testid={`dashboard-card-state-${index + 1}`}>BACKEND DEPENDENCY</span></article>)}</section></div></AppShell>;
 };
 
-const WorkspaceRoute = ({ path }) => <div className="app-shell" data-testid="workspace-shell"><Sidebar /><main className="workspace"><IntelligencePage path={path} /></main></div>;
+const WorkspaceRoute = ({ path }) => <AppShell><IntelligencePage path={path} /></AppShell>;
 
 function AppRouter() {
   const location = useLocation();
@@ -83,7 +85,9 @@ function AppRouter() {
   return <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/dashboard" element={<ProtectedRoute>{({ user }) => <Dashboard user={user} />}</ProtectedRoute>} />
-    {Object.keys({ "/players": 1, "/players/similarity": 1, "/market": 1, "/market/risk": 1, "/tactical/fit": 1, "/matches": 1, "/research": 1, "/copilot": 1 }).map((path) => <Route key={path} path={path} element={<ProtectedRoute>{() => <WorkspaceRoute path={path} />}</ProtectedRoute>} />)}
+    <Route path="/players" element={<ProtectedRoute>{() => <AppShell><PlayerSearchPage /></AppShell>}</ProtectedRoute>} />
+    <Route path="/players/:playerId" element={<ProtectedRoute>{() => <AppShell><PlayerProfilePage /></AppShell>}</ProtectedRoute>} />
+    {Object.keys({ "/players/similarity": 1, "/market": 1, "/market/risk": 1, "/tactical/fit": 1, "/matches": 1, "/research": 1, "/copilot": 1 }).map((path) => <Route key={path} path={path} element={<ProtectedRoute>{() => <WorkspaceRoute path={path} />}</ProtectedRoute>} />)}
     <Route path="/" element={<Navigate to="/dashboard" replace />} />
     <Route path="*" element={<Navigate to="/dashboard" replace />} />
   </Routes>;
