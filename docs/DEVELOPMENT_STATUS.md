@@ -233,6 +233,25 @@ Vertical slice per Phase 2 Slice 2 Master Specification: **Leakage-Safe FeatureS
 | Real PostgreSQL Verification | **VERIFIED LIVE** | Live `fios` database verified: 45 players audited, dataset gate correctly identified 0 players $\ge 450$ minutes from single fixture, reported `INSUFFICIENT_DATASET` honestly, persisted 5 real `PlayerRoleProfile` records, and validated real similarity comparison between D. Ferreira and R. Arboleda |
 | Full Test Suite | **VERIFIED** | **127 passed, 1 skipped, 0 failed** across all unit and integration test suites |
 
+## Phase 2 — Slice 3: Tactical Fit & System Suitability Engine (this session)
+
+Vertical slice per Phase 2 Slice 3 Master Specification: **Empirical Role Profiles & Feature Snapshots → Multi-Component Tactical Compatibility Calculator → Pre-Configured Tactical Contexts Catalog (11+ Formations/Roles) & Dynamic Custom Contexts → Critical Minimum Threshold Deficit Penalties → Systemic Style & Exposure Maturity Scaling → Evidence-Based Confidence & Uncertainty Gating → Structured Explainability Engine ("Why Fit" / "Why Not Fit") → Canonical Model (`PlayerTacticalFit`) & Migration 0009 → Canonical REST API → Bit-for-Bit Temporal Leakage Invariance.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0009_tactical_fit.py` | VERIFIED | Alembic migration 0009 creating table `player_tactical_fits` with unique constraint `(player_id, tactical_context_id, feature_set_version, calculation_version, as_of)`, B-tree indexes on `player_id`, `as_of`, `tactical_context_id`, `target_role`, `fit_status`, and `JSONB` storage |
+| Canonical Model `PlayerTacticalFit` (`canonical.py`) | VERIFIED | Strongly-typed entity mapping `player_id`, `team_id`, `season_id`, `tactical_context_id`, `formation`, `target_position`, `position_group`, `target_role`, `fit_score`, `position_fit`, `role_fit`, `dimension_fit`, `style_fit`, `contextual_fit`, `confidence`, `fit_status`, `dimension_breakdown`, `why_fit`, `why_not_fit`, and audit `provenance`; bidirectional relationship to `Player` |
+| Tactical Context Catalog (`tactical/contexts.py`) | VERIFIED | Catalog of 11+ standard pre-configured tactical contexts across 4-3-3, 4-2-3-1, 3-5-2, 3-4-3 with normalized importance weights and critical minimum thresholds; dynamic `build_custom_context()` generation |
+| Tactical Fit Calculator (`tactical/calculator.py`) | VERIFIED | Pure analytical calculator computing position fit, role fit (exact & functional projection), dimensional fit with threshold deficit penalties, style alignment, and contextual exposure ratio |
+| Critical Minimum Threshold Deficit Penalty | **VERIFIED** | Falling below non-negotiable thresholds incurs proportional penalties $\frac{\text{deficit}}{T_{\min}} \times 0.50$, preventing secondary metrics from masking core tactical deficits |
+| Sample-Size Gate & Uncertainty Status | **VERIFIED** | Players below 450 minutes or with `INSUFFICIENT_SAMPLE` role status are strictly gated to `confidence = INSUFFICIENT_DATA` and `fit_status = INSUFFICIENT_DATA`; qualified categorizations evaluate to `FIT`, `MODERATE_FIT`, or `POOR_FIT` |
+| Explainability Engine (`tactical/explain.py`) | VERIFIED | Structured "Why Fit" (positional alignment, role archetype match, dimensional strengths, style alignment) and "Why Not Fit" (sample warnings, positional mismatches, threshold deficits, dimensional divergence) |
+| Tactical Fit Service (`tactical/service.py`) | VERIFIED | Leakage-safe point-in-time calculation, idempotent PostgreSQL upsert, single-player retrieval, and head-to-head comparison with dimensional deltas and summary |
+| Definitive Temporal Leakage Invariance | **VERIFIED** | `tests/integration/test_tactical_leakage.py`: Tactical fit evaluated at T0 remains **100% bit-for-bit identical** after injecting divergent future performance at T1 > T0 |
+| Canonical REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/tactical/contexts`, `GET /api/v1/players/{id}/tactical-fit`, `GET /api/v1/players/{id}/tactical-fit/{context_id}`, and `POST /api/v1/tactical-fit/compare` |
+| Full Test Suite | **VERIFIED** | **95 unit tests passed** (including 10 tactical fit tests), integration tests covering persistence, sample gating, API endpoints, and temporal leakage |
+
+
 
 
 
