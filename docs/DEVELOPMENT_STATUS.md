@@ -180,5 +180,20 @@ Vertical slice per §18–§22: **Bronze Event/Lineup/Statistics Snapshots → P
 | Real Bronze Snapshot Normalization | **VERIFIED LIVE** | Real API-Football snapshots for fixture `1492387` normalized into PostgreSQL: 15 events, 44 lineup players, 2 team statistics with exact DataSnapshot provenance |
 | Full Test Suite | **VERIFIED** | **90 passed, 1 skipped, 0 failed** across all unit and integration test suites in 52.85s |
 
+## Phase 1 — Slice 4: Player-Match Performance + Canonical Match Context (this session)
+
+Vertical slice per §18–§22: **Bronze Player-Statistics Snapshots → Pure Deterministic Transformers → Canonical Model (`PlayerMatchStats`) → Normalization Service & Lineup Context Integration → Real PostgreSQL Persistence & Idempotency Proof → Canonical REST API → Full Verification.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0006_player_match_stats.py` | VERIFIED | Real Alembic migration executed against PostgreSQL 16; created table `player_match_stats` with unique constraint `(match_id, club_id, player_id)`, indexes on `match_id`, `club_id`, `player_id`, `snapshot_id`, composite indexes `(match_id, club_id)`, `(match_id, player_id)`, and seeded API-Football capability for `fixtures/players` |
+| Canonical Model (`canonical.py`) | VERIFIED | `PlayerMatchStats` covering minutes, rating, attacking (goals, assists, shots, offsides), passing (passes total, key, accuracy), defending (tackles, blocks, interceptions), duels (total, won), dribbles (attempts, success, past), discipline (fouls drawn/committed, yellow/red cards), penalties (won, committed, scored, missed, saved), and goalkeeping (saves, goals conceded, clean sheets); bidirectional relationships to `Match`, `Club`, `Player` |
+| Pure Transformers (`transformers.py`) | VERIFIED | 4 unit tests covering player statistics parsing, strict preservation of explicit 0 vs None across all metrics, string rating parsing (`"7.45"` -> `7.45`, `"0"` with 0 minutes -> `None`), pass accuracy percentage parsing, and goalkeeper metrics |
+| Normalization Service Extension (`service.py`) | VERIFIED | `normalize_player_match_stats_payload` and `normalize_snapshot` dispatcher for `fixtures/players`; player resolution via `PlayerIdentity` (`DIRECT_PROVIDER_ID`); cross-referencing with `MatchLineup` for starter status, grid formation position, and captaincy without overwriting explicit stats; full snapshot provenance attribution (`snapshot_id`) |
+| Strict Idempotency Engine | **VERIFIED LIVE** | Repeated normalization of real Bronze snapshot on live PostgreSQL 16 resulted in exactly 45 player match performance records, 0 duplicates, 0 club deltas, 0 player deltas, and 100% identical primary keys |
+| Canonical REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/matches/{id}/player-stats` (ordered by club, starters, minutes), alias `GET /api/v1/matches/{id}/players`, and `GET /api/v1/players/{id}/matches` (player match history with pagination and club filters) |
+| Real Bronze Snapshot Normalization | **VERIFIED LIVE** | Real API-Football snapshot for fixture `1492387` (`cce167ca-3f18-4646-9ec0-5f366ed61309`) normalized into PostgreSQL: 45 players, 23 starters, 22 substitutes, 32 with minutes, 13 unused substitutes, explicit 0 goals (44) and shots (32) preserved, null penalties_won (45) preserved |
+| Full Test Suite | **VERIFIED** | **98 passed, 1 skipped, 0 failed** across all unit and integration test suites |
+
 
 
