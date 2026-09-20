@@ -135,3 +135,19 @@ Executed on local machine with real Docker PostgreSQL 16, live network access, a
 1. **Transactional Capability Commit**: Fixed `IngestionService.run` to call `mark_verified` before `self._session.commit()` so capability verification is atomically committed with run and snapshot records.
 2. **Test Environment**: Added `fios_test` database to Postgres container; enabled `load_dotenv()` in `tests/conftest.py`; updated `test_api_football_live` to mark `status` capability before running.
 
+## Phase 1 — Slice 1: Bronze to Silver Normalization Engine (this session)
+
+Vertical slice per §18–§22 of architecture specification: **Bronze Snapshots → Transformers → Identity Resolution → Canonical Silver Entities (`Competition`, `Season`, `Club`, `Player`, `PlayerSeasonStats`) in PostgreSQL → REST API → Tests.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0003_canonical_silver_models.py` | VERIFIED | Real Alembic migration executed against Docker Postgres 16; 9 new tables created with FKs and unique constraints |
+| SQLAlchemy Canonical Models (`canonical.py`) | VERIFIED | `Competition`, `Season`, `CompetitionSeason`, `Club`, `ClubIdentity`, `Player`, `PlayerIdentity`, `PlayerSeasonStats`, `Match` |
+| Pure Transformers (`transformers.py`) | VERIFIED | Unit-tested with dirty input handling (string unit stripping, date parsing, float parsing) |
+| Normalization Service (`service.py`) | VERIFIED | Idempotent upserts for clubs and players; full provenance link to `DataSnapshot.id` |
+| Identity Resolution (§21) | VERIFIED | Explicit `ClubIdentity` and `PlayerIdentity` records with `DIRECT_PROVIDER_ID` resolution method and confidence 1.0 |
+| Canonical API (`routes_canonical.py`) | VERIFIED | `/api/v1/competitions`, `/api/v1/clubs`, `/api/v1/players`, `/api/v1/normalization/snapshots/{id}` |
+| Live Data Ingestion & Normalization | **VERIFIED LIVE** | Real Premier League 2023 Bronze snapshots normalized into 20 canonical clubs and 20 canonical players with season stats in local PostgreSQL |
+| Full Test Suite | **VERIFIED** | **65 passed, 0 failed, 0 skipped** across unit, integration, and live provider tests |
+
+
