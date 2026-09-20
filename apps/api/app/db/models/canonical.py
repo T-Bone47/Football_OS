@@ -255,6 +255,15 @@ class Match(Base):
     away_club: Mapped["Club"] = relationship(foreign_keys=[away_club_id])
     winner_club: Mapped["Club | None"] = relationship(foreign_keys=[winner_club_id])
     teams: Mapped[list["MatchTeam"]] = relationship(back_populates="match", cascade="all, delete-orphan")
+    events: Mapped[list["MatchEvent"]] = relationship(
+        back_populates="match", cascade="all, delete-orphan", order_by="MatchEvent.minute"
+    )
+    lineups: Mapped[list["MatchLineup"]] = relationship(
+        back_populates="match", cascade="all, delete-orphan"
+    )
+    statistics: Mapped[list["MatchStatistics"]] = relationship(
+        back_populates="match", cascade="all, delete-orphan"
+    )
 
 
 class MatchTeam(Base):
@@ -286,4 +295,125 @@ class MatchTeam(Base):
     match: Mapped["Match"] = relationship(back_populates="teams")
     club: Mapped["Club"] = relationship(foreign_keys=[club_id])
     opponent_club: Mapped["Club"] = relationship(foreign_keys=[opponent_club_id])
+
+
+class MatchEvent(Base):
+    __tablename__ = "match_events"
+    __table_args__ = (
+        UniqueConstraint("match_id", "event_key", name="uq_match_event_match_key"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    player_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("players.id", ondelete="SET NULL"), index=True
+    )
+    assist_player_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("players.id", ondelete="SET NULL"), index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)  # GOAL, CARD, SUBSTITUTION, VAR, OTHER
+    event_detail: Mapped[str | None] = mapped_column(String(64))
+    minute: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    extra_minute: Mapped[int | None] = mapped_column(Integer)
+    comments: Mapped[str | None] = mapped_column(String(255))
+    event_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    provider_event_id: Mapped[str | None] = mapped_column(String(128), index=True)
+    snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    match: Mapped["Match"] = relationship(back_populates="events")
+    club: Mapped["Club"] = relationship()
+    player: Mapped["Player | None"] = relationship(foreign_keys=[player_id])
+    assist_player: Mapped["Player | None"] = relationship(foreign_keys=[assist_player_id])
+
+
+class MatchLineup(Base):
+    __tablename__ = "match_lineups"
+    __table_args__ = (
+        UniqueConstraint("match_id", "club_id", "player_id", name="uq_match_lineup_player"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    is_starter: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    jersey_number: Mapped[int | None] = mapped_column(Integer)
+    position: Mapped[str | None] = mapped_column(String(16))  # G, D, M, F
+    formation_position: Mapped[str | None] = mapped_column(String(16))  # e.g. "1:1"
+    formation: Mapped[str | None] = mapped_column(String(32))  # e.g. "3-4-2-1"
+    is_captain: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    coach_name: Mapped[str | None] = mapped_column(String(128))
+    snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    match: Mapped["Match"] = relationship(back_populates="lineups")
+    club: Mapped["Club"] = relationship()
+    player: Mapped["Player"] = relationship()
+
+
+class MatchStatistics(Base):
+    __tablename__ = "match_statistics"
+    __table_args__ = (
+        UniqueConstraint("match_id", "club_id", name="uq_match_statistics_match_club"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    possession_pct: Mapped[float | None] = mapped_column(Float)
+    shots_total: Mapped[int | None] = mapped_column(Integer)
+    shots_on_target: Mapped[int | None] = mapped_column(Integer)
+    shots_off_target: Mapped[int | None] = mapped_column(Integer)
+    blocked_shots: Mapped[int | None] = mapped_column(Integer)
+    shots_inside_box: Mapped[int | None] = mapped_column(Integer)
+    shots_outside_box: Mapped[int | None] = mapped_column(Integer)
+    fouls: Mapped[int | None] = mapped_column(Integer)
+    corners: Mapped[int | None] = mapped_column(Integer)
+    offsides: Mapped[int | None] = mapped_column(Integer)
+    yellow_cards: Mapped[int | None] = mapped_column(Integer)
+    red_cards: Mapped[int | None] = mapped_column(Integer)
+    saves: Mapped[int | None] = mapped_column(Integer)
+    passes_total: Mapped[int | None] = mapped_column(Integer)
+    passes_accurate: Mapped[int | None] = mapped_column(Integer)
+    pass_accuracy_pct: Mapped[float | None] = mapped_column(Float)
+    expected_goals: Mapped[float | None] = mapped_column(Float)
+    free_kicks: Mapped[int | None] = mapped_column(Integer)
+    raw_stats: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    match: Mapped["Match"] = relationship(back_populates="statistics")
+    club: Mapped["Club"] = relationship()
+
 

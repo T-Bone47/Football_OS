@@ -16,7 +16,7 @@ from pydantic import BaseModel
 class ApiFootballEnvelope(BaseModel):
     get: str
     parameters: dict[str, Any] = {}
-    errors: list[Any] = []
+    errors: list[Any] | dict[str, Any] = []
     results: int
     paging: dict[str, Any] = {}
     response: list[Any]
