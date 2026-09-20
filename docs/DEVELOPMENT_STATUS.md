@@ -150,4 +150,19 @@ Vertical slice per §18–§22 of architecture specification: **Bronze Snapshots
 | Live Data Ingestion & Normalization | **VERIFIED LIVE** | Real Premier League 2023 Bronze snapshots normalized into 20 canonical clubs and 20 canonical players with season stats in local PostgreSQL |
 | Full Test Suite | **VERIFIED** | **65 passed, 0 failed, 0 skipped** across unit, integration, and live provider tests |
 
+## Phase 1 — Slice 2: Match Intelligence + Data Foundation (this session)
+
+Vertical slice per §18–§22: **Bronze Fixture Snapshots → Pure Transformers → Controlled Status & Score Mapping → Idempotent Normalization Service → Canonical `Match` + `MatchTeam` in PostgreSQL → Canonical Match REST API → Full Verification.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0004_match_normalization_enhancements.py` | VERIFIED | Real Alembic migration executed against PostgreSQL 16; added 17 enhancement columns + indexes to `matches`, created `match_teams` table with composite unique constraint `(match_id, club_id)` |
+| Canonical Models (`Match`, `MatchTeam` in `canonical.py`) | VERIFIED | Canonical `Match` with score breakdown (halftime, fulltime, extratime, penalty), timezone-aware kickoff, venue, referee, round, stage, winner club FK; canonical `MatchTeam` capturing home/away club perspectives, match results (`WIN`/`LOSS`/`DRAW`), goals for/against, and points (`3`/`1`/`0`) |
+| Pure Fixture Transformers (`transformers.py`) | VERIFIED | 6 unit tests covering timestamp parsing, timezone awareness, status mapping (`SCHEDULED`, `LIVE`, `FINISHED`, `POSTPONED`, `CANCELLED`, `SUSPENDED`, `ABANDONED`, `AWARDED`, `UNKNOWN`), score extraction, and data quality rejections (missing ID, missing date, `home == away`) |
+| Normalization Service Match Extension (`service.py`) | VERIFIED | `normalize_fixtures_payload` and `normalize_snapshot` (for `fixtures`, `fixtures_round`, `fixture` endpoints); club identity resolution via `DIRECT_PROVIDER_ID`; automated winner calculation; full snapshot provenance attribution (`snapshot_id`) |
+| Idempotency Engine | **VERIFIED LIVE** | Repeated normalization of real 1154-fixture Bronze snapshot on live PostgreSQL resulted in exactly 1154 matches, 2308 match teams, 0 duplicate records, identical primary keys |
+| Canonical Match REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/matches` with filtering (`competition_id`, `season_id`, `competition_season_id`, `club_id`, `status`, `date_from`, `date_to`, pagination); `GET /api/v1/matches/{id}` returning match detail with club summaries, scores, and match teams perspective |
+| Real Bronze Snapshot Normalization | **VERIFIED LIVE** | 1,154 matches and 2,308 match teams populated in PostgreSQL from API-Football snapshot `a33904b9-44cd-4cca-b360-06e385cd2ae4` |
+| Full Test Suite | **VERIFIED** | **80 passed, 1 skipped, 0 failed** across all unit and integration test suites |
+
 
