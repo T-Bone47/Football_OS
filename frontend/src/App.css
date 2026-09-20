@@ -679,34 +679,38 @@ tbody tr:last-child td { border-bottom: 0; }
 /* Football pitch visualization */
 .pitch-visual {
   aspect-ratio: 16 / 10;
-  background: repeating-linear-gradient(
-    90deg,
-    #0a1219 0px,
-    #0a1219 40px,
-    #0b1520 40px,
-    #0b1520 80px
-  );
+  background:
+    radial-gradient(circle at 25% 60%, rgba(56, 208, 214, 0.06), transparent 55%),
+    repeating-linear-gradient(
+      90deg,
+      #0a1219 0px,
+      #0a1219 42px,
+      #0c1620 42px,
+      #0c1620 84px
+    );
   border: 1px solid var(--line); border-radius: 3px; position: relative;
   overflow: hidden; min-height: 200px;
 }
-.pitch-visual::before, .pitch-visual::after {
-  content: ""; position: absolute; border: 1px solid rgba(49, 200, 206, 0.18);
+.pitch-lines { position: absolute; inset: 0; pointer-events: none; }
+.pitch-lines::before {
+  content: ""; position: absolute; inset: 12px;
+  border: 1px solid rgba(49, 200, 206, 0.16); border-radius: 2px;
 }
-.pitch-visual::before { inset: 12px; border-radius: 2px; }
-.pitch-visual::after {
-  top: 12px; bottom: 12px; left: 50%;
-  border-left: 1px dashed rgba(49, 200, 206, 0.18); border-width: 0 0 0 1px;
+.pitch-visual::before, .pitch-visual::after { content: none; }
+.pitch-midline {
+  position: absolute; top: 12px; bottom: 12px; left: 50%;
+  border-left: 1px dashed rgba(49, 200, 206, 0.16);
 }
 .pitch-center {
   position: absolute; top: 50%; left: 50%;
-  width: 66px; height: 66px;
-  border: 1px solid rgba(49, 200, 206, 0.22); border-radius: 50%;
+  width: 60px; height: 60px;
+  border: 1px solid rgba(49, 200, 206, 0.2); border-radius: 50%;
   transform: translate(-50%, -50%);
 }
 .pitch-box {
   position: absolute; top: 50%;
-  width: 18%; height: 46%;
-  border: 1px solid rgba(49, 200, 206, 0.18);
+  width: 16%; height: 44%;
+  border: 1px solid rgba(49, 200, 206, 0.16);
   transform: translateY(-50%);
 }
 .pitch-box.left { left: 12px; border-left: 0; }
@@ -714,15 +718,53 @@ tbody tr:last-child td { border-bottom: 0; }
 .pitch-label {
   position: absolute; bottom: 8px; left: 12px;
   color: var(--muted); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
 }
 .pitch-marker {
-  position: absolute; width: 20px; height: 20px;
+  position: absolute; width: 26px; height: 26px;
   transform: translate(-50%, -50%);
-  border-radius: 50%; background: var(--cyan-soft);
+  border-radius: 3px; background: rgba(9, 15, 20, 0.85);
   border: 1px solid var(--cyan); color: var(--cyan);
-  display: grid; place-items: center; font-size: 10px;
+  display: grid; place-items: center; font-size: 9.5px;
   font-weight: 600; font-family: "JetBrains Mono", ui-monospace, monospace;
+  letter-spacing: .04em; z-index: 3;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
+
+/* Real positional heatmap grid overlay */
+.pitch-heat-grid {
+  position: absolute; inset: 12px;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  gap: 0; pointer-events: none; z-index: 2;
+  filter: blur(6px);
+}
+.pitch-heat-cell {
+  background: radial-gradient(circle, rgba(56, 208, 214, 0.9) 0%, rgba(56, 208, 214, 0) 65%);
+}
+
+/* ============================================================
+   SHORTLISTS
+   ============================================================ */
+.shortlist-index { display: grid; gap: 0; }
+.shortlist-index-row {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; padding: 10px 0; border-top: 1px solid var(--line);
+  background: transparent; border-left: 0; border-right: 0; border-bottom: 0;
+  cursor: pointer; color: var(--text); font-family: inherit; text-align: left;
+}
+.shortlist-index-row:first-child { border-top: 0; }
+.shortlist-index-row strong { font-size: 12.5px; font-weight: 500; display: block; }
+.shortlist-index-row small { color: var(--muted); font-size: 11px; display: block; margin-top: 2px; }
+.shortlist-index-row:hover strong { color: var(--cyan); }
+
+.shortlist-create { display: flex; flex-direction: column; gap: 8px; }
+
+.tag-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Radar */
 .radar-wrap { width: 100%; min-height: 240px; }

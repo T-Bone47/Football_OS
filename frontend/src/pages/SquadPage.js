@@ -1,5 +1,6 @@
 import { Beaker, Database, GitCompare, Layers, Trophy } from "lucide-react";
 import { BACKEND_GAPS } from "@/lib/footballApi";
+import PitchHeatmap from "@/components/PitchHeatmap";
 
 const CONFIG = {
   builder: {
@@ -47,10 +48,7 @@ export default function SquadPage({ variant = "builder" }) {
               <h3>Formation ready for backend feed</h3>
             </div>
           </div>
-          <div className="pitch-visual">
-            <div className="pitch-center" />
-            <span className="pitch-label">4-3-3 · reference</span>
-          </div>
+          <PitchHeatmap formation="4-3-3" caption="4-3-3 · reference" testId="squad-pitch" />
         </div>
 
         <div className="data-block" data-testid="squad-summary-panel">

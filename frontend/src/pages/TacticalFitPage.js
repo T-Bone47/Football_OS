@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Compass, Database, Radar, Target } from "lucide-react";
 import { apiErrorMessage, getClubs, getPlayer, getPlayers, BACKEND_GAPS } from "@/lib/footballApi";
 import PerformanceRadar from "@/components/PerformanceRadar";
+import PitchHeatmap from "@/components/PitchHeatmap";
 
 const FORMATIONS = ["4-3-3", "4-2-3-1", "3-5-2", "4-4-2", "3-4-3"];
 const ROLES = ["Progressive 8", "Ball-winning DM", "Inverted FB", "Target 9", "Pressing 10", "Wide creator"];
@@ -74,13 +75,15 @@ export default function TacticalFitPage() {
               <p className="eyebrow">SYSTEM VISUALIZATION</p>
               <h3>{formation} · {role}</h3>
             </div>
+            <span className="badge neutral">STRUCTURAL</span>
           </div>
-          <div className="pitch-visual" data-testid="tactical-pitch">
-            <div className="pitch-center" />
-            <span className="pitch-label">Structural view</span>
-          </div>
+          <PitchHeatmap
+            formation={formation}
+            caption={`${formation} · ${role}`}
+            testId="tactical-pitch"
+          />
           <p className="section-copy">
-            Positional heatmaps and role zones will render here when the backend supplies team system data.
+            Position markers show the {formation} structural layout. Positional intensity heatmap will render on this same pitch when the backend supplies role-conditioned tactical vectors.
           </p>
         </div>
 

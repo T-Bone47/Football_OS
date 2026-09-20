@@ -28,6 +28,8 @@ const BREADCRUMBS = [
   { pattern: /^\/research/, trail: ["Research", "Lab"] },
   { pattern: /^\/system\/data-quality/, trail: ["System", "Data quality"] },
   { pattern: /^\/copilot/, trail: ["AI", "Scout copilot"] },
+  { pattern: /^\/shortlists\/[^/]+/, trail: ["Recruitment", "Shortlists", "Board"] },
+  { pattern: /^\/shortlists/, trail: ["Recruitment", "Shortlists"] },
 ];
 
 function Breadcrumb({ pathname }) {

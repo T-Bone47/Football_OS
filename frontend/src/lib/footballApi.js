@@ -52,3 +52,23 @@ export const apiErrorMessage = (error) => {
 
 export const isBackendUnreachable = (error) =>
   error?.code === "ERR_NETWORK" || (error?.response?.status && error.response.status >= 500);
+
+// ============================================================
+// SHORTLISTS (backed by our own /api/shortlists, Mongo-persisted)
+// ============================================================
+const APP = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const app = (path, params) => axios.get(`${APP}${path}`, { params, withCredentials: true }).then(({ data }) => data);
+const appPost = (path, body) => axios.post(`${APP}${path}`, body, { withCredentials: true }).then(({ data }) => data);
+const appPatch = (path, body) => axios.patch(`${APP}${path}`, body, { withCredentials: true }).then(({ data }) => data);
+const appDelete = (path) => axios.delete(`${APP}${path}`, { withCredentials: true }).then(({ data }) => data);
+
+export const listShortlists = () => app("/shortlists");
+export const createShortlist = (payload) => appPost("/shortlists", payload);
+export const getShortlist = (id) => app(`/shortlists/${id}`);
+export const updateShortlist = (id, payload) => appPatch(`/shortlists/${id}`, payload);
+export const deleteShortlist = (id) => appDelete(`/shortlists/${id}`);
+export const addShortlistPlayer = (id, player) => appPost(`/shortlists/${id}/players`, player);
+export const removeShortlistPlayer = (id, playerId) => appDelete(`/shortlists/${id}/players/${playerId}`);
+export const shareShortlist = (id) => appPost(`/shortlists/${id}/share`, {});
+export const unshareShortlist = (id) => appDelete(`/shortlists/${id}/share`);
+export const getSharedShortlist = (token) => axios.get(`${APP}/shortlists/shared/${token}`).then(({ data }) => data);

@@ -17,6 +17,8 @@ import SquadPage from "@/pages/SquadPage";
 import ResearchPage from "@/pages/ResearchPage";
 import DataQualityPage from "@/pages/DataQualityPage";
 import CopilotPage from "@/pages/CopilotPage";
+import ShortlistsPage from "@/pages/ShortlistsPage";
+import SharedShortlistPage from "@/pages/SharedShortlistPage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -103,6 +105,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/shared/shortlists/:token" element={<SharedShortlistPage />} />
       <Route path="/dashboard" element={<ProtectedRoute>{({ user }) => withShell(<DashboardPage user={user} />)}</ProtectedRoute>} />
       <Route path="/players" element={<ProtectedRoute>{() => withShell(<PlayerSearchPage />)}</ProtectedRoute>} />
       <Route path="/players/compare" element={<ProtectedRoute>{() => withShell(<PlayerComparePage />)}</ProtectedRoute>} />
@@ -126,6 +129,8 @@ function AppRouter() {
       <Route path="/research/experiments" element={<ProtectedRoute>{() => withShell(<ResearchPage variant="experiments" />)}</ProtectedRoute>} />
       <Route path="/system/data-quality" element={<ProtectedRoute>{() => withShell(<DataQualityPage />)}</ProtectedRoute>} />
       <Route path="/copilot" element={<ProtectedRoute>{({ user }) => withShell(<CopilotPage user={user} />)}</ProtectedRoute>} />
+      <Route path="/shortlists" element={<ProtectedRoute>{() => withShell(<ShortlistsPage />)}</ProtectedRoute>} />
+      <Route path="/shortlists/:shortlistId" element={<ProtectedRoute>{() => withShell(<ShortlistsPage detail />)}</ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

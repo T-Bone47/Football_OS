@@ -73,6 +73,59 @@ class CopilotRequest(BaseModel):
     context_players: List[CopilotContextPlayer] = Field(default_factory=list)
 
 
+class ShortlistPlayer(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    primary_position: Optional[str] = None
+    nationality: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=400)
+    added_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ShortlistCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+    tags: List[str] = Field(default_factory=list)
+
+
+class ShortlistUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    notes: Optional[str] = Field(default=None, max_length=1000)
+    tags: Optional[List[str]] = None
+
+
+class ShortlistPlayerCreate(BaseModel):
+    id: str = Field(min_length=1, max_length=128)
+    name: str = Field(min_length=1, max_length=200)
+    primary_position: Optional[str] = None
+    nationality: Optional[str] = None
+    note: Optional[str] = Field(default=None, max_length=400)
+
+
+class Shortlist(BaseModel):
+    id: str
+    owner_user_id: str
+    owner_name: Optional[str] = None
+    name: str
+    notes: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    players: List[ShortlistPlayer] = Field(default_factory=list)
+    share_token: Optional[str] = None
+    is_shared: bool = False
+    created_at: datetime
+    updated_at: datetime
+
+
+class SharedShortlist(BaseModel):
+    id: str
+    owner_name: Optional[str] = None
+    name: str
+    notes: Optional[str] = None
+    tags: List[str] = Field(default_factory=list)
+    players: List[ShortlistPlayer] = Field(default_factory=list)
+    updated_at: datetime
+
+
 @api_router.get("/")
 async def root():
     return {"message": "Football Intelligence OS API"}
@@ -249,6 +302,169 @@ async def get_status_checks():
         if isinstance(check['timestamp'], str):
             check['timestamp'] = datetime.fromisoformat(check['timestamp'])
     return status_checks
+
+
+# ============================================================
+# SHORTLISTS
+# ============================================================
+
+def _serialize_shortlist(doc: dict) -> dict:
+    doc = {k: v for k, v in doc.items() if k != "_id"}
+    for key in ("created_at", "updated_at"):
+        if isinstance(doc.get(key), str):
+            doc[key] = datetime.fromisoformat(doc[key])
+    for player in doc.get("players", []):
+        if isinstance(player.get("added_at"), str):
+            player["added_at"] = datetime.fromisoformat(player["added_at"])
+    doc["is_shared"] = bool(doc.get("share_token"))
+    return doc
+
+
+@api_router.get("/shortlists", response_model=List[Shortlist])
+async def list_shortlists(request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    docs = await db.shortlists.find({"owner_user_id": user["user_id"]}).sort("updated_at", -1).to_list(200)
+    return [_serialize_shortlist(d) for d in docs]
+
+
+@api_router.post("/shortlists", response_model=Shortlist)
+async def create_shortlist(payload: ShortlistCreate, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    now = datetime.now(timezone.utc)
+    doc = {
+        "id": f"sl_{uuid.uuid4().hex[:12]}",
+        "owner_user_id": user["user_id"],
+        "owner_name": user.get("name"),
+        "name": payload.name.strip(),
+        "notes": (payload.notes or "").strip() or None,
+        "tags": [t.strip() for t in payload.tags if t.strip()][:12],
+        "players": [],
+        "share_token": None,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
+    await db.shortlists.insert_one(doc)
+    return _serialize_shortlist(doc)
+
+
+@api_router.get("/shortlists/{shortlist_id}", response_model=Shortlist)
+async def get_shortlist(shortlist_id: str, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    doc = await db.shortlists.find_one({"id": shortlist_id, "owner_user_id": user["user_id"]})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return _serialize_shortlist(doc)
+
+
+@api_router.patch("/shortlists/{shortlist_id}", response_model=Shortlist)
+async def update_shortlist(shortlist_id: str, payload: ShortlistUpdate, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    updates: dict = {}
+    if payload.name is not None:
+        updates["name"] = payload.name.strip()
+    if payload.notes is not None:
+        updates["notes"] = payload.notes.strip() or None
+    if payload.tags is not None:
+        updates["tags"] = [t.strip() for t in payload.tags if t.strip()][:12]
+    if not updates:
+        raise HTTPException(status_code=400, detail="No changes supplied")
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    result = await db.shortlists.find_one_and_update(
+        {"id": shortlist_id, "owner_user_id": user["user_id"]},
+        {"$set": updates},
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return _serialize_shortlist(result)
+
+
+@api_router.delete("/shortlists/{shortlist_id}")
+async def delete_shortlist(shortlist_id: str, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    result = await db.shortlists.delete_one({"id": shortlist_id, "owner_user_id": user["user_id"]})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return {"ok": True}
+
+
+@api_router.post("/shortlists/{shortlist_id}/players", response_model=Shortlist)
+async def add_shortlist_player(shortlist_id: str, payload: ShortlistPlayerCreate, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    doc = await db.shortlists.find_one({"id": shortlist_id, "owner_user_id": user["user_id"]})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    if any(p.get("id") == payload.id for p in doc.get("players", [])):
+        raise HTTPException(status_code=409, detail="Player is already in this shortlist")
+    player_entry = {
+        **payload.model_dump(),
+        "added_at": datetime.now(timezone.utc).isoformat(),
+    }
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.shortlists.find_one_and_update(
+        {"id": shortlist_id, "owner_user_id": user["user_id"]},
+        {"$push": {"players": player_entry}, "$set": {"updated_at": now}},
+        return_document=True,
+    )
+    return _serialize_shortlist(result)
+
+
+@api_router.delete("/shortlists/{shortlist_id}/players/{player_id}", response_model=Shortlist)
+async def remove_shortlist_player(shortlist_id: str, player_id: str, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    now = datetime.now(timezone.utc).isoformat()
+    result = await db.shortlists.find_one_and_update(
+        {"id": shortlist_id, "owner_user_id": user["user_id"]},
+        {"$pull": {"players": {"id": player_id}}, "$set": {"updated_at": now}},
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return _serialize_shortlist(result)
+
+
+@api_router.post("/shortlists/{shortlist_id}/share", response_model=Shortlist)
+async def share_shortlist(shortlist_id: str, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    token = f"tok_{uuid.uuid4().hex}"
+    result = await db.shortlists.find_one_and_update(
+        {"id": shortlist_id, "owner_user_id": user["user_id"]},
+        {"$set": {"share_token": token, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return _serialize_shortlist(result)
+
+
+@api_router.delete("/shortlists/{shortlist_id}/share", response_model=Shortlist)
+async def unshare_shortlist(shortlist_id: str, request: Request, authorization: str | None = Header(default=None)):
+    user = await _user_for_session(request, authorization)
+    result = await db.shortlists.find_one_and_update(
+        {"id": shortlist_id, "owner_user_id": user["user_id"]},
+        {"$set": {"share_token": None, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        return_document=True,
+    )
+    if not result:
+        raise HTTPException(status_code=404, detail="Shortlist not found")
+    return _serialize_shortlist(result)
+
+
+@api_router.get("/shortlists/shared/{token}", response_model=SharedShortlist)
+async def get_shared_shortlist(token: str):
+    doc = await db.shortlists.find_one({"share_token": token})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Shared shortlist not found")
+    serialized = _serialize_shortlist(doc)
+    return {
+        "id": serialized["id"],
+        "owner_name": serialized.get("owner_name"),
+        "name": serialized["name"],
+        "notes": serialized.get("notes"),
+        "tags": serialized.get("tags", []),
+        "players": serialized.get("players", []),
+        "updated_at": serialized["updated_at"],
+    }
 
 
 app.include_router(api_router)

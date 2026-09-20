@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import EvidenceDrawer from "@/components/EvidenceDrawer";
 import PerformanceRadar from "@/components/PerformanceRadar";
+import AddToShortlistButton from "@/components/AddToShortlistButton";
 import {
   apiErrorMessage, BACKEND_GAPS, getPlayer, getPlayerFeatures,
   getPlayerRole, getPlayerRoleProfile, getSimilarPlayers,
@@ -101,6 +102,7 @@ export default function PlayerProfilePage() {
           </div>
         </div>
         <div className="profile-header-actions" data-testid="profile-actions">
+          <AddToShortlistButton player={item} testId="profile-action-shortlist" />
           <Link to={`/players/compare?ids=${item.id}`} className="outline-button" data-testid="profile-action-compare">
             <GitCompare size={13} /> Compare
           </Link>

@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
-  Activity, BarChart3, Beaker, Bot, Compass, Database, GitCompare,
+  Activity, BarChart3, Beaker, Bookmark, Bot, Compass, Database, GitCompare,
   LayoutDashboard, Layers, Radar, Radio, ShieldAlert,
   Trophy, Users,
 } from "lucide-react";
@@ -18,6 +18,7 @@ const groups = [
   ]},
   { label: "Recruitment", items: [
     { label: "Market", path: "/market", icon: BarChart3 },
+    { label: "Shortlists", path: "/shortlists", icon: Bookmark },
     { label: "Opportunities", path: "/market/opportunities", icon: Radio },
     { label: "Replacements", path: "/market/replacements", icon: Radio },
     { label: "Transfer risk", path: "/market/risk", icon: ShieldAlert },
