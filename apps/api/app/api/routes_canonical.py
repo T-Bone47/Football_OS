@@ -41,6 +41,20 @@ from app.roles.schemas import (
     SimilarPlayersResponse,
 )
 from app.roles.service import RoleService
+from app.tactical.contexts import (
+    STANDARD_TACTICAL_CONTEXTS,
+    TacticalContext,
+    build_custom_context,
+    get_standard_context,
+)
+from app.tactical.schemas import (
+    PlayerTacticalFitResponse,
+    TacticalContextResponse,
+    TacticalFitComparisonRequest,
+    TacticalFitComparisonResponse,
+    TacticalRequirementSchema,
+)
+from app.tactical.service import TacticalFitService
 
 router = APIRouter(prefix="/api/v1", tags=["canonical"])
 
@@ -1043,4 +1057,168 @@ async def compare_player_similarity(
     except Exception as exc:
         await session.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/tactical/contexts", response_model=list[TacticalContextResponse])
+async def list_tactical_contexts() -> list[TacticalContextResponse]:
+    """Lists standard pre-configured tactical contexts and formations."""
+    responses: list[TacticalContextResponse] = []
+    for ctx in STANDARD_TACTICAL_CONTEXTS.values():
+        responses.append(
+            TacticalContextResponse(
+                context_id=ctx.context_id,
+                formation=ctx.formation,
+                target_position=ctx.target_position,
+                position_group=ctx.position_group.value,
+                target_role=ctx.target_role,
+                requirements=[
+                    TacticalRequirementSchema(
+                        dimension=r.dimension,
+                        required_strength=r.required_strength,
+                        importance_weight=r.importance_weight,
+                        minimum_threshold=r.minimum_threshold,
+                        description=r.description,
+                    )
+                    for r in ctx.requirements
+                ],
+                possession_style=ctx.possession_style,
+                pressing_style=ctx.pressing_style,
+                build_up_style=ctx.build_up_style,
+                transition_style=ctx.transition_style,
+                version=ctx.version,
+                description=ctx.description,
+            )
+        )
+    return responses
+
+
+@router.get("/players/{player_id}/tactical-fit", response_model=PlayerTacticalFitResponse)
+async def get_player_tactical_fit(
+    player_id: uuid.UUID,
+    context_id: str | None = Query(None, description="Standard context ID (e.g. 433_dm_deep_distributor)"),
+    formation: str = Query("4-3-3", description="Formation (e.g. 4-3-3, 4-2-3-1)"),
+    position: str | None = Query(None, description="Target position (e.g. DM, CM, RW, CB)"),
+    role: str | None = Query(None, description="Target role archetype (e.g. Deep Distributor)"),
+    team_id: uuid.UUID | None = Query(None, description="Optional team context club ID"),
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerTacticalFitResponse:
+    """Evaluates player tactical compatibility with a specified system, formation, and role."""
+    p_check = await session.execute(select(Player).where(Player.id == player_id))
+    player = p_check.scalar_one_or_none()
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    # Resolve tactical context
+    if context_id:
+        context = get_standard_context(context_id)
+        if not context:
+            raise HTTPException(status_code=404, detail=f"Tactical context '{context_id}' not found.")
+    else:
+        target_pos = position or player.primary_position or "CM"
+        target_role = role or "Deep Distributor"
+        context = build_custom_context(formation=formation, target_position=target_pos, target_role=target_role)
+
+    service = TacticalFitService(session)
+    try:
+        fit = await service.calculate_and_save_tactical_fit(
+            player_id=player_id,
+            context=context,
+            as_of=as_of,
+            team_id=team_id,
+        )
+        await session.commit()
+        return PlayerTacticalFitResponse(
+            id=fit.id,
+            player_id=fit.player_id,
+            player_name=player.name,
+            team_id=fit.team_id,
+            season_id=fit.season_id,
+            tactical_context_id=fit.tactical_context_id,
+            formation=fit.formation,
+            target_position=fit.target_position,
+            position_group=fit.position_group,
+            target_role=fit.target_role,
+            fit_score=fit.fit_score,
+            position_fit=fit.position_fit,
+            role_fit=fit.role_fit,
+            dimension_fit=fit.dimension_fit,
+            style_fit=fit.style_fit,
+            contextual_fit=fit.contextual_fit,
+            confidence=fit.confidence,
+            fit_status=fit.fit_status,
+            dimension_breakdown=fit.dimension_breakdown,
+            why_fit=fit.why_fit,
+            why_not_fit=fit.why_not_fit,
+            calculation_version=fit.calculation_version,
+            feature_set_version=fit.feature_set_version,
+            as_of=fit.as_of,
+            provenance=fit.provenance,
+            created_at=fit.created_at,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/tactical-fit/{context_id}", response_model=PlayerTacticalFitResponse)
+async def get_player_tactical_fit_by_context(
+    player_id: uuid.UUID,
+    context_id: str,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerTacticalFitResponse:
+    """Evaluates player tactical compatibility with a pre-configured tactical context."""
+    return await get_player_tactical_fit(
+        player_id=player_id,
+        context_id=context_id,
+        formation="4-3-3",
+        position=None,
+        role=None,
+        team_id=None,
+        as_of=as_of,
+        session=session,
+    )
+
+
+@router.post("/tactical-fit/compare", response_model=TacticalFitComparisonResponse)
+async def compare_players_tactical_fit(
+    req: TacticalFitComparisonRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TacticalFitComparisonResponse:
+    """Head-to-head comparison of two players within the same tactical system."""
+    p1_check = await session.execute(select(Player).where(Player.id == req.player_a_id))
+    p1 = p1_check.scalar_one_or_none()
+    if not p1:
+        raise HTTPException(status_code=404, detail=f"Player A {req.player_a_id} not found")
+
+    p2_check = await session.execute(select(Player).where(Player.id == req.player_b_id))
+    p2 = p2_check.scalar_one_or_none()
+    if not p2:
+        raise HTTPException(status_code=404, detail=f"Player B {req.player_b_id} not found")
+
+    if req.context_id:
+        context = get_standard_context(req.context_id)
+        if not context:
+            raise HTTPException(status_code=404, detail=f"Tactical context '{req.context_id}' not found.")
+    else:
+        target_formation = req.formation or "4-3-3"
+        target_pos = req.target_position or p1.primary_position or "CM"
+        target_role = req.target_role or "Deep Distributor"
+        context = build_custom_context(formation=target_formation, target_position=target_pos, target_role=target_role)
+
+    service = TacticalFitService(session)
+    try:
+        comparison = await service.compare_players(
+            player_a_id=req.player_a_id,
+            player_b_id=req.player_b_id,
+            context=context,
+            as_of=req.as_of,
+        )
+        await session.commit()
+        return comparison
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
 
