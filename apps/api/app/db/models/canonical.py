@@ -144,6 +144,9 @@ class Player(Base):
     )
     season_stats: Mapped[list["PlayerSeasonStats"]] = relationship(back_populates="player")
     match_stats: Mapped[list["PlayerMatchStats"]] = relationship(back_populates="player")
+    role_profiles: Mapped[list["PlayerRoleProfile"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
 
 
 class PlayerIdentity(Base):
@@ -559,5 +562,46 @@ class FeatureSnapshot(Base):
     match: Mapped["Match | None"] = relationship()
     season: Mapped["Season | None"] = relationship()
     competition: Mapped["Competition | None"] = relationship()
+
+
+class PlayerRoleProfile(Base):
+    """Canonical Player Role Profile (Phase 2 Slice 2).
+    Stores continuous functional role tendencies, data-driven archetypes,
+    and standardized feature vectors derived from leakage-safe FeatureSnapshots.
+    """
+    __tablename__ = "player_role_profiles"
+    __table_args__ = (
+        UniqueConstraint("player_id", "feature_set_version", "as_of", name="uq_player_role_profile"),
+        Index("ix_player_role_profiles_player_id", "player_id"),
+        Index("ix_player_role_profiles_as_of", "as_of"),
+        Index("ix_player_role_profiles_position_group", "position_group"),
+        Index("ix_player_role_profiles_primary_archetype", "primary_archetype"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False
+    )
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    feature_set_version: Mapped[str] = mapped_column(String(64), nullable=False, default="role_feature_set_v1")
+    role_status: Mapped[str] = mapped_column(String(32), nullable=False, default="QUALIFIED")  # 'QUALIFIED', 'INSUFFICIENT_SAMPLE'
+    sample_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sample_matches: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    position_group: Mapped[str] = mapped_column(String(16), nullable=False)  # 'GK', 'DEF', 'MID', 'ATT'
+
+    primary_archetype: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    secondary_archetype: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    archetype_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Continuous dimensional scores (0.0 - 1.0)
+    profile_scores: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    # Standardized feature vector used for similarity & clustering
+    feature_vector: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    # Provenance metadata (source snapshot ids, cluster version, scaler params)
+    provenance: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    player: Mapped["Player"] = relationship(back_populates="role_profiles")
+
 
 

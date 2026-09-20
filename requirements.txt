@@ -9,6 +9,9 @@ psycopg2-binary>=2.9
 pydantic-settings>=2.4
 pytest-asyncio>=0.23
 pytest>=8.2
+scikit-learn>=1.5
+scipy>=1.10
 sqlalchemy>=2.0.30
 tenacity>=8.2
 uvicorn[standard]>=0.30
+
