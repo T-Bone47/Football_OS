@@ -1,79 +1,56 @@
-# Football Intelligence OS — Product Requirements
+# Football Intelligence OS — Frontend PRD
 
-## Original Problem Statement
+## Original problem statement
+Design and implement a premium, production-quality frontend for the existing Football Intelligence OS analytics/scouting platform. It must consume the existing FastAPI/PostgreSQL/SQLAlchemy backend contracts (source of truth), never fabricate analytical data, and cover player intelligence, similarity, role discovery, market context, tactical fit, match intelligence, squad/scenario tools, AI Scout Copilot, provenance and data quality.
 
-Build a premium, production-quality frontend for Football Intelligence OS, a professional football analytics, scouting, recruitment, tactical analysis, market intelligence, and decision-intelligence platform. Preserve the existing backend as the source of truth, consume its APIs rather than inventing analytics, provide clear provenance and uncertainty, and use graceful `DATA NOT AVAILABLE`, `INSUFFICIENT DATA`, or `BACKEND DEPENDENCY` states when capabilities are not connected. The interface should feel technical, calm, precise, dense, trustworthy, responsive, accessible, and unlike a generic SaaS or AI dashboard. Required areas include the application shell, dashboard, player intelligence, comparison/similarity, market, tactical fit, matches, squad/scenario tools, research, Scout Copilot, data provenance, model transparency, and data quality.
+## Architecture
+- Frontend: React 19 + CRA/craco, TanStack Query, React Router v7, Tailwind + shadcn/ui components, Recharts.
+- Backend (pod): FastAPI on port 8001. Serves `/api/auth/*` and `/api/copilot/query` (streaming Claude Sonnet 5 via Emergent LLM key + emergentintegrations). Mongo used only for session store.
+- External source of truth: Football_OS repo (`/app/Football_OS`) — canonical `/api/v1/*` contracts. Not mounted in the pod per user's decision; frontend renders graceful "backend dependency" states rather than fabricated data.
 
-The related requested feature is Emergent managed Google sign-in added to the login screen while preserving compatible existing session behavior.
+## Core personas
+- Scout (player discovery, comparison, similarity, role fit)
+- Analyst (feature evidence, model transparency, data quality)
+- Recruitment lead (market context, replacements, valuation, risk)
 
-## Architecture Decisions
+## Core requirements (static)
+- Never fabricate statistics, market values, predictions, or similarity scores.
+- Every analytical output must have provenance (source, model version, snapshot).
+- Distinguish FACT / MODEL OUTPUT / ESTIMATE with badges and copy.
+- Dark, technical, calm design — semantic colour meaning (green/amber/red/purple).
+- Responsive down to 390px without layout breakage.
+- Command palette (⌘K) + AI Scout Copilot as primary decision surfaces.
 
-- React frontend with React Router, TanStack Query already available, Lucide icons, and centralized CSS tokens.
-- FastAPI remains the backend and MongoDB remains the configured data store.
-- Managed Google OAuth is exchanged server-side through the Emergent session-data endpoint.
-- Sessions use a custom UUID-style `user_id`, a seven-day HTTP-only secure cookie, `/api/auth/me`, and `/api/auth/logout`.
-- Frontend API requests use `REACT_APP_BACKEND_URL`; MongoDB uses the existing `MONGO_URL` and `DB_NAME`.
-- Analytics are never fabricated. Unconnected screens explicitly identify backend dependencies.
+## Implemented (2026-02)
+- Application shell with sidebar (all groups: Overview / Intelligence / Recruitment / Match / Squad / Research / AI / System) + Cmd/Ctrl+K palette.
+- Managed Google sign-in via Emergent (session cookie + `/api/auth/*`).
+- Dashboard signals + status strip + decision-surface shortcuts.
+- Player discovery (filters, sortable table, mobile-safe overflow).
+- Player profile (metrics, role profile w/ evidence drawer, performance radar, similarity list, feature snapshot, valuation / tactical fit / transfer risk dependency cards).
+- Player comparison (2–5 slots with picker).
+- Similarity explorer (roster picker + multi-dimensional results with "why?" evidence drawer).
+- Role discovery (clusters players by archetype from `/players/{id}/role`).
+- Market intelligence (overview + valuation / opportunities / replacements / risk) with dependency states.
+- Tactical fit workspace (player × club × formation × role, pitch preview + fit dimensions).
+- Match intelligence (list + detail with events, lineups, stats, prediction dependency).
+- Squad workspaces (builder / simulator / scenarios) with dependency states.
+- Research lab (feature registry live; models/data/experiments dependency).
+- Data quality (live canonical endpoint health check with pos/warn/risk badges).
+- Scout Copilot (Claude Sonnet 5 SSE streaming, context injected from live players response, suggestion tiles).
 
-## User Personas
+## Backend dependencies (surfaced honestly in UI)
+- `/api/v1/*` (Football_OS canonical) — not mounted in pod.
+- Valuation, tactical fit scoring, transfer risk classification, market opportunity endpoints, replacement finder, squad construction, scenario simulator, match prediction, data quality summary — pending backend exposure.
 
-- Recruitment director evaluating player value, risk, and alternatives.
-- Scout investigating role fit, similarity, and evidence.
-- Performance analyst comparing tactical and statistical outputs.
-- Technical decision-maker reviewing market, squad, and scenario intelligence.
+## Prioritised backlog
+- **P0**: Adapt Football_OS to a local SQLite/PostgreSQL runtime and mount `/api/v1/*` behind the pod so canonical data flows live.
+- **P1**: Wire valuation / risk / tactical fit endpoints once backend exposes them.
+- **P1**: Persist Copilot conversation history per user in Mongo.
+- **P2**: Interactive pitch heatmaps once tactical feature vectors return heat data.
+- **P2**: Command palette AI queries → auto-route to Copilot with detected criteria.
+- **P2**: Saved shortlists + comparison presets.
 
-## Core Requirements (Static)
-
-- Persistent desktop sidebar and professional command/workspace surfaces.
-- Player discovery, similarity, market, transfer risk, tactical fit, match center, research, and Scout Copilot routes.
-- Clear hierarchy between decision information, supporting evidence, and technical metadata.
-- Responsive behavior for desktop, tablet, and mobile without horizontal overflow.
-- Loading, empty, error, unavailable, partial-data, and backend-dependency states.
-- Accessible labels, keyboard-friendly controls, visible focus, and descriptive test IDs.
-- Managed Google sign-in from the login screen with server-verified sessions.
-
-## Implemented — 2026-09-20
-
-- Added managed Google login button using a dynamic current-origin redirect.
-- Added server-side OAuth session exchange, provider payload validation, secure cookie storage, `/api/auth/me`, and logout.
-- Added protected routing with synchronous hash callback detection and server-side auth verification.
-- Replaced the starter splash with a football intelligence login experience.
-- Added application shell with sidebar navigation and dashboard session status.
-- Added workspace routes for players, similarity, market, transfer risk, tactical fit, matches, research, and Scout Copilot.
-- Added explicit backend dependency states instead of fake analytical values.
-- Added responsive styling and production build verification.
-- Added `/app/auth_testing.md` and live auth regression coverage.
-
-## Backend Dependencies / Known Limitations
-
-- Player statistics, valuation, similarity, tactical fit, match, squad, model, data quality, and copilot data are not exposed by the current starter backend, so their UI currently shows a truthful backend dependency state.
-- Real Google provider consent requires an operator-supplied Google identity and was not completed during automated testing; the session contract and invalid callback handling were verified.
-- Existing backend CORS configuration remains wildcard-compatible through origin regex for credentialed requests; production origin restriction should be aligned with the connected deployment domain.
-
-## Prioritized Backlog
-
-### P0
-
-- Map the existing Football Intelligence OS API contracts into typed frontend query hooks.
-- Replace workspace dependency states with real player, market, match, tactical, and provenance data where endpoints exist.
-- Add real profile, comparison, and evidence drawer flows.
-
-### P1
-
-- Add command palette search with Cmd/Ctrl+K.
-- Add configurable analytical tables, filters, column density, and mobile transformations.
-- Add provenance and model transparency components backed by API metadata.
-- Add squad builder, transfer simulator, and scenario lab once backend contracts are available.
-
-### P2
-
-- Add chart visualizations, pitch views, embedding maps, and virtualized large tables.
-- Add data quality, ingestion, models, experiments, and reports pages.
-- Add richer account menu and session expiry handling.
-
-## Next Tasks
-
-1. Connect the real repository or API contract source and inventory its routes.
-2. Create a typed API client and TanStack Query hooks for available endpoints.
-3. Build the player search/profile flow first, then reuse its evidence components across market and tactical views.
-4. Add the command palette and provenance drawer after real data is connected.
+## Next tasks
+- Mount canonical backend (`Football_OS` API) or point `REACT_APP_BACKEND_URL` variant at an external base URL.
+- Add valuation + risk cards to `PlayerProfilePage` once endpoints are live.
+- Extend `PerformanceRadar` with reference-player overlay in comparison view.
