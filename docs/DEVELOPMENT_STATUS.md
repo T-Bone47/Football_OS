@@ -165,4 +165,20 @@ Vertical slice per §18–§22: **Bronze Fixture Snapshots → Pure Transformers
 | Real Bronze Snapshot Normalization | **VERIFIED LIVE** | 1,154 matches and 2,308 match teams populated in PostgreSQL from API-Football snapshot `a33904b9-44cd-4cca-b360-06e385cd2ae4` |
 | Full Test Suite | **VERIFIED** | **80 passed, 1 skipped, 0 failed** across all unit and integration test suites |
 
+## Phase 1 — Slice 3: Match Events, Lineups & Match Statistics Normalization (this session)
+
+Vertical slice per §18–§22: **Bronze Event/Lineup/Statistics Snapshots → Pure Deterministic Transformers → Canonical Models (`MatchEvent`, `MatchLineup`, `MatchStatistics`) → Normalization Service & Player Identity Resolution → Real PostgreSQL Persistence & Idempotency Proof → Canonical REST API → Full Verification.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0005_match_intelligence_models.py` | VERIFIED | Real Alembic migration executed against PostgreSQL 16; created tables `match_events`, `match_lineups`, `match_statistics` with unique constraints, indexes, cascade foreign keys, and seeded API-Football capabilities for `fixtures/events`, `fixtures/lineups`, `fixtures/statistics` |
+| Canonical Models (`canonical.py`) | VERIFIED | `MatchEvent` (minute, extra_minute, event_type, event_detail, player_id, assist_player_id, event_key), `MatchLineup` (starter/sub, position, grid, formation, captain, coach), `MatchStatistics` (possession, shots, passes, fouls, corners, cards, saves, xG, raw_stats); linked to `Match` via relationships |
+| Pure Transformers (`transformers.py`) | VERIFIED | 4 unit tests covering event normalization (goals, penalties, cards, substitutions, VAR, deterministic event key), lineup separation (startXI vs substitutes, coach, grid), and statistics (percentage parsing, explicit 0 vs None preservation) |
+| Normalization Service Extension (`service.py`) | VERIFIED | `normalize_events_payload`, `normalize_lineups_payload`, `normalize_statistics_payload`, and `normalize_snapshot` dispatcher; dynamic player resolution via `PlayerIdentity` (`DIRECT_PROVIDER_ID`); full snapshot provenance attribution (`snapshot_id`) |
+| Strict Idempotency Engine | **VERIFIED LIVE** | Repeated normalization of real Bronze snapshots on live PostgreSQL 16 resulted in 0 duplicate records across matches, match_teams, match_events, match_lineups, and match_statistics; primary keys remained 100% stable |
+| Canonical REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/matches/{id}/events` (chronological timeline), `GET /api/v1/matches/{id}/lineups` (team rosters with starters/subs), `GET /api/v1/matches/{id}/statistics` (comparative stats, explicit 0 vs null) |
+| Real Bronze Snapshot Normalization | **VERIFIED LIVE** | Real API-Football snapshots for fixture `1492387` normalized into PostgreSQL: 15 events, 44 lineup players, 2 team statistics with exact DataSnapshot provenance |
+| Full Test Suite | **VERIFIED** | **90 passed, 1 skipped, 0 failed** across all unit and integration test suites in 52.85s |
+
+
 
