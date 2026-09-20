@@ -96,6 +96,7 @@ class Club(Base):
 
     identities: Mapped[list["ClubIdentity"]] = relationship(back_populates="club", cascade="all, delete-orphan")
     season_stats: Mapped[list["PlayerSeasonStats"]] = relationship(back_populates="club")
+    player_match_stats: Mapped[list["PlayerMatchStats"]] = relationship(back_populates="club")
 
 
 class ClubIdentity(Base):
@@ -141,6 +142,7 @@ class Player(Base):
         back_populates="player", cascade="all, delete-orphan"
     )
     season_stats: Mapped[list["PlayerSeasonStats"]] = relationship(back_populates="player")
+    match_stats: Mapped[list["PlayerMatchStats"]] = relationship(back_populates="player")
 
 
 class PlayerIdentity(Base):
@@ -262,6 +264,9 @@ class Match(Base):
         back_populates="match", cascade="all, delete-orphan"
     )
     statistics: Mapped[list["MatchStatistics"]] = relationship(
+        back_populates="match", cascade="all, delete-orphan"
+    )
+    player_stats: Mapped[list["PlayerMatchStats"]] = relationship(
         back_populates="match", cascade="all, delete-orphan"
     )
 
@@ -415,5 +420,98 @@ class MatchStatistics(Base):
 
     match: Mapped["Match"] = relationship(back_populates="statistics")
     club: Mapped["Club"] = relationship()
+
+
+class PlayerMatchStats(Base):
+    __tablename__ = "player_match_stats"
+    __table_args__ = (
+        UniqueConstraint("match_id", "club_id", "player_id", name="uq_player_match_stats"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    provider: Mapped[str] = mapped_column(
+        String(64), nullable=False, default="api-football", server_default="api-football"
+    )
+    provider_player_id: Mapped[str | None] = mapped_column(String(128), index=True)
+    provider_fixture_id: Mapped[str | None] = mapped_column(String(128), index=True)
+    provider_club_id: Mapped[str | None] = mapped_column(String(128), index=True)
+
+    # Lineup / Role context
+    is_starter: Mapped[bool | None] = mapped_column(Boolean)
+    is_substitute: Mapped[bool | None] = mapped_column(Boolean)
+    position: Mapped[str | None] = mapped_column(String(16))  # G, D, M, F
+    jersey_number: Mapped[int | None] = mapped_column(Integer)
+    formation_position: Mapped[str | None] = mapped_column(String(16))  # grid position if available
+    is_captain: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Playing time & rating
+    minutes: Mapped[int | None] = mapped_column(Integer)
+    rating: Mapped[float | None] = mapped_column(Float)
+
+    # Attacking
+    goals: Mapped[int | None] = mapped_column(Integer)
+    assists: Mapped[int | None] = mapped_column(Integer)
+    shots_total: Mapped[int | None] = mapped_column(Integer)
+    shots_on_target: Mapped[int | None] = mapped_column(Integer)
+    offsides: Mapped[int | None] = mapped_column(Integer)
+
+    # Passing
+    passes_total: Mapped[int | None] = mapped_column(Integer)
+    passes_key: Mapped[int | None] = mapped_column(Integer)
+    pass_accuracy: Mapped[float | None] = mapped_column(Float)
+
+    # Defending & Duels
+    tackles_total: Mapped[int | None] = mapped_column(Integer)
+    blocks: Mapped[int | None] = mapped_column(Integer)
+    interceptions: Mapped[int | None] = mapped_column(Integer)
+    duels_total: Mapped[int | None] = mapped_column(Integer)
+    duels_won: Mapped[int | None] = mapped_column(Integer)
+
+    # Dribbles
+    dribbles_attempts: Mapped[int | None] = mapped_column(Integer)
+    dribbles_success: Mapped[int | None] = mapped_column(Integer)
+    dribbles_past: Mapped[int | None] = mapped_column(Integer)
+
+    # Discipline
+    fouls_drawn: Mapped[int | None] = mapped_column(Integer)
+    fouls_committed: Mapped[int | None] = mapped_column(Integer)
+    yellow_cards: Mapped[int | None] = mapped_column(Integer)
+    red_cards: Mapped[int | None] = mapped_column(Integer)
+
+    # Penalties
+    penalties_won: Mapped[int | None] = mapped_column(Integer)
+    penalties_committed: Mapped[int | None] = mapped_column(Integer)
+    penalties_scored: Mapped[int | None] = mapped_column(Integer)
+    penalties_missed: Mapped[int | None] = mapped_column(Integer)
+    penalties_saved: Mapped[int | None] = mapped_column(Integer)
+
+    # Goalkeeping
+    saves: Mapped[int | None] = mapped_column(Integer)
+    goals_conceded: Mapped[int | None] = mapped_column(Integer)
+    clean_sheet: Mapped[bool | None] = mapped_column(Boolean)
+
+    # Raw stats payload & Provenance
+    raw_stats: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+    snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    match: Mapped["Match"] = relationship(back_populates="player_stats")
+    club: Mapped["Club"] = relationship(back_populates="player_match_stats")
+    player: Mapped["Player"] = relationship(back_populates="match_stats")
 
 
