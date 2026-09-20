@@ -213,5 +213,26 @@ Vertical slice per Phase 2 Slice 1 Master Specification: **Canonical Silver Data
 | Real PostgreSQL Verification | **VERIFIED LIVE** | Real fixture `1492387` verified: match features, team features, player features (Jonathan Calleri, 156 metrics), and dataset builder verified on live `fios` database |
 | Full Test Suite | **VERIFIED** | **114 passed, 1 skipped, 0 failed** across all unit and integration test suites |
 
+## Phase 2 — Slice 2: Player Role Discovery + Multi-Dimensional Similarity (this session)
+
+Vertical slice per Phase 2 Slice 2 Master Specification: **Leakage-Safe FeatureSnapshots → 9-Dimension Role Feature Registry & Profiler → Controlled Archetype Vocabulary → Dataset Size Gate & Sample-Sufficiency Engine → Unsupervised Clustering Evaluation & Stability Testing → Multi-Dimensional Similarity (Statistical + Role + Contextual) → Feature-Level Explainability Engine ("Why Similar" / "Why Not Similar") → Canonical Model (`PlayerRoleProfile`) & Migration 0008 → Canonical REST API → Real PostgreSQL Verification.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0008_player_roles_and_similarity.py` | VERIFIED | Real Alembic migration executed against PostgreSQL 16; created table `player_role_profiles` with unique constraint `(player_id, feature_set_version, as_of)`, B-tree indexes on `player_id`, `as_of`, `position_group`, `primary_archetype` |
+| Canonical Model `PlayerRoleProfile` (`canonical.py`) | VERIFIED | Strongly-typed entity mapping `player_id`, `as_of`, `feature_set_version`, `role_status` ('QUALIFIED', 'INSUFFICIENT_SAMPLE'), `sample_minutes`, `sample_matches`, `position_group`, `primary_archetype`, `secondary_archetype`, `archetype_confidence`, JSONB continuous `profile_scores` [0.0, 1.0]^9, JSONB standardized `feature_vector`, and JSONB audit `provenance`; bidirectional relationship to `Player` |
+| Role Feature Registry (`roles/registry.py`) | VERIFIED | Catalog of role features across 9 functional dimensions (`distribution`, `progression`, `creation`, `finishing`, `defending`, `duels`, `carrying`, `discipline`, `goalkeeping`), position families (`GK`, `DEF`, `MID`, `ATT`), and controlled domain archetype vocabulary |
+| Role Profiler (`roles/profiler.py`) | VERIFIED | Continuous dimensional scoring `[0.0, 1.0]`, Z-score standardization with robust outlier clipping `[-3.0, 3.0]`, position-aware feature extraction, and deterministic assignment to controlled vocabulary archetypes |
+| Sample-Size Gate & Dataset Size Gate | **VERIFIED LIVE** | Enforces `minimum_minutes = 450` for stable role qualification; players below threshold are honestly classified as `INSUFFICIENT_SAMPLE` without fabricated archetypes. Unsupervised clustering enforces `minimum_population = 10`, raising `InsufficientDatasetError: INSUFFICIENT_DATASET` on small populations |
+| Role Discovery Engine (`roles/clustering.py`) | VERIFIED | KMeans evaluation across $K \in [2, 6]$, silhouette score diagnostics, cluster size balance, centroid profiling, and cluster assignment stability verification across random seeds with Adjusted Rand Index (ARI = 1.0 on benchmark) |
+| Multi-Dimensional Similarity Engine (`roles/similarity.py`) | VERIFIED | Cosine statistical similarity (standardized features), Euclidean role similarity (continuous 9-dimension profile), contextual similarity (position compatibility + exposure alignment), and weighted composite scoring ($w_{\text{stat}}=0.50, w_{\text{role}}=0.35, w_{\text{context}}=0.15$) |
+| Explainability Engine ("Why Similar" / "Why Not Similar") | VERIFIED | Computes exact dimensional deltas $\Delta_d$ from underlying feature vectors; identifies shared functional strengths and points of tactical divergence with human-readable rationale |
+| Role Service (`roles/service.py`) | VERIFIED | Point-in-time leakage-safe role profile computation, PostgreSQL persistence, top-N similar player retrieval with position/minutes filters, and head-to-head player comparison |
+| Idempotency Engine | **VERIFIED LIVE** | Repeated role profile calculation on live PostgreSQL 16 produced 0 duplicate profiles and 100% stable primary keys |
+| Canonical REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/players/{id}/role`, `GET /api/v1/players/{id}/role-profile`, `GET /api/v1/players/{id}/similar`, and `GET /api/v1/players/{id}/similarity/{other_id}` |
+| Real PostgreSQL Verification | **VERIFIED LIVE** | Live `fios` database verified: 45 players audited, dataset gate correctly identified 0 players $\ge 450$ minutes from single fixture, reported `INSUFFICIENT_DATASET` honestly, persisted 5 real `PlayerRoleProfile` records, and validated real similarity comparison between D. Ferreira and R. Arboleda |
+| Full Test Suite | **VERIFIED** | **127 passed, 1 skipped, 0 failed** across all unit and integration test suites |
+
+
 
 
