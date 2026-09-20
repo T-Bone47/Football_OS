@@ -34,6 +34,13 @@ from app.features.schemas import (
 )
 from app.features.service import FeatureService
 from app.normalization.service import NormalizationService
+from app.roles.schemas import (
+    PlayerComparisonResponse,
+    RoleArchetypeResponse,
+    RoleProfileResponse,
+    SimilarPlayersResponse,
+)
+from app.roles.service import RoleService
 
 router = APIRouter(prefix="/api/v1", tags=["canonical"])
 
@@ -916,3 +923,124 @@ async def get_match_features(
     except Exception as exc:
         await session.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/role", response_model=RoleArchetypeResponse)
+async def get_player_role_archetype(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> RoleArchetypeResponse:
+    """Returns human-readable role archetype classification derived from leakage-safe features."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    role_service = RoleService(session)
+    try:
+        archetype_summary = await role_service.get_archetype_summary(player_id, as_of)
+        await session.commit()
+        return archetype_summary
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/role-profile", response_model=RoleProfileResponse)
+async def get_player_role_profile(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> RoleProfileResponse:
+    """Returns the continuous 9-dimension functional role profile and standardized feature vector."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    role_service = RoleService(session)
+    try:
+        profile = await role_service.get_role_profile(player_id, as_of)
+        if not profile:
+            profile = await role_service.compute_and_save_role_profile(player_id, as_of)
+            await session.commit()
+        return RoleProfileResponse(
+            id=profile.id,
+            player_id=profile.player_id,
+            as_of=profile.as_of,
+            feature_set_version=profile.feature_set_version,
+            role_status=profile.role_status,
+            sample_minutes=profile.sample_minutes,
+            sample_matches=profile.sample_matches,
+            position_group=profile.position_group,
+            primary_archetype=profile.primary_archetype,
+            secondary_archetype=profile.secondary_archetype,
+            archetype_confidence=profile.archetype_confidence,
+            profile_scores=profile.profile_scores,
+            feature_vector=profile.feature_vector,
+            provenance=profile.provenance,
+            created_at=profile.created_at,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/similar", response_model=SimilarPlayersResponse)
+async def get_similar_players(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum number of similar players to return"),
+    position_filter: str | None = Query(None, description="Filter by position group (GK, DEF, MID, ATT)"),
+    min_minutes: int | None = Query(None, ge=0, description="Minimum sample minutes required"),
+    session: AsyncSession = Depends(get_session),
+) -> SimilarPlayersResponse:
+    """Finds top-N multi-dimensionally similar players with explainable contribution breakdowns."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    role_service = RoleService(session)
+    try:
+        result = await role_service.find_similar_players(
+            player_id=player_id,
+            as_of=as_of,
+            limit=limit,
+            position_filter=position_filter,
+            min_minutes=min_minutes,
+        )
+        await session.commit()
+        return result
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/similarity/{other_id}", response_model=PlayerComparisonResponse)
+async def compare_player_similarity(
+    player_id: uuid.UUID,
+    other_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerComparisonResponse:
+    """Detailed head-to-head comparison between two players with explainable dimension deltas."""
+    p1_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p1_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail=f"Player {player_id} not found")
+
+    p2_check = await session.execute(select(Player.id).where(Player.id == other_id))
+    if p2_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail=f"Player {other_id} not found")
+
+    role_service = RoleService(session)
+    try:
+        result = await role_service.compare_players(
+            player_a_id=player_id,
+            player_b_id=other_id,
+            as_of=as_of,
+        )
+        await session.commit()
+        return result
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
