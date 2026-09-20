@@ -5,11 +5,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, ValidationError
 from typing import List
 import uuid
 from datetime import datetime, timezone, timedelta
 import requests
+import asyncio
 
 
 ROOT_DIR = Path(__file__).parent
@@ -47,6 +48,15 @@ class User(BaseModel):
 class SessionExchange(BaseModel):
     user: User
 
+class SessionExchangeRequest(BaseModel):
+    session_id: str = Field(min_length=1)
+
+class ProviderIdentity(BaseModel):
+    email: str
+    session_token: str = Field(min_length=1)
+    name: str | None = None
+    picture: str | None = None
+
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
 async def root():
@@ -81,39 +91,43 @@ async def _user_for_session(request: Request, authorization: str | None) -> dict
     return user
 
 @api_router.post("/auth/session", response_model=SessionExchange)
-async def exchange_session(payload: dict, response: Response):
-    session_id = payload.get("session_id")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="Missing session_id")
+async def exchange_session(payload: SessionExchangeRequest, response: Response):
+    session_id = payload.session_id
     try:
-        session_response = requests.get(
+        session_response = await asyncio.to_thread(
+            requests.get,
             "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data",
             headers={"X-Session-ID": session_id},
             timeout=15,
         )
         session_response.raise_for_status()
-        identity = session_response.json()
     except requests.RequestException as exc:
         logger.warning("Google session exchange failed: %s", exc)
         raise HTTPException(status_code=502, detail="Could not complete Google sign-in") from exc
-    user = await db.users.find_one({"email": identity["email"]}, {"_id": 0})
+    try:
+        identity = ProviderIdentity.model_validate(session_response.json())
+    except (ValidationError, ValueError) as exc:
+        logger.warning("Google provider returned an invalid identity payload")
+        raise HTTPException(status_code=502, detail="Google sign-in returned incomplete account data") from exc
+    identity_data = identity.model_dump()
+    user = await db.users.find_one({"email": identity.email}, {"_id": 0})
     if user:
         await db.users.update_one(
             {"user_id": user["user_id"]},
-            {"$set": {"name": identity.get("name", user["name"]), "picture": identity.get("picture")}},
+            {"$set": {"name": identity.name or user["name"], "picture": identity.picture}},
         )
-        user.update({"name": identity.get("name", user["name"]), "picture": identity.get("picture")})
+        user.update({"name": identity.name or user["name"], "picture": identity.picture})
     else:
         user = {
             "user_id": f"user_{uuid.uuid4().hex[:12]}",
-            "email": identity["email"],
-            "name": identity.get("name") or identity["email"],
-            "picture": identity.get("picture"),
+            "email": identity.email,
+            "name": identity.name or identity.email,
+            "picture": identity.picture,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(user)
         user = {key: value for key, value in user.items() if key != "created_at"}
-    session_token = identity["session_token"]
+    session_token = identity_data["session_token"]
     await db.user_sessions.delete_many({"user_id": user["user_id"]})
     await db.user_sessions.insert_one({
         "user_id": user["user_id"],
