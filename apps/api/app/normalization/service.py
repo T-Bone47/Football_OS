@@ -13,6 +13,8 @@ from app.db.models.canonical import (
     ClubIdentity,
     Competition,
     CompetitionSeason,
+    Match,
+    MatchTeam,
     Player,
     PlayerIdentity,
     PlayerSeasonStats,
@@ -21,10 +23,12 @@ from app.db.models.canonical import (
 from app.db.models.provenance import DataSnapshot, IngestionRun
 from app.normalization.schemas import (
     NormalizedClub,
+    NormalizedFixture,
     NormalizedPlayer,
     NormalizedPlayerStats,
 )
 from app.normalization.transformers import (
+    transform_api_football_fixtures,
     transform_api_football_players,
     transform_api_football_teams,
 )
@@ -276,6 +280,258 @@ class NormalizationService:
         await self._session.commit()
         return players
 
+    async def _resolve_or_create_club(
+        self,
+        provider: str,
+        provider_club_id: str,
+        name: str,
+        country: str = "Unknown",
+        logo_url: str | None = None,
+    ) -> uuid.UUID:
+        id_stmt = select(ClubIdentity).where(
+            ClubIdentity.provider == provider,
+            ClubIdentity.provider_club_id == provider_club_id,
+        )
+        identity = (await self._session.execute(id_stmt)).scalar_one_or_none()
+        if identity is not None:
+            return identity.club_id
+
+        club = Club(
+            name=name,
+            country=country,
+            logo_url=logo_url,
+        )
+        self._session.add(club)
+        await self._session.flush()
+
+        new_identity = ClubIdentity(
+            club_id=club.id,
+            provider=provider,
+            provider_club_id=provider_club_id,
+            confidence=1.0,
+            resolution_method="DIRECT_PROVIDER_ID",
+        )
+        self._session.add(new_identity)
+        await self._session.flush()
+        return club.id
+
+    async def normalize_fixtures_payload(
+        self,
+        provider: str,
+        payload: dict[str, Any],
+        snapshot_id: uuid.UUID | None = None,
+    ) -> list[Match]:
+        normalized_fixtures = transform_api_football_fixtures(payload)
+        matches: list[Match] = []
+
+        club_cache: dict[str, uuid.UUID] = {}
+        comp_season_cache: dict[tuple[str, int], uuid.UUID] = {}
+
+        for f in normalized_fixtures:
+            # 1. Resolve Competition and Season
+            comp_key = (f.provider_league_id, f.season_year)
+            if comp_key in comp_season_cache:
+                comp_season_id = comp_season_cache[comp_key]
+            else:
+                comp = await self.get_or_create_competition(
+                    name=f.league_name,
+                    country=f.league_country,
+                    code="EPL" if f.provider_league_id == "39" else None,
+                )
+                season = await self.get_or_create_season(
+                    name=str(f.season_year),
+                    start_year=f.season_year,
+                    end_year=f.season_year + 1,
+                )
+                comp_season = await self.get_or_create_competition_season(
+                    competition_id=comp.id, season_id=season.id
+                )
+                comp_season_id = comp_season.id
+                comp_season_cache[comp_key] = comp_season_id
+
+            # 2. Resolve Clubs (home and away) via DIRECT_PROVIDER_ID
+            if f.home_provider_club_id in club_cache:
+                home_club_id = club_cache[f.home_provider_club_id]
+            else:
+                home_club_id = await self._resolve_or_create_club(
+                    provider=provider,
+                    provider_club_id=f.home_provider_club_id,
+                    name=f.home_club_name,
+                    country=f.league_country,
+                    logo_url=f.home_club_logo,
+                )
+                club_cache[f.home_provider_club_id] = home_club_id
+
+            if f.away_provider_club_id in club_cache:
+                away_club_id = club_cache[f.away_provider_club_id]
+            else:
+                away_club_id = await self._resolve_or_create_club(
+                    provider=provider,
+                    provider_club_id=f.away_provider_club_id,
+                    name=f.away_club_name,
+                    country=f.league_country,
+                    logo_url=f.away_club_logo,
+                )
+                club_cache[f.away_provider_club_id] = away_club_id
+
+            # 3. Determine winner club
+            winner_club_id: uuid.UUID | None = None
+            if f.home_winner is True:
+                winner_club_id = home_club_id
+            elif f.away_winner is True:
+                winner_club_id = away_club_id
+            elif f.status == "FINISHED":
+                if f.home_score is not None and f.away_score is not None:
+                    if f.home_score > f.away_score:
+                        winner_club_id = home_club_id
+                    elif f.away_score > f.home_score:
+                        winner_club_id = away_club_id
+
+            # 4. Upsert Match
+            match_stmt = select(Match).where(
+                Match.provider == provider,
+                Match.provider_fixture_id == f.provider_fixture_id,
+            )
+            existing_match = (await self._session.execute(match_stmt)).scalar_one_or_none()
+
+            if existing_match is None:
+                fixture_stmt = select(Match).where(
+                    Match.competition_season_id == comp_season_id,
+                    Match.home_club_id == home_club_id,
+                    Match.away_club_id == away_club_id,
+                    Match.date == f.date,
+                )
+                existing_match = (await self._session.execute(fixture_stmt)).scalar_one_or_none()
+
+            if existing_match is not None:
+                existing_match.status = f.status
+                existing_match.status_detail = f.status_detail
+                existing_match.round = f.round
+                existing_match.stage = f.stage
+                existing_match.venue_name = f.venue_name
+                existing_match.venue_city = f.venue_city
+                existing_match.referee = f.referee
+                existing_match.home_score = f.home_score
+                existing_match.away_score = f.away_score
+                existing_match.halftime_home_score = f.score.halftime.home
+                existing_match.halftime_away_score = f.score.halftime.away
+                existing_match.fulltime_home_score = f.score.fulltime.home
+                existing_match.fulltime_away_score = f.score.fulltime.away
+                existing_match.extratime_home_score = f.score.extratime.home
+                existing_match.extratime_away_score = f.score.extratime.away
+                existing_match.penalty_home_score = f.score.penalty.home
+                existing_match.penalty_away_score = f.score.penalty.away
+                existing_match.winner_club_id = winner_club_id
+                if snapshot_id:
+                    existing_match.snapshot_id = snapshot_id
+                match = existing_match
+            else:
+                match = Match(
+                    provider=provider,
+                    provider_fixture_id=f.provider_fixture_id,
+                    competition_season_id=comp_season_id,
+                    home_club_id=home_club_id,
+                    away_club_id=away_club_id,
+                    date=f.date,
+                    status=f.status,
+                    status_detail=f.status_detail,
+                    round=f.round,
+                    stage=f.stage,
+                    venue_name=f.venue_name,
+                    venue_city=f.venue_city,
+                    referee=f.referee,
+                    home_score=f.home_score,
+                    away_score=f.away_score,
+                    halftime_home_score=f.score.halftime.home,
+                    halftime_away_score=f.score.halftime.away,
+                    fulltime_home_score=f.score.fulltime.home,
+                    fulltime_away_score=f.score.fulltime.away,
+                    extratime_home_score=f.score.extratime.home,
+                    extratime_away_score=f.score.extratime.away,
+                    penalty_home_score=f.score.penalty.home,
+                    penalty_away_score=f.score.penalty.away,
+                    winner_club_id=winner_club_id,
+                    snapshot_id=snapshot_id,
+                )
+                self._session.add(match)
+                await self._session.flush()
+
+            # 5. Upsert MatchTeams (Home & Away perspectives)
+            home_result: str | None = None
+            home_points: int | None = None
+            if f.status == "FINISHED":
+                if winner_club_id == home_club_id:
+                    home_result, home_points = "WIN", 3
+                elif winner_club_id == away_club_id:
+                    home_result, home_points = "LOSS", 0
+                elif f.home_score is not None and f.away_score is not None and f.home_score == f.away_score:
+                    home_result, home_points = "DRAW", 1
+
+            away_result: str | None = None
+            away_points: int | None = None
+            if f.status == "FINISHED":
+                if winner_club_id == away_club_id:
+                    away_result, away_points = "WIN", 3
+                elif winner_club_id == home_club_id:
+                    away_result, away_points = "LOSS", 0
+                elif f.home_score is not None and f.away_score is not None and f.home_score == f.away_score:
+                    away_result, away_points = "DRAW", 1
+
+            stmt_home = select(MatchTeam).where(
+                MatchTeam.match_id == match.id,
+                MatchTeam.club_id == home_club_id,
+            )
+            mt_home = (await self._session.execute(stmt_home)).scalar_one_or_none()
+            if mt_home is not None:
+                mt_home.opponent_club_id = away_club_id
+                mt_home.is_home = True
+                mt_home.result = home_result
+                mt_home.goals_for = f.home_score
+                mt_home.goals_against = f.away_score
+                mt_home.points = home_points
+            else:
+                mt_home = MatchTeam(
+                    match_id=match.id,
+                    club_id=home_club_id,
+                    opponent_club_id=away_club_id,
+                    is_home=True,
+                    result=home_result,
+                    goals_for=f.home_score,
+                    goals_against=f.away_score,
+                    points=home_points,
+                )
+                self._session.add(mt_home)
+
+            stmt_away = select(MatchTeam).where(
+                MatchTeam.match_id == match.id,
+                MatchTeam.club_id == away_club_id,
+            )
+            mt_away = (await self._session.execute(stmt_away)).scalar_one_or_none()
+            if mt_away is not None:
+                mt_away.opponent_club_id = home_club_id
+                mt_away.is_home = False
+                mt_away.result = away_result
+                mt_away.goals_for = f.away_score
+                mt_away.goals_against = f.home_score
+                mt_away.points = away_points
+            else:
+                mt_away = MatchTeam(
+                    match_id=match.id,
+                    club_id=away_club_id,
+                    opponent_club_id=home_club_id,
+                    is_home=False,
+                    result=away_result,
+                    goals_for=f.away_score,
+                    goals_against=f.home_score,
+                    points=away_points,
+                )
+                self._session.add(mt_away)
+
+            matches.append(match)
+
+        await self._session.commit()
+        return matches
+
     async def normalize_snapshot(self, snapshot_id: uuid.UUID) -> dict[str, Any]:
         """Normalize a single Bronze DataSnapshot by ID into canonical Silver models."""
         stmt = (
@@ -307,6 +563,11 @@ class NormalizationService:
                 provider_name, payload, snapshot_id=snapshot.id
             )
             return {"entity": "players", "count": len(players), "snapshot_id": str(snapshot_id)}
+        elif endpoint in ("fixtures", "fixtures_round", "fixture"):
+            matches = await self.normalize_fixtures_payload(
+                provider_name, payload, snapshot_id=snapshot.id
+            )
+            return {"entity": "matches", "count": len(matches), "snapshot_id": str(snapshot_id)}
         else:
             return {
                 "entity": endpoint,

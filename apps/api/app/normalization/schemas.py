@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -71,3 +71,50 @@ class NormalizedPlayerStats(BaseModel):
     assists: int = 0
     conceded: int = 0
     raw_stats: dict[str, Any] = {}
+
+
+class NormalizedScoreDetail(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    home: int | None = None
+    away: int | None = None
+
+
+class NormalizedScore(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    halftime: NormalizedScoreDetail = NormalizedScoreDetail()
+    fulltime: NormalizedScoreDetail = NormalizedScoreDetail()
+    extratime: NormalizedScoreDetail = NormalizedScoreDetail()
+    penalty: NormalizedScoreDetail = NormalizedScoreDetail()
+
+
+class NormalizedFixture(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    provider_fixture_id: str
+    date: datetime
+    timestamp: int | None = None
+    status: str
+    status_detail: str | None = None
+    elapsed: int | None = None
+    round: str | None = None
+    stage: str | None = None
+    venue_name: str | None = None
+    venue_city: str | None = None
+    referee: str | None = None
+    provider_league_id: str
+    league_name: str
+    league_country: str
+    season_year: int
+    home_provider_club_id: str
+    home_club_name: str
+    home_club_logo: str | None = None
+    home_winner: bool | None = None
+    away_provider_club_id: str
+    away_club_name: str
+    away_club_logo: str | None = None
+    away_winner: bool | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    score: NormalizedScore = NormalizedScore()
