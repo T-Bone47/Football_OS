@@ -42,12 +42,12 @@ from app.providers.registry import ProviderRegistry
 # Reasonable, publicly-documented minimal queries (league 39 = Premier
 # League, a stable well-known ID on this API) — NOT verified against your
 # specific plan/coverage. Override the params below if your plan differs.
-_SEASON = 2026
+_SEASON = 2023
 ENDPOINTS: list[tuple[str, dict]] = [
     ("leagues", {"current": "true"}),
     ("teams", {"league": 39, "season": _SEASON}),
     ("players", {"league": 39, "season": _SEASON, "page": 1}),
-    ("fixtures", {"league": 39, "season": _SEASON, "next": 1}),
+    ("fixtures", {"date": "2026-09-20"}),
 ]
 
 

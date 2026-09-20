@@ -104,9 +104,10 @@ class IngestionService:
         run.status = IngestionStatus.SUCCESS
         run.record_count = 1
         run.finished_at = datetime.now(timezone.utc)
-        await self._session.commit()
 
         if self._capabilities is not None:
             await self._capabilities.mark_verified(provider_name, resource)
+
+        await self._session.commit()
 
         return run

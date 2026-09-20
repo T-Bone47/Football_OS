@@ -110,11 +110,13 @@ async def test_api_football_live(session, tmp_path):
 
     registry = ProviderRegistry()
     registry.register("api-football", ApiFootballProvider)
+    capabilities = CapabilityRegistry(session)
+    await capabilities.mark_verified("api-football", "status")
     service = IngestionService(
         session=session,
         provider_registry=registry,
         snapshot_store=LocalFilesystemSnapshotStore(tmp_path),
-        capability_registry=CapabilityRegistry(session),
+        capability_registry=capabilities,
     )
     run = await service.run("api-football", "status")
     assert run.status == IngestionStatus.SUCCESS
