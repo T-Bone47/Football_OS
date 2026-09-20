@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 3 — validated Shortlist Board (Mongo CRUD + share) and PitchHeatmap features. Backend: 5/5 pytest passes covering auth gating, full CRUD lifecycle, duplicate 409, share token rotation, unshare, public /shared read without auth, invalid token 404, and cross-user isolation (secondary session cannot access primary's shortlist). Frontend: /shortlists empty state, create form, navigation to detail, breadcrumb 'Recruitment / Shortlists / Board', rename modal, share panel showing /shared/shortlists/tok_ URL, unshare, delete-with-confirm, mobile 390px zero overflow, public /shared/shortlists/{token} accessible without login, invalid token error rendered. PitchHeatmap: 11 markers on /tactical/fit for 4-3-3, dynamically updates on formation change to 4-2-3-1 (labels include AM/DM/RM/LM), zero heat cells when cells prop empty (no fabricated data), /squad/builder squad-pitch renders 11 markers. AddToShortlist button correctly hidden on error-state profile (component compiles; wired in header actions per code review — profile 404 prevents render, expected per problem statement).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_shortlists.py",
+    "/app/backend/tests/test_auth_live.py",
+    "/app/backend/tests/test_copilot_stream.py",
+    "/app/test_reports/pytest/iteration_3.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py: /api/shortlists/{shortlist_id} GET is declared BEFORE /api/shortlists/shared/{token} GET. In this case they do not collide (different segment counts) but consider moving the public /shared/{token} route above the parameterized single-item route to prevent future path-shape drift from causing silent 401s on the public endpoint.",
+    "server.py list_shortlists caps at .to_list(200) — no pagination cursor; add skip/limit query params before this is exposed to real recruiters with hundreds of boards.",
+    "server.py share_shortlist rotates the token on every call — that is the tested behavior and is fine, but consider returning 200 with the same token if one already exists behind a ?rotate=true flag to avoid accidentally invalidating existing shared links when a user re-clicks Share.",
+    "PitchHeatmap.js: `bins` size is `GRID * Math.round(GRID*0.66)` = 12*8 = 96 as documented; the row count is hard-coded to 8 via .66 factor — extracting ROWS constant would improve readability and match the CSS grid template rows if changed."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_shortlists.py",
+    "/app/test_reports/iteration_3.json",
+    "/app/test_reports/pytest/iteration_3.xml"
+  ],
+  "success_rate": {
+    "backend": "100% (5/5 pytest: auth gating, full lifecycle create→list→get→patch→add-player→dup-409→remove-player→share→public-read→rotate→unshare→delete→404, cross-user isolation 404, invalid share token 404)",
+    "frontend": "100% — /shortlists list/create/detail/rename/share/unshare/delete flows all worked end-to-end; public /shared/shortlists/{token} page rendered with owner name, name, notes, players block without login and READ-ONLY badge; invalid token gracefully shows error state; PitchHeatmap renders 11 markers with formation switching (4-3-3 ↔ 4-2-3-1) and no fabricated heat when cells prop empty; /squad/builder squad-pitch renders 11 markers; mobile 390px overflow=0 on /shortlists; breadcrumb topbar shows 'Recruitment / Shortlists / Board'"
+  },
+  "test_credentials": "session_token=test_ui_football_token (pre-seeded, user_id=test_ui_football, email=scout@football-os.test). Secondary session generated inline in test fixture with TEST_ prefix and cleaned up.",
+  "seed_data_creation": "Test shortlists prefixed TEST_ auto-cleaned via module-scoped fixture teardown + explicit MongoClient delete_many({'name':{'$regex':'^TEST_'}}) after Playwright runs (1 residual removed).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "New Shortlists surface is fully live on Mongo /api/shortlists and stable. The AddToShortlistButton compiles and is wired into PlayerProfilePage header actions, but the profile 404s in this pod (Football_OS /api/v1/* still intentionally unmounted) so the button does not render on error-state — this is expected. When /api/v1/players is mounted, retest the popover (existing lists, prevent duplicate, create-and-add). /api/shortlists/{id} GET is declared before /api/shortlists/shared/{token} GET in server.py; not currently ambiguous but flagged in code review. /api/v1/* remains a graceful 'backend dependency' — do not treat as bugs.",
+  "rca of the issue": "No defects found. Share token confirmed as tok_ + 32-char lowercase hex, rotates on each POST /share, and invalidates on DELETE /share (old token → 404). Cross-user access is denied by owner_user_id-scoped Mongo queries; secondary user gets 404 on GET/DELETE of another user's shortlist and does not see it in list. Duplicate player POST returns 409 as required. Response bodies exclude Mongo _id."
+}
