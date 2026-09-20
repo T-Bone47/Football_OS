@@ -16,6 +16,9 @@ from app.db.models.canonical import (
     Competition,
     CompetitionSeason,
     Match,
+    MatchEvent,
+    MatchLineup,
+    MatchStatistics,
     MatchTeam,
     Player,
     PlayerIdentity,
@@ -184,6 +187,77 @@ class MatchDetailResponse(BaseModel):
     snapshot_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class MatchEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    match_id: uuid.UUID
+    club_id: uuid.UUID
+    club_name: str | None = None
+    player_id: uuid.UUID | None = None
+    player_name: str | None = None
+    assist_player_id: uuid.UUID | None = None
+    assist_player_name: str | None = None
+    event_type: str
+    event_detail: str | None = None
+    minute: int
+    extra_minute: int | None = None
+    comments: str | None = None
+    event_key: str
+    provider_event_id: str | None = None
+    snapshot_id: uuid.UUID | None = None
+    created_at: datetime
+
+
+class MatchLineupResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    match_id: uuid.UUID
+    club_id: uuid.UUID
+    club_name: str | None = None
+    player_id: uuid.UUID
+    player_name: str | None = None
+    is_starter: bool
+    jersey_number: int | None = None
+    position: str | None = None
+    formation_position: str | None = None
+    formation: str | None = None
+    is_captain: bool = False
+    coach_name: str | None = None
+    snapshot_id: uuid.UUID | None = None
+    created_at: datetime
+
+
+class MatchStatisticsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    match_id: uuid.UUID
+    club_id: uuid.UUID
+    club_name: str | None = None
+    possession_pct: float | None = None
+    shots_total: int | None = None
+    shots_on_target: int | None = None
+    shots_off_target: int | None = None
+    blocked_shots: int | None = None
+    shots_inside_box: int | None = None
+    shots_outside_box: int | None = None
+    fouls: int | None = None
+    corners: int | None = None
+    offsides: int | None = None
+    yellow_cards: int | None = None
+    red_cards: int | None = None
+    saves: int | None = None
+    passes_total: int | None = None
+    passes_accurate: int | None = None
+    pass_accuracy_pct: float | None = None
+    expected_goals: float | None = None
+    free_kicks: int | None = None
+    snapshot_id: uuid.UUID | None = None
+    created_at: datetime
 
 
 @router.get("/competitions", response_model=list[CompetitionResponse])
@@ -386,6 +460,144 @@ async def get_match(
         created_at=match.created_at,
         updated_at=match.updated_at,
     )
+
+
+@router.get("/matches/{match_id}/events", response_model=list[MatchEventResponse])
+async def get_match_events(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[MatchEventResponse]:
+    m_check = await session.execute(select(Match.id).where(Match.id == match_id))
+    if m_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    stmt = (
+        select(MatchEvent)
+        .options(
+            selectinload(MatchEvent.club),
+            selectinload(MatchEvent.player),
+            selectinload(MatchEvent.assist_player),
+        )
+        .where(MatchEvent.match_id == match_id)
+        .order_by(MatchEvent.minute.asc(), MatchEvent.extra_minute.asc().nulls_first())
+    )
+    events = (await session.execute(stmt)).scalars().all()
+    results: list[MatchEventResponse] = []
+    for ev in events:
+        results.append(
+            MatchEventResponse(
+                id=ev.id,
+                match_id=ev.match_id,
+                club_id=ev.club_id,
+                club_name=ev.club.name if ev.club else None,
+                player_id=ev.player_id,
+                player_name=ev.player.name if ev.player else None,
+                assist_player_id=ev.assist_player_id,
+                assist_player_name=ev.assist_player.name if ev.assist_player else None,
+                event_type=ev.event_type,
+                event_detail=ev.event_detail,
+                minute=ev.minute,
+                extra_minute=ev.extra_minute,
+                comments=ev.comments,
+                event_key=ev.event_key,
+                provider_event_id=ev.provider_event_id,
+                snapshot_id=ev.snapshot_id,
+                created_at=ev.created_at,
+            )
+        )
+    return results
+
+
+@router.get("/matches/{match_id}/lineups", response_model=list[MatchLineupResponse])
+async def get_match_lineups(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[MatchLineupResponse]:
+    m_check = await session.execute(select(Match.id).where(Match.id == match_id))
+    if m_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    stmt = (
+        select(MatchLineup)
+        .options(
+            selectinload(MatchLineup.club),
+            selectinload(MatchLineup.player),
+        )
+        .where(MatchLineup.match_id == match_id)
+        .order_by(MatchLineup.club_id, MatchLineup.is_starter.desc(), MatchLineup.jersey_number.asc().nulls_last())
+    )
+    lineups = (await session.execute(stmt)).scalars().all()
+    results: list[MatchLineupResponse] = []
+    for lu in lineups:
+        results.append(
+            MatchLineupResponse(
+                id=lu.id,
+                match_id=lu.match_id,
+                club_id=lu.club_id,
+                club_name=lu.club.name if lu.club else None,
+                player_id=lu.player_id,
+                player_name=lu.player.name if lu.player else None,
+                is_starter=lu.is_starter,
+                jersey_number=lu.jersey_number,
+                position=lu.position,
+                formation_position=lu.formation_position,
+                formation=lu.formation,
+                is_captain=lu.is_captain,
+                coach_name=lu.coach_name,
+                snapshot_id=lu.snapshot_id,
+                created_at=lu.created_at,
+            )
+        )
+    return results
+
+
+@router.get("/matches/{match_id}/statistics", response_model=list[MatchStatisticsResponse])
+async def get_match_statistics(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[MatchStatisticsResponse]:
+    m_check = await session.execute(select(Match.id).where(Match.id == match_id))
+    if m_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    stmt = (
+        select(MatchStatistics)
+        .options(selectinload(MatchStatistics.club))
+        .where(MatchStatistics.match_id == match_id)
+        .order_by(MatchStatistics.club_id)
+    )
+    stats = (await session.execute(stmt)).scalars().all()
+    results: list[MatchStatisticsResponse] = []
+    for st in stats:
+        results.append(
+            MatchStatisticsResponse(
+                id=st.id,
+                match_id=st.match_id,
+                club_id=st.club_id,
+                club_name=st.club.name if st.club else None,
+                possession_pct=st.possession_pct,
+                shots_total=st.shots_total,
+                shots_on_target=st.shots_on_target,
+                shots_off_target=st.shots_off_target,
+                blocked_shots=st.blocked_shots,
+                shots_inside_box=st.shots_inside_box,
+                shots_outside_box=st.shots_outside_box,
+                fouls=st.fouls,
+                corners=st.corners,
+                offsides=st.offsides,
+                yellow_cards=st.yellow_cards,
+                red_cards=st.red_cards,
+                saves=st.saves,
+                passes_total=st.passes_total,
+                passes_accurate=st.passes_accurate,
+                pass_accuracy_pct=st.pass_accuracy_pct,
+                expected_goals=st.expected_goals,
+                free_kicks=st.free_kicks,
+                snapshot_id=st.snapshot_id,
+                created_at=st.created_at,
+            )
+        )
+    return results
 
 
 @router.post("/normalization/snapshots/{snapshot_id}")
