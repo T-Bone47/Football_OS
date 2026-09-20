@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -513,5 +514,50 @@ class PlayerMatchStats(Base):
     match: Mapped["Match"] = relationship(back_populates="player_stats")
     club: Mapped["Club"] = relationship(back_populates="player_match_stats")
     player: Mapped["Player"] = relationship(back_populates="match_stats")
+
+
+class FeatureSnapshot(Base):
+    """Canonical analytical feature snapshot (Phase 2 Slice 1).
+    Stores leakage-safe, versioned, reproducible feature vectors for players,
+    teams, and matches as of a strictly defined pre-event timestamp.
+    """
+    __tablename__ = "feature_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "entity_type",
+            "entity_id",
+            "feature_set",
+            "calculation_version",
+            "as_of",
+            name="uq_feature_snapshot",
+        ),
+        Index("ix_feature_snapshots_entity", "entity_type", "entity_id"),
+        Index("ix_feature_snapshots_as_of", "as_of"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    entity_type: Mapped[str] = mapped_column(String(32), nullable=False)  # 'player', 'team', 'match'
+    entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    match_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    feature_set: Mapped[str] = mapped_column(String(64), nullable=False)  # e.g. 'player_match_v1'
+    calculation_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0.0")
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+    season_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    competition_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("competitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    features: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    provenance: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    match: Mapped["Match | None"] = relationship()
+    season: Mapped["Season | None"] = relationship()
+    competition: Mapped["Competition | None"] = relationship()
 
 
