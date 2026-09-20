@@ -20,6 +20,7 @@ from app.db.models.canonical import (
     MatchTeam,
     Player,
     PlayerIdentity,
+    PlayerMatchStats,
     PlayerSeasonStats,
     Season,
 )
@@ -31,6 +32,7 @@ from app.normalization.schemas import (
     NormalizedMatchLineup,
     NormalizedMatchStatistics,
     NormalizedPlayer,
+    NormalizedPlayerMatchStats,
     NormalizedPlayerStats,
 )
 from app.normalization.transformers import (
@@ -38,6 +40,7 @@ from app.normalization.transformers import (
     transform_api_football_fixtures,
     transform_api_football_lineups,
     transform_api_football_players,
+    transform_api_football_player_statistics,
     transform_api_football_statistics,
     transform_api_football_teams,
 )
@@ -881,6 +884,197 @@ class NormalizationService:
         await self._session.commit()
         return statistics_list
 
+    async def normalize_player_match_stats_payload(
+        self,
+        provider: str,
+        payload: dict[str, Any],
+        snapshot_id: uuid.UUID | None = None,
+        default_fixture_id: str | None = None,
+    ) -> list[PlayerMatchStats]:
+        normalized_records = transform_api_football_player_statistics(
+            payload, fixture_id=default_fixture_id
+        )
+        stats_results: list[PlayerMatchStats] = []
+
+        match_cache: dict[str, Match | None] = {}
+        club_cache: dict[str, uuid.UUID] = {}
+        player_cache: dict[str, uuid.UUID] = {}
+
+        for nr in normalized_records:
+            if not nr.provider_fixture_id:
+                continue
+
+            # 1. Resolve Match
+            if nr.provider_fixture_id in match_cache:
+                match = match_cache[nr.provider_fixture_id]
+            else:
+                m_stmt = select(Match).where(
+                    Match.provider == provider,
+                    Match.provider_fixture_id == nr.provider_fixture_id,
+                )
+                match = (await self._session.execute(m_stmt)).scalar_one_or_none()
+                match_cache[nr.provider_fixture_id] = match
+
+            if match is None:
+                continue
+
+            # 2. Resolve Club
+            if nr.provider_club_id in club_cache:
+                club_id = club_cache[nr.provider_club_id]
+            else:
+                club_id = await self._resolve_or_create_club(
+                    provider=provider,
+                    provider_club_id=nr.provider_club_id,
+                    name=nr.club_name or "Unknown Club",
+                )
+                club_cache[nr.provider_club_id] = club_id
+
+            # 3. Resolve Player
+            if nr.provider_player_id in player_cache:
+                player_id = player_cache[nr.provider_player_id]
+            else:
+                player_id = await self._resolve_or_create_player(
+                    provider=provider,
+                    provider_player_id=nr.provider_player_id,
+                    name=nr.player_name,
+                    position=nr.position,
+                )
+                player_cache[nr.provider_player_id] = player_id
+
+            # 4. Cross-check with MatchLineup if available
+            lu_stmt = select(MatchLineup).where(
+                MatchLineup.match_id == match.id,
+                MatchLineup.club_id == club_id,
+                MatchLineup.player_id == player_id,
+            )
+            lineup = (await self._session.execute(lu_stmt)).scalar_one_or_none()
+
+            is_starter = nr.is_starter
+            is_substitute = nr.is_substitute
+            is_captain = nr.is_captain
+            formation_position = nr.grid
+            position = nr.position
+            jersey_number = nr.jersey_number
+
+            if lineup is not None:
+                is_starter = lineup.is_starter
+                is_substitute = not lineup.is_starter
+                if lineup.is_captain:
+                    is_captain = True
+                if lineup.formation_position:
+                    formation_position = lineup.formation_position
+                if not position and lineup.position:
+                    position = lineup.position
+                if jersey_number is None and lineup.jersey_number is not None:
+                    jersey_number = lineup.jersey_number
+
+            # 5. Upsert PlayerMatchStats by (match_id, club_id, player_id)
+            pms_stmt = select(PlayerMatchStats).where(
+                PlayerMatchStats.match_id == match.id,
+                PlayerMatchStats.club_id == club_id,
+                PlayerMatchStats.player_id == player_id,
+            )
+            existing_stat = (await self._session.execute(pms_stmt)).scalar_one_or_none()
+
+            if existing_stat is not None:
+                existing_stat.provider = provider
+                existing_stat.provider_player_id = nr.provider_player_id
+                existing_stat.provider_fixture_id = nr.provider_fixture_id
+                existing_stat.provider_club_id = nr.provider_club_id
+                existing_stat.is_starter = is_starter
+                existing_stat.is_substitute = is_substitute
+                existing_stat.position = position
+                existing_stat.jersey_number = jersey_number
+                existing_stat.formation_position = formation_position
+                existing_stat.is_captain = is_captain
+                existing_stat.minutes = nr.minutes
+                existing_stat.rating = nr.rating
+                existing_stat.goals = nr.goals
+                existing_stat.assists = nr.assists
+                existing_stat.shots_total = nr.shots_total
+                existing_stat.shots_on_target = nr.shots_on_target
+                existing_stat.offsides = nr.offsides
+                existing_stat.passes_total = nr.passes_total
+                existing_stat.passes_key = nr.passes_key
+                existing_stat.pass_accuracy = nr.pass_accuracy
+                existing_stat.tackles_total = nr.tackles_total
+                existing_stat.blocks = nr.blocks
+                existing_stat.interceptions = nr.interceptions
+                existing_stat.duels_total = nr.duels_total
+                existing_stat.duels_won = nr.duels_won
+                existing_stat.dribbles_attempts = nr.dribbles_attempts
+                existing_stat.dribbles_success = nr.dribbles_success
+                existing_stat.dribbles_past = nr.dribbles_past
+                existing_stat.fouls_drawn = nr.fouls_drawn
+                existing_stat.fouls_committed = nr.fouls_committed
+                existing_stat.yellow_cards = nr.yellow_cards
+                existing_stat.red_cards = nr.red_cards
+                existing_stat.penalties_won = nr.penalties_won
+                existing_stat.penalties_committed = nr.penalties_committed
+                existing_stat.penalties_scored = nr.penalties_scored
+                existing_stat.penalties_missed = nr.penalties_missed
+                existing_stat.penalties_saved = nr.penalties_saved
+                existing_stat.saves = nr.saves
+                existing_stat.goals_conceded = nr.goals_conceded
+                existing_stat.clean_sheet = nr.clean_sheet
+                existing_stat.raw_stats = nr.raw_stats
+                if snapshot_id:
+                    existing_stat.snapshot_id = snapshot_id
+                stats_results.append(existing_stat)
+            else:
+                new_stat = PlayerMatchStats(
+                    match_id=match.id,
+                    club_id=club_id,
+                    player_id=player_id,
+                    provider=provider,
+                    provider_player_id=nr.provider_player_id,
+                    provider_fixture_id=nr.provider_fixture_id,
+                    provider_club_id=nr.provider_club_id,
+                    is_starter=is_starter,
+                    is_substitute=is_substitute,
+                    position=position,
+                    jersey_number=jersey_number,
+                    formation_position=formation_position,
+                    is_captain=is_captain,
+                    minutes=nr.minutes,
+                    rating=nr.rating,
+                    goals=nr.goals,
+                    assists=nr.assists,
+                    shots_total=nr.shots_total,
+                    shots_on_target=nr.shots_on_target,
+                    offsides=nr.offsides,
+                    passes_total=nr.passes_total,
+                    passes_key=nr.passes_key,
+                    pass_accuracy=nr.pass_accuracy,
+                    tackles_total=nr.tackles_total,
+                    blocks=nr.blocks,
+                    interceptions=nr.interceptions,
+                    duels_total=nr.duels_total,
+                    duels_won=nr.duels_won,
+                    dribbles_attempts=nr.dribbles_attempts,
+                    dribbles_success=nr.dribbles_success,
+                    dribbles_past=nr.dribbles_past,
+                    fouls_drawn=nr.fouls_drawn,
+                    fouls_committed=nr.fouls_committed,
+                    yellow_cards=nr.yellow_cards,
+                    red_cards=nr.red_cards,
+                    penalties_won=nr.penalties_won,
+                    penalties_committed=nr.penalties_committed,
+                    penalties_scored=nr.penalties_scored,
+                    penalties_missed=nr.penalties_missed,
+                    penalties_saved=nr.penalties_saved,
+                    saves=nr.saves,
+                    goals_conceded=nr.goals_conceded,
+                    clean_sheet=nr.clean_sheet,
+                    raw_stats=nr.raw_stats,
+                    snapshot_id=snapshot_id,
+                )
+                self._session.add(new_stat)
+                stats_results.append(new_stat)
+
+        await self._session.commit()
+        return stats_results
+
     async def normalize_snapshot(self, snapshot_id: uuid.UUID) -> dict[str, Any]:
         """Normalize a single Bronze DataSnapshot by ID into canonical Silver models."""
         stmt = (
@@ -936,6 +1130,11 @@ class NormalizationService:
                 provider_name, payload, snapshot_id=snapshot.id, default_fixture_id=str_fixture_param
             )
             return {"entity": "match_statistics", "count": len(stats), "snapshot_id": str(snapshot_id)}
+        elif endpoint in ("fixtures/players", "players_fixture", "fixture_players"):
+            player_stats = await self.normalize_player_match_stats_payload(
+                provider_name, payload, snapshot_id=snapshot.id, default_fixture_id=str_fixture_param
+            )
+            return {"entity": "player_match_stats", "count": len(player_stats), "snapshot_id": str(snapshot_id)}
         else:
             return {
                 "entity": endpoint,

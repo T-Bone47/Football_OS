@@ -12,6 +12,7 @@ from app.normalization.schemas import (
     NormalizedMatchLineup,
     NormalizedMatchStatistics,
     NormalizedPlayer,
+    NormalizedPlayerMatchStats,
     NormalizedPlayerStats,
     NormalizedScore,
     NormalizedScoreDetail,
@@ -623,4 +624,162 @@ def transform_api_football_statistics(
         statistics_list.append(stat)
 
     return statistics_list
+
+
+def _parse_rating_clean(val: Any, minutes: int | None = None) -> float | None:
+    if val is None:
+        return None
+    if isinstance(val, str):
+        val_str = val.strip()
+        if not val_str or val_str.lower() in ("-", "none", "null", "n/a"):
+            return None
+    try:
+        f_val = float(val)
+        if f_val == 0.0 and (minutes == 0 or minutes is None):
+            return None
+        return f_val
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_percentage_clean(val: Any) -> float | None:
+    if val is None:
+        return None
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).replace("%", "").strip()
+    return _parse_float_clean(s)
+
+
+def transform_api_football_player_statistics(
+    payload: dict[str, Any], fixture_id: str | None = None
+) -> list[NormalizedPlayerMatchStats]:
+    """Pure deterministic transformer converting API-Football /fixtures/players response
+    into NormalizedPlayerMatchStats records.
+    Strictly preserves explicit 0 vs None across all metrics.
+    """
+    target_fixture_id = fixture_id or str(payload.get("parameters", {}).get("fixture") or "")
+    response = payload.get("response", [])
+    player_stats_list: list[NormalizedPlayerMatchStats] = []
+
+    for team_entry in response:
+        if not isinstance(team_entry, dict):
+            continue
+
+        team_info = team_entry.get("team", {})
+        team_id = team_info.get("id")
+        if team_id is None:
+            continue
+        team_name = team_info.get("name")
+
+        players = team_entry.get("players", []) or []
+        for p_item in players:
+            if not isinstance(p_item, dict):
+                continue
+
+            player_info = p_item.get("player", {})
+            p_id = player_info.get("id")
+            if p_id is None:
+                continue
+            player_name = player_info.get("name") or "Unknown Player"
+            photo_url = player_info.get("photo")
+
+            stats_arr = p_item.get("statistics", []) or []
+            stat = stats_arr[0] if stats_arr and isinstance(stats_arr[0], dict) else {}
+
+            games = stat.get("games", {}) or {}
+            shots = stat.get("shots", {}) or {}
+            goals = stat.get("goals", {}) or {}
+            passes = stat.get("passes", {}) or {}
+            tackles = stat.get("tackles", {}) or {}
+            duels = stat.get("duels", {}) or {}
+            dribbles = stat.get("dribbles", {}) or {}
+            fouls = stat.get("fouls", {}) or {}
+            cards = stat.get("cards", {}) or {}
+            penalty = stat.get("penalty", {}) or {}
+
+            raw_minutes = games.get("minutes")
+            minutes = _parse_int_clean(raw_minutes)
+
+            raw_rating = games.get("rating")
+            rating = _parse_rating_clean(raw_rating, minutes=minutes)
+
+            position = games.get("position")
+            jersey_number = _parse_int_clean(games.get("number"))
+            is_captain = bool(games.get("captain", False))
+
+            raw_sub = games.get("substitute")
+            if raw_sub is True:
+                is_starter = False
+                is_substitute = True
+            elif raw_sub is False:
+                is_starter = True
+                is_substitute = False
+            else:
+                is_starter = None
+                is_substitute = None
+
+            # Goalkeeper clean sheet calculation
+            conceded = _parse_int_clean(goals.get("conceded"))
+            saves = _parse_int_clean(goals.get("saves"))
+            clean_sheet: bool | None = None
+            if position == "G":
+                if conceded == 0 and minutes is not None and minutes > 0:
+                    clean_sheet = True
+                elif conceded is not None and conceded > 0:
+                    clean_sheet = False
+
+            # Penalties: handle both 'commited' (API-Football spelling) and 'committed'
+            pen_committed = penalty.get("commited")
+            if pen_committed is None:
+                pen_committed = penalty.get("committed")
+
+            norm_record = NormalizedPlayerMatchStats(
+                provider_fixture_id=target_fixture_id,
+                provider_club_id=str(team_id),
+                club_name=team_name,
+                provider_player_id=str(p_id),
+                player_name=player_name,
+                photo_url=photo_url,
+                is_starter=is_starter,
+                is_substitute=is_substitute,
+                is_captain=is_captain,
+                position=position,
+                jersey_number=jersey_number,
+                grid=None,
+                minutes=minutes,
+                rating=rating,
+                goals=_parse_int_clean(goals.get("total")),
+                assists=_parse_int_clean(goals.get("assists")),
+                shots_total=_parse_int_clean(shots.get("total")),
+                shots_on_target=_parse_int_clean(shots.get("on")),
+                offsides=_parse_int_clean(stat.get("offsides")),
+                passes_total=_parse_int_clean(passes.get("total")),
+                passes_key=_parse_int_clean(passes.get("key")),
+                pass_accuracy=_parse_percentage_clean(passes.get("accuracy")),
+                tackles_total=_parse_int_clean(tackles.get("total")),
+                blocks=_parse_int_clean(tackles.get("blocks")),
+                interceptions=_parse_int_clean(tackles.get("interceptions")),
+                duels_total=_parse_int_clean(duels.get("total")),
+                duels_won=_parse_int_clean(duels.get("won")),
+                dribbles_attempts=_parse_int_clean(dribbles.get("attempts")),
+                dribbles_success=_parse_int_clean(dribbles.get("success")),
+                dribbles_past=_parse_int_clean(dribbles.get("past")),
+                fouls_drawn=_parse_int_clean(fouls.get("drawn")),
+                fouls_committed=_parse_int_clean(fouls.get("committed")),
+                yellow_cards=_parse_int_clean(cards.get("yellow")),
+                red_cards=_parse_int_clean(cards.get("red")),
+                penalties_won=_parse_int_clean(penalty.get("won")),
+                penalties_committed=_parse_int_clean(pen_committed),
+                penalties_scored=_parse_int_clean(penalty.get("scored")),
+                penalties_missed=_parse_int_clean(penalty.get("missed")),
+                penalties_saved=_parse_int_clean(penalty.get("saved")),
+                saves=saves,
+                goals_conceded=conceded,
+                clean_sheet=clean_sheet,
+                raw_stats=stat,
+            )
+            player_stats_list.append(norm_record)
+
+    return player_stats_list
 

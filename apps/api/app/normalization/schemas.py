@@ -182,3 +182,71 @@ class NormalizedMatchStatistics(BaseModel):
     free_kicks: int | None = None
     raw_stats: dict[str, Any] = {}
 
+
+class NormalizedPlayerMatchStats(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    provider_fixture_id: str
+    provider_club_id: str
+    club_name: str | None = None
+    provider_player_id: str
+    player_name: str
+    photo_url: str | None = None
+
+    # Lineup / Role context
+    is_starter: bool | None = None
+    is_substitute: bool | None = None
+    is_captain: bool = False
+    position: str | None = None
+    jersey_number: int | None = None
+    grid: str | None = None
+
+    # Playing time & rating
+    minutes: int | None = None
+    rating: float | None = None
+
+    # Attacking
+    goals: int | None = None
+    assists: int | None = None
+    shots_total: int | None = None
+    shots_on_target: int | None = None
+    offsides: int | None = None
+
+    # Passing
+    passes_total: int | None = None
+    passes_key: int | None = None
+    pass_accuracy: float | None = None
+
+    # Defending & Duels
+    tackles_total: int | None = None
+    blocks: int | None = None
+    interceptions: int | None = None
+    duels_total: int | None = None
+    duels_won: int | None = None
+
+    # Dribbles
+    dribbles_attempts: int | None = None
+    dribbles_success: int | None = None
+    dribbles_past: int | None = None
+
+    # Discipline
+    fouls_drawn: int | None = None
+    fouls_committed: int | None = None
+    yellow_cards: int | None = None
+    red_cards: int | None = None
+
+    # Penalties
+    penalties_won: int | None = None
+    penalties_committed: int | None = None
+    penalties_scored: int | None = None
+    penalties_missed: int | None = None
+    penalties_saved: int | None = None
+
+    # Goalkeeping
+    saves: int | None = None
+    goals_conceded: int | None = None
+    clean_sheet: bool | None = None
+
+    # Raw stats payload
+    raw_stats: dict[str, Any] = {}
+
