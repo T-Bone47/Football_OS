@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Send, Sparkles } from "lucide-react";
+import { Bot, Send } from "lucide-react";
 import { getPlayers } from "@/lib/footballApi";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -166,7 +166,7 @@ export default function CopilotPage() {
         {messages.map((m, idx) => (
           <div key={idx} className={`copilot-message ${m.role}`} data-testid={`copilot-message-${idx}`}>
             <div className="role-label">
-              {m.role === "assistant" ? <><Bot size={12} /> Scout copilot</> : <><Sparkles size={12} /> You</>}
+              {m.role === "assistant" ? <><Bot size={11} /> Scout copilot</> : <>You</>}
             </div>
             <pre>{m.content || (streaming && idx === messages.length - 1 ? "…" : "")}</pre>
           </div>

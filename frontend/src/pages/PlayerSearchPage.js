@@ -6,11 +6,20 @@ import { apiErrorMessage, getPlayers } from "@/lib/footballApi";
 
 const POSITIONS = [
   { value: "", label: "All positions" },
-  { value: "GK", label: "Goalkeepers" },
+  { value: "GK", label: "GK" },
   { value: "D", label: "Defenders" },
   { value: "M", label: "Midfielders" },
   { value: "F", label: "Forwards" },
 ];
+
+function posClass(position) {
+  const p = (position || "").toUpperCase();
+  if (p.startsWith("GK")) return "gk";
+  if (p.startsWith("D") || p.includes("B") || p.includes("CB") || p.includes("LB") || p.includes("RB")) return "d";
+  if (p.startsWith("M") || p.includes("CM") || p.includes("DM") || p.includes("AM")) return "m";
+  if (p.startsWith("F") || p.includes("ST") || p.includes("W")) return "f";
+  return "";
+}
 
 export default function PlayerSearchPage() {
   const [search, setSearch] = useState("");
@@ -35,22 +44,30 @@ export default function PlayerSearchPage() {
     return true;
   }), [players.data, search, nationality]);
 
+  const count = filtered.length;
+  const total = players.data?.length ?? 0;
+
   return (
     <section className="intelligence-page" data-testid="player-search-page">
       <div className="page-heading">
         <div>
-          <p className="eyebrow" data-testid="page-eyebrow">INTELLIGENCE / PLAYERS</p>
+          <p className="eyebrow" data-testid="page-eyebrow">INTELLIGENCE · PLAYERS</p>
           <h1 data-testid="page-title">Player discovery</h1>
           <p className="workspace-subtitle" data-testid="page-description">
-            Search the connected player universe by identity, position, and available evidence — no analytical values are shown until the source returns them.
+            Scan the connected player universe. Only fields returned by <code style={{ fontFamily: "JetBrains Mono, monospace", color: "var(--cyan)" }}>/api/v1/players</code> are shown — missing values render as “—”, never fabricated.
           </p>
         </div>
-        <span className="contract-badge" data-testid="api-contract-badge">/api/v1/players</span>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="badge neutral" data-testid="player-count-badge">
+            {count.toString().padStart(2, "0")} / {total.toString().padStart(2, "0")}
+          </span>
+          <span className="contract-badge" data-testid="api-contract-badge">GET /players</span>
+        </div>
       </div>
 
       <div className="workspace-toolbar player-toolbar" data-testid="player-filter-bar">
         <label className="command-input">
-          <Search size={15} />
+          <Search size={13} />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -60,7 +77,7 @@ export default function PlayerSearchPage() {
           />
         </label>
         <label className="select-control">
-          <SlidersHorizontal size={15} />
+          <SlidersHorizontal size={13} />
           <select
             value={position}
             onChange={(event) => setPosition(event.target.value)}
@@ -71,7 +88,7 @@ export default function PlayerSearchPage() {
           </select>
         </label>
         <label className="select-control">
-          <Users size={15} />
+          <Users size={13} />
           <select
             value={nationality}
             onChange={(event) => setNationality(event.target.value)}
@@ -87,7 +104,7 @@ export default function PlayerSearchPage() {
       {players.isLoading && <p className="inline-state" data-testid="players-loading-state">Loading connected player data…</p>}
       {players.isError && (
         <div className="inline-state error-state" data-testid="players-error-state">
-          <Database size={17} />
+          <Database size={15} />
           <span>{apiErrorMessage(players.error)}</span>
         </div>
       )}
@@ -96,28 +113,32 @@ export default function PlayerSearchPage() {
           <table>
             <thead>
               <tr>
+                <th style={{ width: 40 }}>POS</th>
                 <th>PLAYER</th>
-                <th>POSITION</th>
                 <th>NATIONALITY</th>
                 <th>FOOT</th>
                 <th>DOB</th>
-                <th>SEASONS</th>
-                <th />
+                <th className="num">SEASONS</th>
+                <th style={{ width: 90 }} />
               </tr>
             </thead>
             <tbody>
               {filtered.map((player) => (
                 <tr key={player.id} data-testid={`player-row-${player.id}`}>
+                  <td data-testid={`player-position-${player.id}`}>
+                    {player.primary_position ? (
+                      <span className={`pos-pill ${posClass(player.primary_position)}`}>{player.primary_position}</span>
+                    ) : <span className="pos-pill">—</span>}
+                  </td>
                   <td>
                     <Link to={`/players/${player.id}`} className="player-link" data-testid={`player-link-${player.id}`}>
                       {player.name}
                     </Link>
                   </td>
-                  <td data-testid={`player-position-${player.id}`}>{player.primary_position || "—"}</td>
                   <td data-testid={`player-nationality-${player.id}`}>{player.nationality || "—"}</td>
                   <td data-testid={`player-foot-${player.id}`}>{player.preferred_foot || "—"}</td>
                   <td data-testid={`player-dob-${player.id}`}>{player.date_of_birth || "—"}</td>
-                  <td data-testid={`player-seasons-${player.id}`}>{player.season_stats?.length || 0}</td>
+                  <td className="num" data-testid={`player-seasons-${player.id}`}>{player.season_stats?.length || 0}</td>
                   <td>
                     <Link to={`/players/${player.id}`} className="row-action" data-testid={`player-open-${player.id}`}>
                       Open profile →

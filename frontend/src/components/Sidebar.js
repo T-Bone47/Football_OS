@@ -1,8 +1,8 @@
 import { NavLink } from "react-router-dom";
 import {
   Activity, BarChart3, Beaker, Bot, Compass, Database, GitCompare,
-  LayoutDashboard, Layers, Radar, Radio, Search, ShieldAlert, Sparkles,
-  Sprout, Target, Trophy, Users
+  LayoutDashboard, Layers, Radar, Radio, ShieldAlert,
+  Trophy, Users,
 } from "lucide-react";
 
 const groups = [
@@ -18,8 +18,7 @@ const groups = [
   ]},
   { label: "Recruitment", items: [
     { label: "Market", path: "/market", icon: BarChart3 },
-    { label: "Valuation", path: "/market/valuation", icon: Target },
-    { label: "Opportunities", path: "/market/opportunities", icon: Sprout },
+    { label: "Opportunities", path: "/market/opportunities", icon: Radio },
     { label: "Replacements", path: "/market/replacements", icon: Radio },
     { label: "Transfer risk", path: "/market/risk", icon: ShieldAlert },
   ]},
@@ -33,14 +32,13 @@ const groups = [
   ]},
   { label: "Research", items: [
     { label: "Research lab", path: "/research", icon: Beaker },
-    { label: "Models", path: "/research/models", icon: Layers },
     { label: "Data sources", path: "/research/data", icon: Database },
   ]},
   { label: "AI", items: [
     { label: "Scout copilot", path: "/copilot", icon: Bot },
   ]},
   { label: "System", items: [
-    { label: "Data quality", path: "/system/data-quality", icon: Sparkles },
+    { label: "Data quality", path: "/system/data-quality", icon: Database },
   ]},
 ];
 
@@ -48,7 +46,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar" data-testid="app-sidebar">
       <div className="sidebar-brand" data-testid="sidebar-brand">
-        <span className="brand-mark small">FI</span>
+        <span className="brand-mark small" aria-hidden="true">FI</span>
         <span>FOOTBALL<br />INTELLIGENCE OS</span>
       </div>
       <nav aria-label="Primary navigation" data-testid="primary-navigation">
@@ -63,7 +61,7 @@ export default function Sidebar() {
                 className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
                 data-testid={`nav-link-${label.toLowerCase().replaceAll(" ", "-")}`}
               >
-                <Icon size={15} aria-hidden="true" />
+                <Icon size={13} aria-hidden="true" />
                 <span>{label}</span>
               </NavLink>
             ))}
@@ -72,16 +70,8 @@ export default function Sidebar() {
       </nav>
       <div className="sidebar-foot" data-testid="sidebar-data-status">
         <span className="live-dot warn" />
-        <span>Backend pending connection</span>
+        <span>Backend pending</span>
       </div>
     </aside>
-  );
-}
-
-export function MobileSearchButton({ onClick }) {
-  return (
-    <button className="mobile-search" onClick={onClick} data-testid="mobile-search-button" aria-label="Open global search">
-      <Search size={17} />
-    </button>
   );
 }
