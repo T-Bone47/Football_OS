@@ -195,5 +195,23 @@ Vertical slice per §18–§22: **Bronze Player-Statistics Snapshots → Pure De
 | Real Bronze Snapshot Normalization | **VERIFIED LIVE** | Real API-Football snapshot for fixture `1492387` (`cce167ca-3f18-4646-9ec0-5f366ed61309`) normalized into PostgreSQL: 45 players, 23 starters, 22 substitutes, 32 with minutes, 13 unused substitutes, explicit 0 goals (44) and shots (32) preserved, null penalties_won (45) preserved |
 | Full Test Suite | **VERIFIED** | **98 passed, 1 skipped, 0 failed** across all unit and integration test suites |
 
+## Phase 2 — Slice 1: Leakage-Safe Feature Engineering Foundation (this session)
+
+Vertical slice per Phase 2 Slice 1 Master Specification: **Canonical Silver Data → Pure Deterministic Feature Calculation Engine → Safe Per-90 & Null/Zero Preservation → Multi-Window Rolling Aggregates → Opponent Strength Baselines & Rest-Day Computation → Canonical `FeatureSnapshot` Storage & Provenance → Definitive Temporal Leakage Verification → Model-Ready Dataset Builder → Feature REST API → Real PostgreSQL Verification.**
+
+| Feature | Status | Evidence |
+|---|---|---|
+| Migration `0007_feature_snapshots.py` | VERIFIED | Real Alembic migration executed against PostgreSQL 16; created table `feature_snapshots` with unique constraint `(entity_type, entity_id, feature_set, calculation_version, as_of)`, B-tree indexes on `(entity_type, entity_id)`, `match_id`, `as_of`, `season_id`, `competition_id` |
+| Canonical Model `FeatureSnapshot` (`canonical.py`) | VERIFIED | Strongly-typed entity mapping entity_type ('player', 'team', 'match'), entity_id, match_id, feature_set, calculation_version, as_of timestamp, foreign keys to seasons/competitions, JSONB features dictionary, and JSONB audit provenance |
+| Feature Registry (`registry.py`) | VERIFIED | Catalog of 238 registered features covering player performance (usage, scoring, creation, passing, defending, duels, dribbling, discipline, goalkeeping), team performance (results, goals, possession, shots, fouls, clean sheets, home/away subsets), match context, and opponent strength baselines |
+| Pure Deterministic Calculator (`calculator.py`) | VERIFIED | Safe per-90 rate calculation (`metric / minutes * 90`), strict division by zero avoidance, null vs explicit zero preservation, goalkeeper metric isolation (outfield players receive explicit `None`), rolling windows (`last_3`, `last_5`, `last_10`, `season_to_date`), opponent strength baselines, and calendar rest days |
+| Definitive Temporal Leakage Invariance | **VERIFIED LIVE** | `tests/integration/test_temporal_leakage.py`: Pre-match features computed for Match 5 (as_of = Match 5 kickoff) remain **100% BIT-FOR-BIT IDENTICAL** after inserting future Match 6 with massive stats (10 goals, 15 shots, 10.0 rating) |
+| Feature Engineering Service (`service.py`) | VERIFIED | `compute_player_features`, `compute_team_features`, `compute_match_features`, and `build_model_ready_dataset`; enforces strict `match.date < as_of` temporal filtering, audit provenance (`source_entity`, `source_match_ids`, `record_count`, `calculated_at`), and idempotent upsert |
+| Idempotency Engine | **VERIFIED LIVE** | Repeated feature computation on live PostgreSQL 16 produced 0 duplicate snapshots and 100% stable primary keys |
+| Model-Ready Dataset Builder | VERIFIED | Tabular feature dataset extractor guaranteeing `feature_as_of <= target_timestamp` |
+| Canonical REST API (`routes_canonical.py`) | VERIFIED | `GET /api/v1/features/registry`, `GET /api/v1/players/{id}/features`, and `GET /api/v1/matches/{id}/features` returning pre-match context, team form, and opponent strength |
+| Real PostgreSQL Verification | **VERIFIED LIVE** | Real fixture `1492387` verified: match features, team features, player features (Jonathan Calleri, 156 metrics), and dataset builder verified on live `fios` database |
+| Full Test Suite | **VERIFIED** | **114 passed, 1 skipped, 0 failed** across all unit and integration test suites |
+
 
 
