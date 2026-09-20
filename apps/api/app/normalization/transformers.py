@@ -8,6 +8,9 @@ from app.normalization.schemas import (
     NormalizedClub,
     NormalizedCompetition,
     NormalizedFixture,
+    NormalizedMatchEvent,
+    NormalizedMatchLineup,
+    NormalizedMatchStatistics,
     NormalizedPlayer,
     NormalizedPlayerStats,
     NormalizedScore,
@@ -391,3 +394,233 @@ def transform_api_football_fixtures(
         fixtures.append(fixture)
 
     return fixtures
+
+
+def _normalize_event_type(raw_type: str | None) -> str:
+    if not raw_type:
+        return "OTHER"
+    clean = raw_type.strip().lower()
+    if clean == "goal":
+        return "GOAL"
+    if clean == "card":
+        return "CARD"
+    if clean in ("subst", "substitution"):
+        return "SUBSTITUTION"
+    if clean in ("var", "var-event"):
+        return "VAR"
+    return clean.upper()
+
+
+def transform_api_football_events(
+    payload: dict[str, Any], fixture_id: str | None = None
+) -> list[NormalizedMatchEvent]:
+    """Transform API-Football /fixtures/events response into NormalizedMatchEvent records."""
+    target_fixture_id = fixture_id or str(payload.get("parameters", {}).get("fixture") or "")
+    response = payload.get("response", [])
+    events: list[NormalizedMatchEvent] = []
+
+    for item in response:
+        if not isinstance(item, dict):
+            continue
+
+        time_data = item.get("time", {})
+        team_data = item.get("team", {})
+        player_data = item.get("player", {}) or {}
+        assist_data = item.get("assist", {}) or {}
+
+        elapsed = _parse_int_clean(time_data.get("elapsed"))
+        team_id = team_data.get("id")
+        if elapsed is None or team_id is None:
+            # Data quality requirement: elapsed minute and team are required
+            continue
+
+        extra = _parse_int_clean(time_data.get("extra"))
+        raw_type = item.get("type")
+        event_type = _normalize_event_type(raw_type)
+        detail = item.get("detail")
+        comments = item.get("comments")
+
+        player_id = player_data.get("id")
+        player_name = player_data.get("name")
+        assist_id = assist_data.get("id")
+        assist_name = assist_data.get("name")
+
+        # Deterministic natural key for idempotency
+        p_id_str = str(player_id) if player_id is not None else "none"
+        a_id_str = str(assist_id) if assist_id is not None else "none"
+        det_str = (detail or "").strip().lower()
+        event_key = f"{elapsed}_{extra or 0}_{event_type}_{det_str}_{team_id}_{p_id_str}_{a_id_str}"
+
+        event = NormalizedMatchEvent(
+            provider_fixture_id=target_fixture_id,
+            provider_club_id=str(team_id),
+            club_name=team_data.get("name"),
+            provider_player_id=str(player_id) if player_id is not None else None,
+            player_name=player_name,
+            provider_assist_id=str(assist_id) if assist_id is not None else None,
+            assist_name=assist_name,
+            event_type=event_type,
+            event_detail=detail,
+            minute=elapsed,
+            extra_minute=extra,
+            comments=comments,
+            event_key=event_key,
+            provider_event_id=None,
+        )
+        events.append(event)
+
+    return events
+
+
+def transform_api_football_lineups(
+    payload: dict[str, Any], fixture_id: str | None = None
+) -> list[NormalizedMatchLineup]:
+    """Transform API-Football /fixtures/lineups response into NormalizedMatchLineup records."""
+    target_fixture_id = fixture_id or str(payload.get("parameters", {}).get("fixture") or "")
+    response = payload.get("response", [])
+    lineups: list[NormalizedMatchLineup] = []
+
+    for item in response:
+        if not isinstance(item, dict):
+            continue
+
+        team_data = item.get("team", {})
+        team_id = team_data.get("id")
+        if team_id is None:
+            continue
+
+        team_name = team_data.get("name")
+        formation = item.get("formation")
+        coach_data = item.get("coach", {}) or {}
+        coach_name = coach_data.get("name")
+
+        # 1. Starting XI
+        for starter in item.get("startXI", []):
+            if not isinstance(starter, dict):
+                continue
+            p_data = starter.get("player", {}) or {}
+            p_id = p_data.get("id")
+            p_name = p_data.get("name")
+            if p_id is None or not p_name:
+                continue
+
+            lineups.append(
+                NormalizedMatchLineup(
+                    provider_fixture_id=target_fixture_id,
+                    provider_club_id=str(team_id),
+                    club_name=team_name,
+                    formation=formation,
+                    coach_name=coach_name,
+                    provider_player_id=str(p_id),
+                    player_name=p_name,
+                    jersey_number=_parse_int_clean(p_data.get("number")),
+                    position=p_data.get("pos"),
+                    grid=p_data.get("grid"),
+                    is_starter=True,
+                    is_captain=False,
+                )
+            )
+
+        # 2. Substitutes
+        for sub in item.get("substitutes", []):
+            if not isinstance(sub, dict):
+                continue
+            p_data = sub.get("player", {}) or {}
+            p_id = p_data.get("id")
+            p_name = p_data.get("name")
+            if p_id is None or not p_name:
+                continue
+
+            lineups.append(
+                NormalizedMatchLineup(
+                    provider_fixture_id=target_fixture_id,
+                    provider_club_id=str(team_id),
+                    club_name=team_name,
+                    formation=formation,
+                    coach_name=coach_name,
+                    provider_player_id=str(p_id),
+                    player_name=p_name,
+                    jersey_number=_parse_int_clean(p_data.get("number")),
+                    position=p_data.get("pos"),
+                    grid=p_data.get("grid"),
+                    is_starter=False,
+                    is_captain=False,
+                )
+            )
+
+    return lineups
+
+
+def transform_api_football_statistics(
+    payload: dict[str, Any], fixture_id: str | None = None
+) -> list[NormalizedMatchStatistics]:
+    """Transform API-Football /fixtures/statistics response into NormalizedMatchStatistics records.
+    Crucially preserves explicit 0 vs missing/None."""
+    target_fixture_id = fixture_id or str(payload.get("parameters", {}).get("fixture") or "")
+    response = payload.get("response", [])
+    statistics_list: list[NormalizedMatchStatistics] = []
+
+    for item in response:
+        if not isinstance(item, dict):
+            continue
+
+        team_data = item.get("team", {})
+        team_id = team_data.get("id")
+        if team_id is None:
+            continue
+
+        team_name = team_data.get("name")
+        raw_stats_list = item.get("statistics", []) or []
+        stats_dict: dict[str, Any] = {}
+
+        for entry in raw_stats_list:
+            if isinstance(entry, dict) and "type" in entry:
+                key = str(entry["type"]).strip().lower()
+                stats_dict[key] = entry.get("value")
+
+        def _get_stat_int(k: str) -> int | None:
+            if k not in stats_dict:
+                return None
+            val = stats_dict[k]
+            if val is None:
+                return None
+            return _parse_int_clean(val)
+
+        def _get_stat_float(k: str) -> float | None:
+            if k not in stats_dict:
+                return None
+            val = stats_dict[k]
+            if val is None:
+                return None
+            if isinstance(val, str) and "%" in val:
+                val = val.replace("%", "").strip()
+            return _parse_float_clean(val)
+
+        stat = NormalizedMatchStatistics(
+            provider_fixture_id=target_fixture_id,
+            provider_club_id=str(team_id),
+            club_name=team_name,
+            possession_pct=_get_stat_float("ball possession"),
+            shots_total=_get_stat_int("total shots"),
+            shots_on_target=_get_stat_int("shots on goal"),
+            shots_off_target=_get_stat_int("shots off goal"),
+            blocked_shots=_get_stat_int("blocked shots"),
+            shots_inside_box=_get_stat_int("shots insidebox"),
+            shots_outside_box=_get_stat_int("shots outsidebox"),
+            fouls=_get_stat_int("fouls"),
+            corners=_get_stat_int("corner kicks"),
+            offsides=_get_stat_int("offsides"),
+            yellow_cards=_get_stat_int("yellow cards"),
+            red_cards=_get_stat_int("red cards"),
+            saves=_get_stat_int("goalkeeper saves"),
+            passes_total=_get_stat_int("total passes"),
+            passes_accurate=_get_stat_int("passes accurate"),
+            pass_accuracy_pct=_get_stat_float("passes %"),
+            expected_goals=_get_stat_float("expected_goals"),
+            free_kicks=_get_stat_int("free kicks"),
+            raw_stats=stats_dict,
+        )
+        statistics_list.append(stat)
+
+    return statistics_list
+

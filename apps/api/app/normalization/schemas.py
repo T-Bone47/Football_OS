@@ -118,3 +118,67 @@ class NormalizedFixture(BaseModel):
     home_score: int | None = None
     away_score: int | None = None
     score: NormalizedScore = NormalizedScore()
+
+
+class NormalizedMatchEvent(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    provider_fixture_id: str
+    provider_club_id: str
+    club_name: str | None = None
+    provider_player_id: str | None = None
+    player_name: str | None = None
+    provider_assist_id: str | None = None
+    assist_name: str | None = None
+    event_type: str  # GOAL, CARD, SUBSTITUTION, VAR, OTHER
+    event_detail: str | None = None
+    minute: int
+    extra_minute: int | None = None
+    comments: str | None = None
+    event_key: str
+    provider_event_id: str | None = None
+
+
+class NormalizedMatchLineup(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    provider_fixture_id: str
+    provider_club_id: str
+    club_name: str | None = None
+    formation: str | None = None
+    coach_name: str | None = None
+    provider_player_id: str
+    player_name: str
+    jersey_number: int | None = None
+    position: str | None = None
+    grid: str | None = None
+    is_starter: bool = True
+    is_captain: bool = False
+
+
+class NormalizedMatchStatistics(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    provider_fixture_id: str
+    provider_club_id: str
+    club_name: str | None = None
+    possession_pct: float | None = None
+    shots_total: int | None = None
+    shots_on_target: int | None = None
+    shots_off_target: int | None = None
+    blocked_shots: int | None = None
+    shots_inside_box: int | None = None
+    shots_outside_box: int | None = None
+    fouls: int | None = None
+    corners: int | None = None
+    offsides: int | None = None
+    yellow_cards: int | None = None
+    red_cards: int | None = None
+    saves: int | None = None
+    passes_total: int | None = None
+    passes_accurate: int | None = None
+    pass_accuracy_pct: float | None = None
+    expected_goals: float | None = None
+    free_kicks: int | None = None
+    raw_stats: dict[str, Any] = {}
+
