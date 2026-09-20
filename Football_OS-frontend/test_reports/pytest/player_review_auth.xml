@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="2" failures="0" skipped="0" tests="2" time="0.705" timestamp="2026-09-20T10:51:41.931813+00:00" hostname="agent-env-6b958f01-1eb4-43ed-9772-7ef8c2773b1a"><testcase classname="tests.test_auth_live" name="test_auth_me_bearer_excludes_mongo_id" time="0.033"><error message="failed on setup with &quot;KeyError: 'MONGO_URL'&quot;">backend/tests/test_auth_live.py:21: in seeded_session
+    mongo = MongoClient(os.environ["MONGO_URL"])
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'MONGO_URL'</error></testcase><testcase classname="tests.test_auth_live" name="test_auth_me_cookie_and_logout" time="0.000"><error message="failed on setup with &quot;KeyError: 'MONGO_URL'&quot;">backend/tests/test_auth_live.py:21: in seeded_session
+    mongo = MongoClient(os.environ["MONGO_URL"])
+                        ^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'MONGO_URL'</error></testcase></testsuite></testsuites>
