@@ -147,6 +147,9 @@ class Player(Base):
     role_profiles: Mapped[list["PlayerRoleProfile"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
+    tactical_fits: Mapped[list["PlayerTacticalFit"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
 
 
 class PlayerIdentity(Base):
@@ -602,6 +605,74 @@ class PlayerRoleProfile(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     player: Mapped["Player"] = relationship(back_populates="role_profiles")
+
+
+class PlayerTacticalFit(Base):
+    """Canonical Player Tactical Fit (Phase 2 Slice 3).
+    Stores deterministic compatibility between a player's functional tendencies,
+    a specific tactical system, formation, position, and role requirement.
+    """
+    __tablename__ = "player_tactical_fits"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id",
+            "tactical_context_id",
+            "feature_set_version",
+            "calculation_version",
+            "as_of",
+            name="uq_player_tactical_fit",
+        ),
+        Index("ix_player_tactical_fits_player_id", "player_id"),
+        Index("ix_player_tactical_fits_as_of", "as_of"),
+        Index("ix_player_tactical_fits_tactical_context_id", "tactical_context_id"),
+        Index("ix_player_tactical_fits_target_role", "target_role"),
+        Index("ix_player_tactical_fits_fit_status", "fit_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False
+    )
+    team_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    season_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    tactical_context_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    formation: Mapped[str] = mapped_column(String(32), nullable=False)
+    target_position: Mapped[str] = mapped_column(String(16), nullable=False)
+    position_group: Mapped[str] = mapped_column(String(16), nullable=False)  # 'GK', 'DEF', 'MID', 'ATT'
+    target_role: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    # Core scores [0.0, 1.0]
+    fit_score: Mapped[float] = mapped_column(Float, nullable=False)
+    position_fit: Mapped[float] = mapped_column(Float, nullable=False)
+    role_fit: Mapped[float] = mapped_column(Float, nullable=False)
+    dimension_fit: Mapped[float] = mapped_column(Float, nullable=False)
+    style_fit: Mapped[float | None] = mapped_column(Float, nullable=True)
+    contextual_fit: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Evidence, Uncertainty, and Confidence
+    confidence: Mapped[str] = mapped_column(String(32), nullable=False)  # 'HIGH', 'MEDIUM', 'LOW', 'INSUFFICIENT_DATA'
+    fit_status: Mapped[str] = mapped_column(String(32), nullable=False)  # 'FIT', 'MODERATE_FIT', 'POOR_FIT', 'INSUFFICIENT_DATA'
+
+    # Analytical breakdown and factual explanations
+    dimension_breakdown: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    why_fit: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    why_not_fit: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+
+    # Versioning and Provenance
+    calculation_version: Mapped[str] = mapped_column(String(32), nullable=False, default="tactical_fit_v1")
+    feature_set_version: Mapped[str] = mapped_column(String(64), nullable=False, default="role_feature_set_v1")
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    provenance: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    player: Mapped["Player"] = relationship(back_populates="tactical_fits")
+    team: Mapped["Club | None"] = relationship()
+    season: Mapped["Season | None"] = relationship()
+
 
 
 
