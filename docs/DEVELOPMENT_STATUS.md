@@ -102,3 +102,15 @@ Per ADR-008. `football-data.org`'s adapter, config, and capability-registry rows
 | Live API-Football verification | Still **BLOCKED** in this sandbox for the same reason as every prior session — a diagnostic run reported from Oliver's own machine showed a genuine PASS across DNS/TLS/HTTP/auth/authz/quota, which I'm reporting as *his* result, not mine; I have not independently observed a successful live call from anywhere I control |
 
 One process note worth being direct about: a reconnaissance `grep` in this session wasn't scoped away from `.env` and printed the real `FOOTBALL_DATA_TOKEN` value in a tool-output line — caught and disclosed immediately, `.env` itself was never at risk (still untracked, still absent from git history), but it's a real lapse against the "never print the key" rule both this project's docs and I have held to everywhere else. Token rotation was recommended as a precaution.
+
+## Live endpoint verification script (this session)
+
+Built `app/providers/verify_live_endpoints.py` — routes through the existing `IngestionService` (no parallel infrastructure), checks `/leagues`, `/teams`, `/players`, `/fixtures` sequentially, stops immediately on AUTHORIZATION/QUOTA failure, only calls `CapabilityRegistry.mark_verified()` on a genuine `SUCCESS`.
+
+| Item | Status |
+|---|---|
+| Classification logic (`classify()`) | VERIFIED — 8 parametrized unit tests cover every outcome category |
+| "Not configured" path | VERIFIED — unit test |
+| Live run against this sandbox's real `fios` DB | **Run for real. Result: NOT RUN for all 4 endpoints** — same sandbox egress block as every prior session, now reflected as real `IngestionRun` rows in Postgres (`FAILED`, `ProviderUnavailableError`), not just a diagnostics-only message. Zero capabilities marked verified — correctly, since nothing actually succeeded. |
+| Full suite | **55 passed, 1 skipped** (was 45 — 10 new tests, 0 removed, 0 weakened) |
+| Live success on `/leagues`, `/teams`, `/players`, or `/fixtures` | **Not achieved anywhere I control.** The only PASS on record for this provider is the diagnostic result reported from Oliver's own machine in an earlier session — attributed to him, not independently observed by me, and specific to `/status`, not these four endpoints. |
