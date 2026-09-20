@@ -26,6 +26,13 @@ from app.db.models.canonical import (
     PlayerSeasonStats,
 )
 from app.db.session import get_session
+from app.features.registry import list_features
+from app.features.schemas import (
+    FeatureDefinitionResponse,
+    FeatureSnapshotResponse,
+    MatchContextFeaturesResponse,
+)
+from app.features.service import FeatureService
 from app.normalization.service import NormalizationService
 
 router = APIRouter(prefix="/api/v1", tags=["canonical"])
@@ -817,4 +824,95 @@ async def normalize_snapshot(
         result = await service.normalize_snapshot(snapshot_id)
         return {"status": "SUCCESS", "result": result}
     except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/features/registry", response_model=list[FeatureDefinitionResponse])
+async def get_feature_registry(
+    feature_set: str | None = Query(None, description="Filter by feature set e.g. player_match_v1"),
+    entity_type: str | None = Query(None, description="Filter by entity type: player, team, match"),
+) -> list[FeatureDefinitionResponse]:
+    """Retrieves all registered feature definitions, calculation semantics, and leakage policies."""
+    defs = list_features(feature_set=feature_set, entity_type=entity_type)
+    return [FeatureDefinitionResponse.model_validate(d.to_dict()) for d in defs]
+
+
+@router.get("/players/{player_id}/features", response_model=FeatureSnapshotResponse)
+async def get_player_features(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Temporal cutoff (defaults to now or match date)"),
+    match_id: uuid.UUID | None = Query(None, description="Optional target match for context"),
+    session: AsyncSession = Depends(get_session),
+) -> FeatureSnapshotResponse:
+    """Computes or retrieves leakage-safe pre-match analytical features for a player."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    cutoff = as_of
+    if cutoff is None and match_id is not None:
+        m_check = await session.execute(select(Match.date).where(Match.id == match_id))
+        cutoff = m_check.scalar_one_or_none()
+    if cutoff is None:
+        cutoff = datetime.now(timezone.utc)
+
+    feature_service = FeatureService(session)
+    try:
+        snapshot = await feature_service.compute_player_features(
+            player_id=player_id,
+            as_of=cutoff,
+            match_id=match_id,
+            save=True,
+        )
+        await session.commit()
+        return FeatureSnapshotResponse(
+            id=snapshot.id,
+            entity_type=snapshot.entity_type,
+            entity_id=snapshot.entity_id,
+            match_id=snapshot.match_id,
+            feature_set=snapshot.feature_set,
+            calculation_version=snapshot.calculation_version,
+            as_of=snapshot.as_of,
+            season_id=snapshot.season_id,
+            competition_id=snapshot.competition_id,
+            features=snapshot.features,
+            provenance=snapshot.provenance,
+            created_at=snapshot.created_at,
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/matches/{match_id}/features", response_model=MatchContextFeaturesResponse)
+async def get_match_features(
+    match_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff (defaults to match date)"),
+    session: AsyncSession = Depends(get_session),
+) -> MatchContextFeaturesResponse:
+    """Computes pre-match context, team features, rest days, and opponent strength baselines."""
+    m_check = await session.execute(select(Match.id).where(Match.id == match_id))
+    if m_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    feature_service = FeatureService(session)
+    try:
+        result = await feature_service.compute_match_features(
+            match_id=match_id,
+            as_of=as_of,
+            save=True,
+        )
+        await session.commit()
+        return MatchContextFeaturesResponse(
+            match_id=result["match_id"],
+            as_of=result["as_of"],
+            home_club_id=result["home_club_id"],
+            away_club_id=result["away_club_id"],
+            home_features=result["home_features"],
+            away_features=result["away_features"],
+            match_context=result["match_context"],
+            provenance=result["provenance"],
+        )
+    except Exception as exc:
+        await session.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
