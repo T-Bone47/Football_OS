@@ -22,6 +22,7 @@ from app.db.models.canonical import (
     MatchTeam,
     Player,
     PlayerIdentity,
+    PlayerMatchStats,
     PlayerSeasonStats,
 )
 from app.db.session import get_session
@@ -256,6 +257,55 @@ class MatchStatisticsResponse(BaseModel):
     pass_accuracy_pct: float | None = None
     expected_goals: float | None = None
     free_kicks: int | None = None
+    snapshot_id: uuid.UUID | None = None
+    created_at: datetime
+
+
+class PlayerMatchStatsResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    match_id: uuid.UUID
+    club_id: uuid.UUID
+    club_name: str | None = None
+    player_id: uuid.UUID
+    player_name: str | None = None
+    is_starter: bool | None = None
+    is_substitute: bool | None = None
+    is_captain: bool = False
+    position: str | None = None
+    jersey_number: int | None = None
+    formation_position: str | None = None
+    minutes: int | None = None
+    rating: float | None = None
+    goals: int | None = None
+    assists: int | None = None
+    shots_total: int | None = None
+    shots_on_target: int | None = None
+    offsides: int | None = None
+    passes_total: int | None = None
+    passes_key: int | None = None
+    pass_accuracy: float | None = None
+    tackles_total: int | None = None
+    blocks: int | None = None
+    interceptions: int | None = None
+    duels_total: int | None = None
+    duels_won: int | None = None
+    dribbles_attempts: int | None = None
+    dribbles_success: int | None = None
+    dribbles_past: int | None = None
+    fouls_drawn: int | None = None
+    fouls_committed: int | None = None
+    yellow_cards: int | None = None
+    red_cards: int | None = None
+    penalties_won: int | None = None
+    penalties_committed: int | None = None
+    penalties_scored: int | None = None
+    penalties_missed: int | None = None
+    penalties_saved: int | None = None
+    saves: int | None = None
+    goals_conceded: int | None = None
+    clean_sheet: bool | None = None
     snapshot_id: uuid.UUID | None = None
     created_at: datetime
 
@@ -595,6 +645,163 @@ async def get_match_statistics(
                 free_kicks=st.free_kicks,
                 snapshot_id=st.snapshot_id,
                 created_at=st.created_at,
+            )
+        )
+    return results
+
+
+@router.get("/matches/{match_id}/player-stats", response_model=list[PlayerMatchStatsResponse])
+@router.get("/matches/{match_id}/players", response_model=list[PlayerMatchStatsResponse])
+async def get_match_player_stats(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[PlayerMatchStatsResponse]:
+    m_check = await session.execute(select(Match.id).where(Match.id == match_id))
+    if m_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    stmt = (
+        select(PlayerMatchStats)
+        .options(
+            selectinload(PlayerMatchStats.club),
+            selectinload(PlayerMatchStats.player),
+        )
+        .where(PlayerMatchStats.match_id == match_id)
+        .order_by(
+            PlayerMatchStats.club_id,
+            PlayerMatchStats.is_starter.desc().nulls_last(),
+            PlayerMatchStats.minutes.desc().nulls_last(),
+            PlayerMatchStats.jersey_number.asc().nulls_last(),
+        )
+    )
+    p_stats = (await session.execute(stmt)).scalars().all()
+    results: list[PlayerMatchStatsResponse] = []
+    for ps in p_stats:
+        results.append(
+            PlayerMatchStatsResponse(
+                id=ps.id,
+                match_id=ps.match_id,
+                club_id=ps.club_id,
+                club_name=ps.club.name if ps.club else None,
+                player_id=ps.player_id,
+                player_name=ps.player.name if ps.player else None,
+                is_starter=ps.is_starter,
+                is_substitute=ps.is_substitute,
+                is_captain=ps.is_captain,
+                position=ps.position,
+                jersey_number=ps.jersey_number,
+                formation_position=ps.formation_position,
+                minutes=ps.minutes,
+                rating=ps.rating,
+                goals=ps.goals,
+                assists=ps.assists,
+                shots_total=ps.shots_total,
+                shots_on_target=ps.shots_on_target,
+                offsides=ps.offsides,
+                passes_total=ps.passes_total,
+                passes_key=ps.passes_key,
+                pass_accuracy=ps.pass_accuracy,
+                tackles_total=ps.tackles_total,
+                blocks=ps.blocks,
+                interceptions=ps.interceptions,
+                duels_total=ps.duels_total,
+                duels_won=ps.duels_won,
+                dribbles_attempts=ps.dribbles_attempts,
+                dribbles_success=ps.dribbles_success,
+                dribbles_past=ps.dribbles_past,
+                fouls_drawn=ps.fouls_drawn,
+                fouls_committed=ps.fouls_committed,
+                yellow_cards=ps.yellow_cards,
+                red_cards=ps.red_cards,
+                penalties_won=ps.penalties_won,
+                penalties_committed=ps.penalties_committed,
+                penalties_scored=ps.penalties_scored,
+                penalties_missed=ps.penalties_missed,
+                penalties_saved=ps.penalties_saved,
+                saves=ps.saves,
+                goals_conceded=ps.goals_conceded,
+                clean_sheet=ps.clean_sheet,
+                snapshot_id=ps.snapshot_id,
+                created_at=ps.created_at,
+            )
+        )
+    return results
+
+
+@router.get("/players/{player_id}/matches", response_model=list[PlayerMatchStatsResponse])
+async def get_player_match_history(
+    player_id: uuid.UUID,
+    club_id: uuid.UUID | None = Query(None),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+) -> list[PlayerMatchStatsResponse]:
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    stmt = (
+        select(PlayerMatchStats)
+        .options(
+            selectinload(PlayerMatchStats.club),
+            selectinload(PlayerMatchStats.player),
+        )
+        .where(PlayerMatchStats.player_id == player_id)
+    )
+    if club_id is not None:
+        stmt = stmt.where(PlayerMatchStats.club_id == club_id)
+
+    stmt = stmt.order_by(PlayerMatchStats.created_at.desc()).offset(offset).limit(limit)
+    records = (await session.execute(stmt)).scalars().all()
+
+    results: list[PlayerMatchStatsResponse] = []
+    for ps in records:
+        results.append(
+            PlayerMatchStatsResponse(
+                id=ps.id,
+                match_id=ps.match_id,
+                club_id=ps.club_id,
+                club_name=ps.club.name if ps.club else None,
+                player_id=ps.player_id,
+                player_name=ps.player.name if ps.player else None,
+                is_starter=ps.is_starter,
+                is_substitute=ps.is_substitute,
+                is_captain=ps.is_captain,
+                position=ps.position,
+                jersey_number=ps.jersey_number,
+                formation_position=ps.formation_position,
+                minutes=ps.minutes,
+                rating=ps.rating,
+                goals=ps.goals,
+                assists=ps.assists,
+                shots_total=ps.shots_total,
+                shots_on_target=ps.shots_on_target,
+                offsides=ps.offsides,
+                passes_total=ps.passes_total,
+                passes_key=ps.passes_key,
+                pass_accuracy=ps.pass_accuracy,
+                tackles_total=ps.tackles_total,
+                blocks=ps.blocks,
+                interceptions=ps.interceptions,
+                duels_total=ps.duels_total,
+                duels_won=ps.duels_won,
+                dribbles_attempts=ps.dribbles_attempts,
+                dribbles_success=ps.dribbles_success,
+                dribbles_past=ps.dribbles_past,
+                fouls_drawn=ps.fouls_drawn,
+                fouls_committed=ps.fouls_committed,
+                yellow_cards=ps.yellow_cards,
+                red_cards=ps.red_cards,
+                penalties_won=ps.penalties_won,
+                penalties_committed=ps.penalties_committed,
+                penalties_scored=ps.penalties_scored,
+                penalties_missed=ps.penalties_missed,
+                penalties_saved=ps.penalties_saved,
+                saves=ps.saves,
+                goals_conceded=ps.goals_conceded,
+                clean_sheet=ps.clean_sheet,
+                snapshot_id=ps.snapshot_id,
+                created_at=ps.created_at,
             )
         )
     return results
