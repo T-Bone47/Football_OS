@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime, timezone
 import uuid
 from typing import Any
 
@@ -13,6 +14,9 @@ from app.db.models.canonical import (
     Club,
     ClubIdentity,
     Competition,
+    CompetitionSeason,
+    Match,
+    MatchTeam,
     Player,
     PlayerIdentity,
     PlayerSeasonStats,
@@ -98,6 +102,90 @@ class PlayerResponse(BaseModel):
     season_stats: list[PlayerSeasonStatsResponse] = []
 
 
+class ClubSummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    code: str | None = None
+    country: str
+    logo_url: str | None = None
+
+
+class MatchTeamResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    match_id: uuid.UUID
+    club_id: uuid.UUID
+    opponent_club_id: uuid.UUID
+    is_home: bool
+    result: str | None = None
+    goals_for: int | None = None
+    goals_against: int | None = None
+    points: int | None = None
+
+
+class MatchScoreResponse(BaseModel):
+    home: int | None = None
+    away: int | None = None
+    halftime_home: int | None = None
+    halftime_away: int | None = None
+    fulltime_home: int | None = None
+    fulltime_away: int | None = None
+    extratime_home: int | None = None
+    extratime_away: int | None = None
+    penalty_home: int | None = None
+    penalty_away: int | None = None
+
+
+class MatchListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    provider: str
+    provider_fixture_id: str | None = None
+    competition_season_id: uuid.UUID
+    date: datetime
+    status: str
+    status_detail: str | None = None
+    round: str | None = None
+    venue_name: str | None = None
+    venue_city: str | None = None
+    home_club_id: uuid.UUID
+    home_club_name: str | None = None
+    away_club_id: uuid.UUID
+    away_club_name: str | None = None
+    home_score: int | None = None
+    away_score: int | None = None
+    winner_club_id: uuid.UUID | None = None
+
+
+class MatchDetailResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    provider: str
+    provider_fixture_id: str | None = None
+    competition_season_id: uuid.UUID
+    date: datetime
+    status: str
+    status_detail: str | None = None
+    round: str | None = None
+    stage: str | None = None
+    venue_name: str | None = None
+    venue_city: str | None = None
+    referee: str | None = None
+    home_club: ClubSummaryResponse
+    away_club: ClubSummaryResponse
+    winner_club_id: uuid.UUID | None = None
+    score: MatchScoreResponse
+    teams: list[MatchTeamResponse] = []
+    snapshot_id: uuid.UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 @router.get("/competitions", response_model=list[CompetitionResponse])
 async def list_competitions(
     session: AsyncSession = Depends(get_session),
@@ -170,6 +258,134 @@ async def get_player(
     if player is None:
         raise HTTPException(status_code=404, detail="Player not found")
     return PlayerResponse.model_validate(player)
+
+
+@router.get("/matches", response_model=list[MatchListResponse])
+async def list_matches(
+    competition_id: uuid.UUID | None = Query(None),
+    season_id: uuid.UUID | None = Query(None),
+    competition_season_id: uuid.UUID | None = Query(None),
+    club_id: uuid.UUID | None = Query(None),
+    status: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    limit: int = Query(50, le=100),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+) -> list[MatchListResponse]:
+    stmt = (
+        select(Match)
+        .options(
+            selectinload(Match.home_club),
+            selectinload(Match.away_club),
+            selectinload(Match.competition_season),
+        )
+        .order_by(Match.date.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    if competition_season_id:
+        stmt = stmt.where(Match.competition_season_id == competition_season_id)
+    if competition_id:
+        stmt = stmt.join(CompetitionSeason, Match.competition_season_id == CompetitionSeason.id).where(
+            CompetitionSeason.competition_id == competition_id
+        )
+    if season_id:
+        stmt = stmt.join(CompetitionSeason, Match.competition_season_id == CompetitionSeason.id).where(
+            CompetitionSeason.season_id == season_id
+        )
+    if club_id:
+        stmt = stmt.where((Match.home_club_id == club_id) | (Match.away_club_id == club_id))
+    if status:
+        stmt = stmt.where(Match.status == status.upper())
+    if date_from:
+        stmt = stmt.where(Match.date >= datetime.combine(date_from, datetime.min.time(), tzinfo=timezone.utc))
+    if date_to:
+        stmt = stmt.where(Match.date <= datetime.combine(date_to, datetime.max.time(), tzinfo=timezone.utc))
+
+    matches = (await session.execute(stmt)).scalars().all()
+    results: list[MatchListResponse] = []
+    for m in matches:
+        results.append(
+            MatchListResponse(
+                id=m.id,
+                provider=m.provider,
+                provider_fixture_id=m.provider_fixture_id,
+                competition_season_id=m.competition_season_id,
+                date=m.date,
+                status=m.status,
+                status_detail=m.status_detail,
+                round=m.round,
+                venue_name=m.venue_name,
+                venue_city=m.venue_city,
+                home_club_id=m.home_club_id,
+                home_club_name=m.home_club.name if m.home_club else None,
+                away_club_id=m.away_club_id,
+                away_club_name=m.away_club.name if m.away_club else None,
+                home_score=m.home_score,
+                away_score=m.away_score,
+                winner_club_id=m.winner_club_id,
+            )
+        )
+    return results
+
+
+@router.get("/matches/{match_id}", response_model=MatchDetailResponse)
+async def get_match(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> MatchDetailResponse:
+    stmt = (
+        select(Match)
+        .options(
+            selectinload(Match.home_club),
+            selectinload(Match.away_club),
+            selectinload(Match.teams),
+            selectinload(Match.competition_season),
+        )
+        .where(Match.id == match_id)
+    )
+    match = (await session.execute(stmt)).scalar_one_or_none()
+    if match is None:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    score_resp = MatchScoreResponse(
+        home=match.home_score,
+        away=match.away_score,
+        halftime_home=match.halftime_home_score,
+        halftime_away=match.halftime_away_score,
+        fulltime_home=match.fulltime_home_score,
+        fulltime_away=match.fulltime_away_score,
+        extratime_home=match.extratime_home_score,
+        extratime_away=match.extratime_away_score,
+        penalty_home=match.penalty_home_score,
+        penalty_away=match.penalty_away_score,
+    )
+
+    teams_resp = [MatchTeamResponse.model_validate(t) for t in match.teams]
+
+    return MatchDetailResponse(
+        id=match.id,
+        provider=match.provider,
+        provider_fixture_id=match.provider_fixture_id,
+        competition_season_id=match.competition_season_id,
+        date=match.date,
+        status=match.status,
+        status_detail=match.status_detail,
+        round=match.round,
+        stage=match.stage,
+        venue_name=match.venue_name,
+        venue_city=match.venue_city,
+        referee=match.referee,
+        home_club=ClubSummaryResponse.model_validate(match.home_club),
+        away_club=ClubSummaryResponse.model_validate(match.away_club),
+        winner_club_id=match.winner_club_id,
+        score=score_resp,
+        teams=teams_resp,
+        snapshot_id=match.snapshot_id,
+        created_at=match.created_at,
+        updated_at=match.updated_at,
+    )
 
 
 @router.post("/normalization/snapshots/{snapshot_id}")
