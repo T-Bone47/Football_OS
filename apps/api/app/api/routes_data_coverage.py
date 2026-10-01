@@ -9,14 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from app.phase9.coverage_audit import build_coverage_matrix
-from app.phase9.cross_competition import build_cross_competition_matrix
-from app.phase9.ood_validation import validate_ood_behavior
-from app.phase9.model_stability import build_stability_report
-from app.phase9.dry_run import execute_dry_run_cycle
-from app.phase9.validation_engine import generate_phase9_report
+from app.phase9.ood_validation import OODTestResult, validate_ood_behavior
 
 router = APIRouter(prefix="/api/data-coverage", tags=["Data Coverage Surface"])
 
@@ -49,7 +45,9 @@ def get_data_coverage_summary() -> dict[str, Any]:
         }
 
     return {
-        "status": "OPERATIONAL",
+        # Derived from the files actually audited, never a literal.
+        "status": "NO_BRONZE_FILES" if matrix.total_bronze_files == 0 else "AUDITED",
+        "scope": "local Bronze files on this host",
         "audit_version": matrix.audit_version,
         "overall_quality": matrix.overall_quality,
         "total_files": matrix.total_bronze_files,
@@ -65,7 +63,6 @@ def get_data_coverage_summary() -> dict[str, Any]:
             for k, v in matrix.competitions.items()
         },
         "material_limitations": matrix.limitations,
-        "zero_fabrication_policy": "STRICTLY_ENFORCED",
     }
 
 
@@ -81,8 +78,13 @@ def get_data_coverage_matrix() -> dict[str, Any]:
 def get_ood_status() -> dict[str, Any]:
     """Exposes out-of-distribution boundaries and handling rules for frontends."""
     ood = validate_ood_behavior()
+    results = [s.test_result for s in ood.scenarios]
     return {
-        "status": "VALIDATED",
+        # An in-process self-test of the OOD gates, run now. Its status is the
+        # result of that run, not a declaration.
+        "status": "ALL_SCENARIOS_PASSED" if results and all(r == OODTestResult.PASSED for r in results)
+        else "SCENARIO_FAILURES_OR_SKIPS",
+        "evidence_type": "IN_PROCESS_SELF_TEST",
         "ood_policy": "NO_SILENT_NORMAL_CONFIDENCE",
         "labels_supported": [
             "IN_DISTRIBUTION",
@@ -105,26 +107,23 @@ def get_ood_status() -> dict[str, Any]:
     }
 
 
-@router.get("/model-validation")
+@router.get("/model-validation", status_code=410)
 def get_model_validation_surface() -> dict[str, Any]:
-    """Returns validation metrics across all intelligence engines with honest limitations."""
-    data_root = _get_data_root()
-    report = generate_phase9_report(data_root, test_passed=413, test_failed=0, test_skipped=61)
-    return {
-        "release_state": report.release_state,
-        "player_intelligence": report.player_intelligence,
-        "valuation": report.valuation,
-        "transfer_risk": report.transfer_risk,
-        "match_prediction": report.match_prediction,
-        "tactical_fit": report.tactical_fit,
-        "similarity": report.similarity,
-        "cross_competition_summary": report.cross_competition.get("summary", {}),
-        "limitations": report.limitations,
-    }
+    """Retired in Phase 18: the report embedded literal test counts
+    (413 passed, 0 failed, 61 skipped) and declared model metrics. Model
+    state comes from the registry; validation evidence from the ops API."""
+    raise HTTPException(status_code=410, detail={
+        "status": "RETIRED", "reason": "embedded declared test counts and model metrics",
+        "use_instead": ["/model-status", "/api/v1/ops/models", "/api/v1/ops/models/calibration"],
+    })
 
 
-@router.get("/dry-run")
+@router.get("/dry-run", status_code=410)
 def get_dry_run_status() -> dict[str, Any]:
-    """Runs and returns the latest production ingestion dry run verification (§19)."""
-    report = execute_dry_run_cycle()
-    return report.to_dict()
+    """Retired in Phase 18: it pushed a hand-typed API-Football fixture through
+    the pipeline as a "production dry run". Real ingestion runs through
+    /api/v1/ops/ingestion/jobs and reports the provider's actual state."""
+    raise HTTPException(status_code=410, detail={
+        "status": "RETIRED", "reason": "processed a hand-typed provider payload",
+        "use_instead": ["/api/v1/ops/ingestion/jobs", "/api/v1/ops/providers/probe"],
+    })

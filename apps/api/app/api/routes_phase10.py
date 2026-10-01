@@ -15,14 +15,25 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+import uuid
 
-from app.phase10.competition_readiness import competition_manager
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import get_settings
+from app.db.models.operations import JobRun, OpsUser
+from app.db.session import get_session
+from app.ingestion.factory import build_snapshot_store
+from app.phase17.audit import append_event
+from app.phase17.auth import require
+from app.phase17.live_ingestion import LiveIngestionRunner
+from app.phase17.readiness import competition_readiness
+
 from app.phase10.copilot_extension import copilot_dispatcher
 from app.phase10.decision_records import decision_store
 from app.phase10.model_lifecycle import model_lifecycle
-from app.phase10.operational_ingestion import operational_pipeline
 from app.phase10.recruitment_projects import recruitment_manager
 from app.phase10.reports import generate_recruitment_report, render_report_markdown
 from app.phase10.scenarios import scenario_engine
@@ -34,10 +45,13 @@ router = APIRouter(prefix="/api/phase10", tags=["Phase 10 Operational Intelligen
 # ── Schemas ─────────────────────────────────────────────────────────
 
 class IngestionTriggerRequest(BaseModel):
-    provider: str = "api-football"
-    resource: str = "fixtures"
-    payload: dict[str, Any] | None = None
-    dry_run: bool = False
+    """Phase 18 (R4): a trigger names what to fetch; it can never carry the
+    data. Unknown fields such as `payload` are rejected (422)."""
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str
+    resource: str
+    params: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProjectCreateRequest(BaseModel):
@@ -138,39 +152,60 @@ class CopilotProjectQueryRequest(BaseModel):
 # ── 1. Operational Ingestion Endpoints ───────────────────────────────
 
 @router.post("/operations/ingestion/trigger")
-def trigger_ingestion(req: IngestionTriggerRequest) -> dict[str, Any]:
-    record = operational_pipeline.execute_cycle(
-        provider=req.provider,
-        resource=req.resource,
-        payload=req.payload,
-        dry_run=req.dry_run,
-    )
-    return record.to_dict()
+async def trigger_ingestion(req: IngestionTriggerRequest, user: OpsUser = Depends(require("ingestion:run")),
+                            session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Runs the real pipeline: provider request, contract check, SHA-256
+    Bronze snapshot, Silver. A blocked or failing provider is reported as
+    such (FAILED with the provider error); nothing is written in its place."""
+    runner = LiveIngestionRunner(session, build_snapshot_store(get_settings()))
+    result = await runner.run_job(req.provider, req.resource, req.params)
+    await append_event(session, "INGESTION_JOB", str(user.id), f"{req.provider}/{req.resource}",
+                       {"status": result.status, "snapshot": result.snapshot_sha256, "via": "phase10"}, commit=True)
+    return result.to_dict()
 
 
 @router.get("/operations/ingestion/runs")
-def list_ingestion_runs(limit: int = 50) -> list[dict[str, Any]]:
-    return operational_pipeline.list_runs(limit=limit)
+async def list_ingestion_runs(limit: int = Query(50, le=500), _: OpsUser = Depends(require("ops:read")),
+                              session: AsyncSession = Depends(get_session)) -> list[dict[str, Any]]:
+    rows = (await session.execute(select(JobRun).order_by(JobRun.started_at.desc()).limit(limit))).scalars().all()
+    return [_job_dict(j) for j in rows]
 
 
 @router.get("/operations/ingestion/runs/{run_id}")
-def get_ingestion_run(run_id: str) -> dict[str, Any]:
-    run = operational_pipeline.get_run(run_id)
-    if not run:
+async def get_ingestion_run(run_id: uuid.UUID, _: OpsUser = Depends(require("ops:read")),
+                            session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    job = await session.get(JobRun, run_id)
+    if job is None:
         raise HTTPException(status_code=404, detail="Run not found")
-    return run
+    return _job_dict(job)
+
+
+def _job_dict(j: JobRun) -> dict[str, Any]:
+    return {"id": str(j.id), "job_name": j.job_name, "provider": j.provider, "resource": j.resource,
+            "parameters": j.parameters, "status": j.status,
+            "started_at": j.started_at.isoformat() if j.started_at else None,
+            "finished_at": j.finished_at.isoformat() if j.finished_at else None,
+            "records": j.records, "errors": j.errors, "snapshot_sha256": j.snapshot_sha256}
 
 
 # ── 2. Competition Readiness Endpoints ───────────────────────────────
+# Phase 18 (R7): one readiness engine (app.phase17.readiness), read from
+# PostgreSQL. The declared Phase 10 profiles are no longer served.
 
 @router.get("/operations/competition-readiness")
-def list_competition_readiness() -> list[dict[str, Any]]:
-    return competition_manager.list_all()
+async def list_competition_readiness(_: OpsUser = Depends(require("ops:read")),
+                                     session: AsyncSession = Depends(get_session)) -> list[dict[str, Any]]:
+    return await competition_readiness(session)
 
 
 @router.get("/operations/competition-readiness/{code}")
-def get_competition_readiness(code: str) -> dict[str, Any]:
-    return competition_manager.get_profile(code)
+async def get_competition_readiness(code: str, _: OpsUser = Depends(require("ops:read")),
+                                    session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    for row in await competition_readiness(session):
+        # `code` is the competition's display name or one of its competition-season ids.
+        if code.lower() == str(row["competition"]).lower() or code in row["competition_season_ids"]:
+            return row
+    raise HTTPException(status_code=404, detail="No readiness record for this competition")
 
 
 # ── 3. Recruitment Projects Endpoints ────────────────────────────────

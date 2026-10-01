@@ -466,11 +466,10 @@ class TestPhase10ApiRoutes:
         assert data[0]["club"] == "Arsenal"
 
     def test_api_get_competition_readiness(self, client):
-        """GET /api/phase10/operations/competition-readiness/EPL returns readiness."""
+        """Phase 18 (R7): readiness is no longer a declared EPL profile. The
+        route serves the authoritative engine and requires authentication."""
         resp = client.get("/api/phase10/operations/competition-readiness/EPL")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["readiness_state"] == "PRODUCTION_READY"
+        assert resp.status_code == 401
 
     def test_api_watchlist_alerts(self, client):
         """GET /api/phase10/watchlists/alerts returns governed alerts."""

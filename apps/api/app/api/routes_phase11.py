@@ -14,16 +14,16 @@ Exposes REST endpoints for:
 from __future__ import annotations
 
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.models.operations import OpsUser
+from app.db.session import get_session
+from app.phase17.auth import require
+from app.phase17.readiness import competition_readiness
 from pydantic import BaseModel, Field
 
 from app.phase11.calibration_engine import calibration_engine
-from app.phase11.competition_coverage import (
-    CalibrationStatus,
-    CompetitionCoverageProfile,
-    CompetitionReadinessStage,
-    competition_coverage_manager,
-)
 from app.phase11.copilot_extension import copilot_dispatcher_v11
 from app.phase11.cross_competition_validator import cross_competition_validator
 from app.phase11.dataset_registry import dataset_registry
@@ -73,34 +73,31 @@ class CopilotQueryRequest(BaseModel):
 
 # ── 1. Competition Coverage & Readiness Endpoints ────────────────────
 
+# Phase 18 (R7): readiness comes from the one authoritative engine
+# (app.phase17.readiness), computed from PostgreSQL. Readiness can no longer
+# be advanced by assertion.
+
 @router.get("/competitions/coverage")
-def list_competition_coverage(tier: str | None = None) -> list[dict[str, Any]]:
-    return competition_coverage_manager.list_profiles(tier=tier)
+async def list_competition_coverage(_: OpsUser = Depends(require("ops:read")),
+                                    session: AsyncSession = Depends(get_session)) -> list[dict[str, Any]]:
+    return await competition_readiness(session)
 
 
 @router.get("/competitions/{competition_id}/readiness")
-def get_competition_readiness(competition_id: str) -> dict[str, Any]:
-    prof = competition_coverage_manager.get_profile(competition_id)
-    if not prof:
-        raise HTTPException(status_code=404, detail="Competition not found")
-    return prof.to_dict()
+async def get_competition_readiness(competition_id: str, _: OpsUser = Depends(require("ops:read")),
+                                    session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    for row in await competition_readiness(session):
+        if competition_id.lower() == str(row["competition"]).lower() or competition_id in row["competition_season_ids"]:
+            return row
+    raise HTTPException(status_code=404, detail="Competition not found")
 
 
-@router.post("/competitions/{competition_id}/advance")
-def advance_competition_readiness(competition_id: str, req: ReadinessAdvanceRequest) -> dict[str, Any]:
-    try:
-        target_state = CompetitionReadinessStage(req.target_state)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"Invalid target state: {req.target_state}")
-
-    ok, msg = competition_coverage_manager.advance_readiness(
-        competition_id=competition_id,
-        target_state=target_state,
-        evidence=req.evidence,
-    )
-    if not ok:
-        raise HTTPException(status_code=400, detail=msg)
-    return {"ok": True, "message": msg, "profile": competition_coverage_manager.get_profile(competition_id).to_dict()}
+@router.post("/competitions/{competition_id}/advance", status_code=410)
+def advance_competition_readiness(competition_id: str) -> dict[str, Any]:
+    raise HTTPException(status_code=410, detail={
+        "status": "RETIRED",
+        "reason": "readiness is computed from data, validation and live outcomes; it cannot be set by request",
+        "use_instead": "/api/v1/ops/competitions/readiness"})
 
 
 # ── 2. Cross-Competition Validation & Calibration Endpoints ─────────

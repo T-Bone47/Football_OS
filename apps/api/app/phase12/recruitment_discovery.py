@@ -33,7 +33,7 @@ class DiscoveredCandidate:
     player_name: str = ""
     current_club: str = ""
     competition_id: str = "GB-PL"
-    competition_readiness: str = "PRODUCTION_READY"
+    competition_readiness: str = "NOT_ASSESSED"  # read from app.phase17.readiness, never assumed
     position: str = "CB"
     age: int = 22
     discovery_mode: CandidateDiscoveryMode = CandidateDiscoveryMode.ROLE_SIMILAR

@@ -10,6 +10,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 class CompetitionReadinessStage(str, Enum):
@@ -76,7 +77,9 @@ class CompetitionCoverageManager:
     """Manages cross-competition coverage profiles and governed state transitions."""
 
     def __init__(self) -> None:
-        self._profiles: dict[str, CompetitionCoverageProfile] = self._init_profiles()
+        # Declared profiles (tiers, stages, sample sizes) are demo fixtures; the
+        # authoritative readiness is app.phase17.readiness (Phase 18, R7).
+        self._profiles: dict[str, CompetitionCoverageProfile] = self._init_profiles() if dev_seed_enabled() else {}
 
     def _init_profiles(self) -> dict[str, CompetitionCoverageProfile]:
         profiles = {}

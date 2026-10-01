@@ -972,21 +972,21 @@ class TestDataCoverageSurfaceRoutes:
         assert "INSUFFICIENT_DATA" in data["labels_supported"]
         assert "LOW_CONFIDENCE" in data["labels_supported"]
 
-    def test_model_validation_route_honestly_reports_limitations(self):
-        """Model validation endpoint exposes limitations and negative R2 honestly."""
+    def test_model_validation_route_is_retired(self):
+        """Phase 18: the route embedded literal test counts and declared metrics."""
+        from fastapi import HTTPException
         from app.api.routes_data_coverage import get_model_validation_surface
 
-        data = get_model_validation_surface()
-        assert "valuation" in data
-        val_metrics = data["valuation"].get("metrics", {})
-        assert val_metrics.get("test_r2") == -0.0904
-        assert len(data["limitations"]) > 0
+        with pytest.raises(HTTPException) as exc:
+            get_model_validation_surface()
+        assert exc.value.status_code == 410
 
-    def test_dry_run_route_accessible(self):
-        """Dry run endpoint executes successfully."""
+    def test_dry_run_route_is_retired(self):
+        """Phase 18: the dry run pushed a hand-typed provider payload."""
+        from fastapi import HTTPException
         from app.api.routes_data_coverage import get_dry_run_status
 
-        data = get_dry_run_status()
-        assert "summary" in data
-        assert data["summary"]["total_stages"] == 7
+        with pytest.raises(HTTPException) as exc:
+            get_dry_run_status()
+        assert exc.value.status_code == 410
 

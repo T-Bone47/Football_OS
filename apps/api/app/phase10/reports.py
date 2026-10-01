@@ -24,7 +24,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.phase10.competition_readiness import competition_manager
 from app.phase10.decision_records import decision_store
 from app.phase10.recruitment_projects import recruitment_manager
 from app.phase10.scenarios import scenario_engine
