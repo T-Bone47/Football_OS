@@ -23,6 +23,7 @@ async def db_session(postgres_url):
     engine = create_async_engine(postgres_url)
     try:
         async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
     except Exception as exc:
         pytest.skip(f"fios_test not reachable: {exc}")

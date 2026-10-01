@@ -19,6 +19,15 @@ import DataQualityPage from "@/pages/DataQualityPage";
 import CopilotPage from "@/pages/CopilotPage";
 import ShortlistsPage from "@/pages/ShortlistsPage";
 import SharedShortlistPage from "@/pages/SharedShortlistPage";
+import DecisionPage from "@/pages/DecisionPage";
+import RecruitmentProjectsPage from "@/pages/RecruitmentProjectsPage";
+import WatchlistsPage from "@/pages/WatchlistsPage";
+import ScenariosPage from "@/pages/ScenariosPage";
+import OperationsPage from "@/pages/OperationsPage";
+import GlobalOperationsPage from "@/pages/GlobalOperationsPage";
+import ContinuousIntelligencePage from "@/pages/ContinuousIntelligencePage";
+import DecisionLabPage from "@/pages/DecisionLabPage";
+import OutcomeIntelligencePage from "@/pages/OutcomeIntelligencePage";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -129,8 +138,20 @@ function AppRouter() {
       <Route path="/research/experiments" element={<ProtectedRoute>{() => withShell(<ResearchPage variant="experiments" />)}</ProtectedRoute>} />
       <Route path="/system/data-quality" element={<ProtectedRoute>{() => withShell(<DataQualityPage />)}</ProtectedRoute>} />
       <Route path="/copilot" element={<ProtectedRoute>{({ user }) => withShell(<CopilotPage user={user} />)}</ProtectedRoute>} />
+      <Route path="/decisions" element={<ProtectedRoute>{() => withShell(<DecisionPage />)}</ProtectedRoute>} />
+      <Route path="/decisions/recruitment" element={<ProtectedRoute>{() => withShell(<DecisionPage />)}</ProtectedRoute>} />
+      <Route path="/decisions/replacement" element={<ProtectedRoute>{() => withShell(<DecisionPage />)}</ProtectedRoute>} />
+      <Route path="/decisions/scenarios" element={<ProtectedRoute>{() => withShell(<DecisionPage />)}</ProtectedRoute>} />
       <Route path="/shortlists" element={<ProtectedRoute>{() => withShell(<ShortlistsPage />)}</ProtectedRoute>} />
       <Route path="/shortlists/:shortlistId" element={<ProtectedRoute>{() => withShell(<ShortlistsPage detail />)}</ProtectedRoute>} />
+      <Route path="/recruitment/projects" element={<ProtectedRoute>{() => withShell(<RecruitmentProjectsPage />)}</ProtectedRoute>} />
+      <Route path="/watchlists" element={<ProtectedRoute>{() => withShell(<WatchlistsPage />)}</ProtectedRoute>} />
+      <Route path="/scenarios" element={<ProtectedRoute>{() => withShell(<ScenariosPage />)}</ProtectedRoute>} />
+      <Route path="/operations" element={<ProtectedRoute>{() => withShell(<OperationsPage />)}</ProtectedRoute>} />
+      <Route path="/operations/global" element={<ProtectedRoute>{() => withShell(<GlobalOperationsPage />)}</ProtectedRoute>} />
+      <Route path="/intelligence/continuous" element={<ProtectedRoute>{() => withShell(<ContinuousIntelligencePage />)}</ProtectedRoute>} />
+      <Route path="/decision-lab" element={<ProtectedRoute>{() => withShell(<DecisionLabPage />)}</ProtectedRoute>} />
+      <Route path="/outcome-intelligence" element={<ProtectedRoute>{() => withShell(<OutcomeIntelligencePage />)}</ProtectedRoute>} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

@@ -1,0 +1,68 @@
+{
+  "active_model_id": "val_lightgbm_20260920",
+  "models": {
+    "val_lightgbm_20260920": {
+      "model_id": "val_lightgbm_20260920",
+      "model_version": "VALUATION_ML_V1",
+      "dataset_version": "TRANSFER_DATASET_V1",
+      "feature_set_version": "1.0.0",
+      "algorithm": "LightGBM",
+      "training_period": [
+        "2011-07-01",
+        "2022-06-23"
+      ],
+      "validation_period": [
+        "2022-06-30",
+        "2022-09-01"
+      ],
+      "test_period": [
+        "2023-01-01",
+        "2024-02-01"
+      ],
+      "hyperparameters": {
+        "smearing_factor": 1.2856
+      },
+      "train_metrics": {
+        "mae": 16547896.21,
+        "rmse": 22943202.27,
+        "med_ae": 13971026.79,
+        "log_mae": 0.487,
+        "log_rmse": 0.6506,
+        "r2": 0.3362
+      },
+      "val_metrics": {
+        "mae": 18339192.23,
+        "rmse": 22217485.57,
+        "med_ae": 18882393.57,
+        "log_mae": 0.5002,
+        "log_rmse": 0.6203,
+        "r2": -0.0113
+      },
+      "test_metrics": {
+        "mae": 20556513.09,
+        "rmse": 29103228.11,
+        "med_ae": 14745367.47,
+        "log_mae": 0.4914,
+        "log_rmse": 0.6132,
+        "r2": -0.0904
+      },
+      "artifact_location": "C:\\Users\\olive\\Downloads\\football-intelligence-os1\\football-intelligence-os\\data\\models\\valuation\\val_lightgbm_20260920.joblib",
+      "created_at": "2026-09-20T20:18:21.040456+00:00",
+      "code_version": "v4.2.0",
+      "random_seed": 42,
+      "status": "MODEL_VALIDATED",
+      "release_gate_checklist": {
+        "target_policy_verified": true,
+        "feature_contract_documented": true,
+        "temporal_split_chronological": true,
+        "test_set_untouched_during_tuning": true,
+        "beats_comparable_baseline": true,
+        "beats_position_median_baseline": true,
+        "uncertainty_empirical_coverage_valid": true,
+        "explainability_deterministic_non_causal": true,
+        "sufficiency_and_ood_gate_operational": true,
+        "reproducibility_verified": true
+      }
+    }
+  }
+}

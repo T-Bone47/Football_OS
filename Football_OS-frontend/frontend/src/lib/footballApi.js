@@ -78,7 +78,7 @@ export const getPlayerRole = async (playerId, params = {}) => {
   // Contract adapter: normalize archetype_confidence -> confidence for UI
   return {
     ...data,
-    confidence: data.archetype_confidence ?? data.confidence ?? 0,
+    confidence: data.archetype_confidence ?? data.confidence ?? null,
   };
 };
 
@@ -90,6 +90,30 @@ export const getPlayerFeatures = (playerId, params = {}) =>
 
 export const getPlayerMatches = (playerId) =>
   request(`/players/${playerId}/matches`);
+
+// ============================================================
+// PLAYER CONTRIBUTION & ACTION-VALUE (PHASE 3.1)
+// ============================================================
+export const getPlayerContributions = (playerId, params = {}) =>
+  request(`/players/${playerId}/contributions`, params);
+
+export const getPlayerActions = (playerId, params = {}) =>
+  request(`/players/${playerId}/actions`, params);
+
+export const getPlayerActionValues = (playerId, params = {}) =>
+  request(`/players/${playerId}/action-values`, params);
+
+// ============================================================
+// PLAYER INTELLIGENCE ENGINE (PHASE 3.2)
+// ============================================================
+export const getPlayerIntelligence = (playerId, params = {}) =>
+  request(`/players/${playerId}/intelligence`, params);
+
+export const getPlayerTrajectory = (playerId, params = {}) =>
+  request(`/players/${playerId}/trajectory`, params);
+
+export const getPlayerBenchmarks = (playerId, params = {}) =>
+  request(`/players/${playerId}/benchmarks`, params);
 
 // ============================================================
 // SIMILARITY & ROLES
@@ -135,24 +159,142 @@ export const getMatch = async (matchId) => {
 
 export const getMatchEvents = (matchId) => request(`/matches/${matchId}/events`);
 export const getMatchLineups = (matchId) => request(`/matches/${matchId}/lineups`);
-export const getMatchStatistics = (matchId) => request(`/matches/${matchId}/statistics`);
+export const getMatchStatistics = async (matchId) => {
+  const data = await request(`/matches/${matchId}/statistics`);
+  if (!Array.isArray(data) || data.length === 0) return data;
+  if (data[0] && (data[0].possession_pct !== undefined || data[0].shots_total !== undefined)) {
+    const metrics = [];
+    data.forEach((clubStat) => {
+      const club = clubStat.club_name || "Club";
+      if (clubStat.possession_pct != null) {
+        metrics.push({ name: `Possession (${club})`, value: `${clubStat.possession_pct}%`, type: "possession", raw: clubStat });
+      }
+      if (clubStat.shots_total != null) {
+        metrics.push({ name: `Shots (${club})`, value: `${clubStat.shots_total}${clubStat.shots_on_target != null ? ` (${clubStat.shots_on_target} on target)` : ""}`, type: "shots", raw: clubStat });
+      }
+      if (clubStat.passes_total != null) {
+        metrics.push({ name: `Passes (${club})`, value: `${clubStat.passes_total}${clubStat.passes_accurate != null ? ` (${clubStat.passes_accurate} accurate)` : ""}`, type: "passes", raw: clubStat });
+      }
+      if (clubStat.fouls != null) {
+        metrics.push({ name: `Fouls (${club})`, value: `${clubStat.fouls}`, type: "fouls", raw: clubStat });
+      }
+      if (clubStat.corners != null) {
+        metrics.push({ name: `Corners (${club})`, value: `${clubStat.corners}`, type: "corners", raw: clubStat });
+      }
+      if (clubStat.yellow_cards != null) {
+        metrics.push({ name: `Yellow Cards (${club})`, value: `${clubStat.yellow_cards}`, type: "cards", raw: clubStat });
+      }
+      if (clubStat.saves != null) {
+        metrics.push({ name: `Saves (${club})`, value: `${clubStat.saves}`, type: "saves", raw: clubStat });
+      }
+    });
+    metrics.raw_clubs = data;
+    return metrics;
+  }
+  return data;
+};
 export const getMatchPlayerStats = (matchId) => request(`/matches/${matchId}/player-stats`);
 export const getMatchFeatures = (matchId) => request(`/matches/${matchId}/features`);
+
+// Phase 6: Match Prediction & Probability Calibration Engine
+export const getMatchPrediction = (matchId, params = {}) =>
+  request(`/matches/${matchId}/prediction`, params);
+
+export const getMatchPredictionExplanation = (matchId, params = {}) =>
+  request(`/matches/${matchId}/prediction/explanation`, params);
+
+export const getMatchPredictionHistory = (matchId) =>
+  request(`/matches/${matchId}/prediction/history`);
+
+export const getPredictionModelStatus = () =>
+  request("/prediction/model-status");
+
+// TRANSFER MARKET INTELLIGENCE & VALUATION (PHASE 4.1 & 4.2)
+// ============================================================
+export const getPlayerTransfers = (playerId, params = {}) =>
+  request(`/players/${playerId}/transfers`, params);
+
+export const getPlayerMarketContext = (playerId, params = {}) =>
+  request(`/players/${playerId}/market-context`, params);
+
+export const getPlayerTransferComparables = (playerId, params = {}) =>
+  request(`/players/${playerId}/transfer-comparables`, params);
+
+export const getPlayerValuationBaseline = (playerId, params = {}) =>
+  request(`/players/${playerId}/valuation-baseline`, params);
+
+export const getMarketTransfers = (params = {}) =>
+  request("/market/transfers", params);
+
+export const getMarketBenchmarks = (params = {}) =>
+  request("/market/benchmarks", params);
+
+export const getMarketCoverage = (params = {}) =>
+  request("/market/coverage", params);
+
+export const getMarketReadiness = (params = {}) =>
+  request("/market/readiness", params);
+
+export const getMarketDatasetPreview = (params = {}) =>
+  request("/market/dataset-preview", params);
+
+// Phase 4.2: Machine Learning Transfer Valuation & Uncertainty Engine
+export const getPlayerValuation = (playerId, params = {}) =>
+  request(`/players/${playerId}/valuation`, params);
+
+export const getPlayerValuationExplanation = (playerId, params = {}) =>
+  request(`/players/${playerId}/valuation/explanation`, params);
+
+export const getPlayerValuationComparables = (playerId, params = {}) =>
+  request(`/players/${playerId}/valuation/comparables`, params);
+
+export const getMarketModelStatus = () =>
+  request("/market/model-status");
+
+// Phase 5B: Market Opportunities, Replacements & Transfer Risk
+export const getMarketOpportunities = (params = {}) =>
+  request("/market/opportunities", params);
+
+export const findMarketReplacements = (payload) =>
+  requestPost("/market/replacements", payload);
+
+export const findPlayerReplacements = (playerId, params = {}) =>
+  request(`/market/replacements/${playerId}`, params);
+
+export const getPlayerTransferRisk = (playerId) =>
+  request(`/players/${playerId}/transfer-risk`);
+
+export const getMarketRiskBatch = (params = {}) =>
+  request("/market/risk", params);
+
+// Phase 5A: Squad Intelligence & Scenario Simulation
+export const getSquadBuild = (params = {}) =>
+  request("/squads/build", params);
+
+export const analyzeSquad = (payload) =>
+  requestPost("/squads/analyze", payload);
+
+export const simulateTransfer = (payload) =>
+  requestPost("/squads/simulate-transfer", payload);
+
+export const simulateScenario = (payload) =>
+  requestPost("/scenarios/transfer", payload);
 
 // ============================================================
 // UNEXPOSED BACKEND GAPS (TRUTHFUL REPORTING)
 // ============================================================
 export const BACKEND_GAPS = {
-  valuation: "Valuation model endpoints are scheduled for Phase 3 and not yet exposed by the backend.",
-  transferRisk: "Transfer-risk classification endpoints are scheduled for Phase 4 and not yet exposed.",
-  marketOpportunities: "Market opportunity / valuation gap endpoints are scheduled for Phase 3.",
-  replacements: "Replacement engine endpoints are scheduled for Phase 4.",
-  squadBuilder: "Squad construction optimization endpoints are scheduled for Phase 7.",
-  scenario: "Scenario simulator and transfer modeling endpoints are scheduled for Phase 7.",
-  matchPrediction: "Match prediction & probability calibration endpoints are scheduled for Phase 6.",
+  valuation: "Valuation model endpoints are now active in Phase 4.2 (ML Transfer Valuation Engine).",
+  transferRisk: "Transfer risk endpoints are now active in Phase 5B.3.",
+  marketOpportunities: "Market opportunity endpoints are now active in Phase 5B.1.",
+  replacements: "Replacement engine endpoints are now active in Phase 5B.2.",
+  squadBuilder: "Squad construction optimization endpoints are now active in Phase 5A.1.",
+  scenario: "Scenario simulator and transfer modeling endpoints are now active in Phase 5A.2.",
+  matchPrediction: "Match prediction & probability calibration endpoints are now active in Phase 6.",
   research: "Model training and experimental registry endpoints are not yet exposed.",
   dataQuality: "Automated data quality summary endpoints are not yet exposed.",
 };
+
 
 // Unified Error Parser
 export const apiErrorMessage = (error) => {
@@ -339,3 +481,89 @@ export const getSharedShortlist = async (token) => {
     return item;
   }
 };
+
+// ============================================================
+// PHASE 7: UNIFIED DECISION INTELLIGENCE & RECRUITMENT ENGINE
+// ============================================================
+export const getRecruitmentTargets = (params) =>
+  request("/decisions/recruitment", params);
+
+export const analyzeRecruitmentTargets = (payload) =>
+  requestPost("/decisions/recruitment/analyze", payload);
+
+export const analyzeReplacement = (payload) =>
+  requestPost("/decisions/replacement", payload);
+
+export const analyzeTransferScenario = (payload) =>
+  requestPost("/decisions/transfer-scenario", payload);
+
+export const compareCandidates = (payload) =>
+  requestPost("/decisions/compare", payload);
+
+export const getDecision = (decisionId) =>
+  request(`/decisions/${decisionId}`);
+
+export const getDecisionEvidence = (decisionId) =>
+  request(`/decisions/${decisionId}/evidence`);
+
+// ============================================================
+// PHASE 15: GLOBAL FOOTBALL RESEARCH & ADAPTIVE INTELLIGENCE
+// ============================================================
+export const getResearchQuestions = () =>
+  request("/research/questions");
+
+export const getResearchHypotheses = (params) =>
+  request("/research/hypotheses", params);
+
+export const getResearchCohorts = (params) =>
+  request("/research/cohorts", params);
+
+export const getResearchExperiments = () =>
+  request("/research/experiments");
+
+export const createResearchExperiment = (payload) =>
+  requestPost("/research/experiments", payload);
+
+export const validateResearchHypothesis = (payload) =>
+  requestPost("/research/validate", payload);
+
+export const getResearchPatterns = () =>
+  request("/research/patterns");
+
+export const getCrossCompetitionEvaluations = (params) =>
+  request("/research/cross-competition", params);
+
+export const getLeagueTranslations = () =>
+  request("/research/league-translations");
+
+export const getPlayerTrajectories = () =>
+  request("/research/player-trajectories");
+
+export const getRoleTransitions = () =>
+  request("/research/role-transitions");
+
+export const getTacticalPatterns = () =>
+  request("/research/tactical-patterns");
+
+export const getTransferMarketResearch = () =>
+  request("/research/transfer-market");
+
+export const getModelErrorResearch = () =>
+  request("/research/model-errors");
+
+export const getFeatureCandidates = () =>
+  request("/research/feature-candidates");
+
+export const getGlobalValidationMatrix = (params) =>
+  request("/research/validation-matrix", params);
+
+export const getResearchChallengers = () =>
+  request("/research/challengers");
+
+export const getResearchEvidenceGraph = (researchId) =>
+  request(`/research/evidence/${researchId}`);
+
+export const queryResearchCopilot = (payload) =>
+  requestPost("/research/copilot", payload);
+
+

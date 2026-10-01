@@ -93,19 +93,58 @@ class PlayerSimilarityEngine:
         context_sim = 0.70 * pos_sim + 0.30 * exposure_sim
         return round(max(0.0, min(1.0, context_sim)), 4)
 
+    def compute_contribution_similarity(
+        self,
+        contrib_a: dict[str, Any],
+        contrib_b: dict[str, Any],
+    ) -> float:
+        """Computes Euclidean-derived similarity across normalized 7 contribution dimensions (Phase 3.2H)."""
+        dims = ["passing", "creation", "finishing", "defending", "duels", "retention", "goalkeeping"]
+        diffs = []
+        for dim in dims:
+            item_a = contrib_a.get(dim)
+            item_b = contrib_b.get(dim)
+            raw_a = getattr(item_a, "score", None) if hasattr(item_a, "score") else (item_a.get("score") if isinstance(item_a, dict) else item_a)
+            raw_b = getattr(item_b, "score", None) if hasattr(item_b, "score") else (item_b.get("score") if isinstance(item_b, dict) else item_b)
+            val_a = float(raw_a) if raw_a is not None else 0.5
+            val_b = float(raw_b) if raw_b is not None else 0.5
+            diffs.append((val_a - val_b) ** 2)
+
+        euclidean_dist = math.sqrt(sum(diffs))
+        max_dist = math.sqrt(len(dims))
+        sim = 1.0 - (euclidean_dist / max_dist)
+        return round(max(0.0, min(1.0, sim)), 4)
+
     def compute_overall_similarity(
         self,
         stat_sim: float,
         role_sim: float,
         context_sim: float,
+        contrib_sim: float | None = None,
+        mode: str = "composite",
     ) -> float:
-        """Computes composite weighted similarity score."""
-        overall = (
-            self.w_stat * stat_sim
-            + self.w_role * role_sim
-            + self.w_context * context_sim
-        )
-        return round(max(0.0, min(1.0, overall)), 4)
+        """Computes multi-mode similarity score (Phase 3.2H).
+        Supported modes: 'composite', 'contribution', 'role', 'tactical', 'replacement'.
+        """
+        c_sim = contrib_sim if contrib_sim is not None else role_sim
+
+        if mode == "contribution":
+            return c_sim
+        elif mode == "role":
+            return role_sim
+        elif mode == "tactical":
+            return round(0.60 * role_sim + 0.40 * stat_sim, 4)
+        elif mode == "replacement":
+            # Replacement mode emphasizes functional role and contribution with context penalty
+            return round(0.40 * role_sim + 0.40 * c_sim + 0.20 * context_sim, 4)
+        else:
+            # Default composite mode: backward-compatible
+            overall = (
+                self.w_stat * stat_sim
+                + self.w_role * role_sim
+                + self.w_context * context_sim
+            )
+            return round(max(0.0, min(1.0, overall)), 4)
 
     def generate_explanations(
         self,

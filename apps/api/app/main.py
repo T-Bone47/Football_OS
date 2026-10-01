@@ -1,19 +1,38 @@
 import json
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routes_canonical import router as canonical_router
+from app.api.routes_data_coverage import router as data_coverage_router
 from app.api.routes_ingestion import router as ingestion_router
+from app.api.routes_phase10 import router as phase10_router
+from app.api.routes_phase11 import router as phase11_router
+from app.api.routes_phase12 import router as phase12_router
+from app.api.routes_phase13 import router as phase13_router
+from app.api.routes_phase14 import router as phase14_router
+from app.api.routes_phase15 import router as phase15_router
+from app.api.routes_phase16 import router as phase16_router
 from app.config import get_settings
-from app.db.session import engine
+from app.db.session import engine, get_session
+from app.decisions.copilot import orchestrate_copilot_decision
+
+from app.observability.correlation import CorrelationIdMiddleware
+from app.observability.system_health import (
+    check_application_health,
+    check_data_health,
+    check_model_health,
+    check_readiness,
+)
 
 settings = get_settings()
 
 app = FastAPI(title="Football Intelligence OS", version="0.1.0")
 
+app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "*"],
@@ -24,25 +43,52 @@ app.add_middleware(
 
 app.include_router(ingestion_router)
 app.include_router(canonical_router)
+app.include_router(data_coverage_router)
+app.include_router(phase10_router)
+app.include_router(phase11_router)
+app.include_router(phase12_router)
+app.include_router(phase13_router)
+app.include_router(phase14_router)
+app.include_router(phase15_router)
+app.include_router(phase16_router)
+
 
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "environment": settings.environment}
+    """APPLICATION HEALTH: Process uptime, memory footprint, and event loop responsiveness."""
+    res = await check_application_health()
+    res["environment"] = settings.environment
+    return res
+
+
+@app.get("/readiness")
+async def readiness(session: AsyncSession = Depends(get_session)) -> dict:
+    """INFRASTRUCTURE READINESS: Verifies database and external dependency connectivity."""
+    return await check_readiness(session)
 
 
 @app.get("/health/ready")
 async def health_ready() -> dict:
-    """Unlike /health (process is up), this checks the dependency this
-    process actually needs — Postgres — per architecture doc §40's
-    'depend on healthy dependencies, not merely container creation'.
-    """
+    """Legacy alias for backward compatibility with Docker compose healthchecks."""
     try:
         async with engine.connect() as conn:
             await conn.execute(text("select 1"))
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=503, detail=f"database not ready: {exc}") from exc
     return {"status": "ready"}
+
+
+@app.get("/model-status")
+async def model_status() -> dict:
+    """MODEL HEALTH: Validated model registries, calibration status, and active engine states."""
+    return await check_model_health()
+
+
+@app.get("/data-status")
+async def data_status(session: AsyncSession = Depends(get_session)) -> dict:
+    """DATA HEALTH: Freshness, missingness, schema version, and zero-fabrication guarantees."""
+    return await check_data_health(session)
 
 
 @app.get("/api/auth/me")
@@ -72,15 +118,25 @@ class CopilotQueryRequest(BaseModel):
     context_players: list[dict] = []
 
 
+
+
+
+
 @app.post("/api/copilot/query")
-async def copilot_query(body: CopilotQueryRequest):
+async def copilot_query(
+    body: CopilotQueryRequest,
+    session: AsyncSession = Depends(get_session),
+):
     async def sse_generator():
-        text = (
-            f"Analytical context: {len(body.context_players)} canonical players loaded in scope.\n\n"
-            "Backend capability status: LLM Copilot reasoning service is not yet attached to this environment. "
-            "All canonical data layers (Tactical Fit, Similarity, Role Profiles, Matches, Features) are active and queryable."
-        )
-        yield f"data: {json.dumps({'delta': text})}\n\n"
+        try:
+            async for chunk in orchestrate_copilot_decision(
+                query=body.query,
+                context_players=body.context_players,
+                session=session,
+            ):
+                yield f"data: {json.dumps({'delta': chunk})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'delta': f'Analytical query encountered an error: {str(e)}'})}\n\n"
         yield f"data: {json.dumps({'done': True})}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")

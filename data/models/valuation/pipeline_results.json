@@ -1,0 +1,336 @@
+{
+  "model_metadata": {
+    "model_id": "val_lightgbm_20260920",
+    "model_version": "VALUATION_ML_V1",
+    "dataset_version": "TRANSFER_DATASET_V1",
+    "feature_set_version": "1.0.0",
+    "algorithm": "LightGBM",
+    "training_period": [
+      "2011-07-01",
+      "2022-06-23"
+    ],
+    "validation_period": [
+      "2022-06-30",
+      "2022-09-01"
+    ],
+    "test_period": [
+      "2023-01-01",
+      "2024-02-01"
+    ],
+    "hyperparameters": {
+      "smearing_factor": 1.2856
+    },
+    "train_metrics": {
+      "mae": 16547896.21,
+      "rmse": 22943202.27,
+      "med_ae": 13971026.79,
+      "log_mae": 0.487,
+      "log_rmse": 0.6506,
+      "r2": 0.3362
+    },
+    "val_metrics": {
+      "mae": 18339192.23,
+      "rmse": 22217485.57,
+      "med_ae": 18882393.57,
+      "log_mae": 0.5002,
+      "log_rmse": 0.6203,
+      "r2": -0.0113
+    },
+    "test_metrics": {
+      "mae": 20556513.09,
+      "rmse": 29103228.11,
+      "med_ae": 14745367.47,
+      "log_mae": 0.4914,
+      "log_rmse": 0.6132,
+      "r2": -0.0904
+    },
+    "artifact_location": "C:\\Users\\olive\\Downloads\\football-intelligence-os1\\football-intelligence-os\\data\\models\\valuation\\val_lightgbm_20260920.joblib",
+    "created_at": "2026-09-20T20:18:21.040456+00:00",
+    "code_version": "v4.2.0",
+    "random_seed": 42,
+    "status": "MODEL_VALIDATED",
+    "release_gate_checklist": {
+      "target_policy_verified": true,
+      "feature_contract_documented": true,
+      "temporal_split_chronological": true,
+      "test_set_untouched_during_tuning": true,
+      "beats_comparable_baseline": true,
+      "beats_position_median_baseline": true,
+      "uncertainty_empirical_coverage_valid": true,
+      "explainability_deterministic_non_causal": true,
+      "sufficiency_and_ood_gate_operational": true,
+      "reproducibility_verified": true
+    }
+  },
+  "baseline_metrics": {
+    "global_median": {
+      "mae": 22787209.3,
+      "rmse": 31879914.27,
+      "med_ae": 15000000.0,
+      "log_mae": 0.5648,
+      "log_rmse": 0.6768,
+      "r2": -0.3083
+    },
+    "position_median": {
+      "mae": 21889534.88,
+      "rmse": 31478931.37,
+      "med_ae": 14500000.0,
+      "log_mae": 0.5348,
+      "log_rmse": 0.6562,
+      "r2": -0.2756
+    },
+    "age_position_benchmark": {
+      "mae": 21331104.65,
+      "rmse": 30980639.33,
+      "med_ae": 13750000.0,
+      "log_mae": 0.5139,
+      "log_rmse": 0.6336,
+      "r2": -0.2356
+    },
+    "comparable_baseline": {
+      "mae": 20665649.22,
+      "rmse": 30392917.64,
+      "med_ae": 14500000.0,
+      "log_mae": 0.4907,
+      "log_rmse": 0.6214,
+      "r2": -0.1891
+    }
+  },
+  "candidate_val_metrics": {
+    "ridge": {
+      "mae": 19262327.67,
+      "rmse": 22773128.31,
+      "med_ae": 18467241.74,
+      "log_mae": 0.5254,
+      "log_rmse": 0.6296,
+      "r2": -0.0626
+    },
+    "random_forest": {
+      "mae": 18374785.91,
+      "rmse": 21818003.28,
+      "med_ae": 17117392.4,
+      "log_mae": 0.5021,
+      "log_rmse": 0.6112,
+      "r2": 0.0247
+    },
+    "gradient_boosting": {
+      "mae": 19407795.62,
+      "rmse": 22712498.5,
+      "med_ae": 19386164.6,
+      "log_mae": 0.5291,
+      "log_rmse": 0.6323,
+      "r2": -0.0569
+    },
+    "lightgbm": {
+      "mae": 18339192.23,
+      "rmse": 22217485.57,
+      "med_ae": 18882393.57,
+      "log_mae": 0.5002,
+      "log_rmse": 0.6203,
+      "r2": -0.0113
+    }
+  },
+  "champion_test_metrics": {
+    "mae": 20556513.09,
+    "rmse": 29103228.11,
+    "med_ae": 14745367.47,
+    "log_mae": 0.4914,
+    "log_rmse": 0.6132,
+    "r2": -0.0904
+  },
+  "error_breakdowns": {
+    "by_position": {
+      "GK": {
+        "mae": 13404584.22,
+        "med_ae": 13887796.28,
+        "count": 13
+      },
+      "DEF": {
+        "mae": 12472292.53,
+        "med_ae": 6335225.91,
+        "count": 25
+      },
+      "MID": {
+        "mae": 28137333.15,
+        "med_ae": 18080251.37,
+        "count": 48
+      },
+      "ATT": {
+        "mae": 18956541.6,
+        "med_ae": 17008087.04,
+        "count": 43
+      }
+    },
+    "by_fee_band": {
+      "<10M": {
+        "mae": 21337600.12,
+        "med_ae": 18963787.23,
+        "count": 3
+      },
+      "10M-30M": {
+        "mae": 14469217.95,
+        "med_ae": 14105293.91,
+        "count": 36
+      },
+      "30M-70M": {
+        "mae": 11905977.45,
+        "med_ae": 8963486.89,
+        "count": 69
+      },
+      ">70M": {
+        "mae": 59303480.82,
+        "med_ae": 57008087.04,
+        "count": 21
+      }
+    },
+    "by_age_band": {
+      "<21": {
+        "mae": 13768897.89,
+        "med_ae": 5724959.55,
+        "count": 17
+      },
+      "21-24": {
+        "mae": 24934930.3,
+        "med_ae": 17991912.96,
+        "count": 71
+      },
+      "25-28": {
+        "mae": 13879063.89,
+        "med_ae": 12472161.26,
+        "count": 29
+      },
+      "29+": {
+        "mae": 20403835.03,
+        "med_ae": 16130049.83,
+        "count": 12
+      }
+    }
+  },
+  "uncertainty_report": {
+    "coverage_target": 0.8,
+    "empirical_coverage": 0.8217,
+    "sample_size": 129,
+    "mean_interval_width_eur": 58643396.37,
+    "median_interval_width_eur": 56938175.28,
+    "min_interval_width_eur": 30138892.73,
+    "max_interval_width_eur": 92760857.91,
+    "undercoverage_rate": 0.0388,
+    "overcoverage_rate": 0.1395,
+    "coverage_by_position": {
+      "ATT": 0.814,
+      "DEF": 0.84,
+      "MID": 0.7917,
+      "GK": 0.9231
+    },
+    "coverage_by_fee_band": {
+      "<10M": 0.3333,
+      "10-30M": 0.9167,
+      "30-70M": 0.971,
+      ">70M": 0.2381
+    }
+  },
+  "calibration_analysis": {
+    "overall_mean_bias_eur": -9069864.58,
+    "overall_median_bias_eur": -3866562.59,
+    "median_ratio": 0.9142,
+    "systematic_tendency": "UNDERPREDICTED",
+    "fee_band_calibration": {
+      "<10M": {
+        "count": 3,
+        "mean_error_eur": 21337600.12,
+        "median_error_eur": 18963787.23,
+        "tendency": "OVERPREDICTED"
+      },
+      "10-30M": {
+        "count": 36,
+        "mean_error_eur": 14469217.95,
+        "median_error_eur": 14105293.91,
+        "tendency": "OVERPREDICTED"
+      },
+      "30-70M": {
+        "count": 69,
+        "mean_error_eur": -7384696.82,
+        "median_error_eur": -6328297.01,
+        "tendency": "UNDERPREDICTED"
+      },
+      ">70M": {
+        "count": 21,
+        "mean_error_eur": -59303480.82,
+        "median_error_eur": -57008087.04,
+        "tendency": "UNDERPREDICTED"
+      }
+    },
+    "position_calibration": {
+      "ATT": {
+        "count": 43,
+        "mean_error_eur": -9272933.94,
+        "median_error_eur": -7853838.22,
+        "tendency": "UNDERPREDICTED"
+      },
+      "DEF": {
+        "count": 25,
+        "mean_error_eur": -1056380.26,
+        "median_error_eur": -1293689.06,
+        "tendency": "UNDERPREDICTED"
+      },
+      "MID": {
+        "count": 48,
+        "mean_error_eur": -17638048.67,
+        "median_error_eur": -8963486.89,
+        "tendency": "UNDERPREDICTED"
+      },
+      "GK": {
+        "count": 13,
+        "mean_error_eur": 7827651.58,
+        "median_error_eur": 13232452.99,
+        "tendency": "OVERPREDICTED"
+      }
+    }
+  },
+  "global_feature_importance": {
+    "comparable_median_fee_eur": 0.27936507936507937,
+    "cohort_iqr_fee_eur": 0.25396825396825395,
+    "age_at_transfer": 0.21904761904761905,
+    "cohort_median_fee_eur": 0.14603174603174604,
+    "position_group_encoded": 0.05714285714285714,
+    "comparable_count": 0.04126984126984127,
+    "assists_per_90_as_of": 0.0031746031746031746,
+    "age_curve_factor": 0.0,
+    "observed_minutes_as_of": 0.0,
+    "appearances_as_of": 0.0,
+    "rating_avg_as_of": 0.0,
+    "goals_per_90_as_of": 0.0,
+    "defensive_actions_per_90_as_of": 0.0,
+    "pass_accuracy_as_of": 0.0,
+    "passing_contribution_index": 0.0,
+    "creation_contribution_index": 0.0,
+    "finishing_contribution_index": 0.0,
+    "defending_contribution_index": 0.0,
+    "duels_contribution_index": 0.0,
+    "retention_contribution_index": 0.0,
+    "goalkeeping_contribution_index": 0.0,
+    "role_archetype_encoded": 0.0,
+    "archetype_confidence": 0.0,
+    "trajectory_volatility_score": 0.0,
+    "performance_stability": 0.0,
+    "competition_tier_weight": 0.0,
+    "club_strength_baseline": 0.0,
+    "starter_ratio": 0.0,
+    "total_career_transfers_prior": 0.0,
+    "days_since_prior_transfer": 0.0
+  },
+  "release_gate_status": "MODEL_VALIDATED",
+  "release_gate_checklist": {
+    "target_policy_verified": true,
+    "feature_contract_documented": true,
+    "temporal_split_chronological": true,
+    "test_set_untouched_during_tuning": true,
+    "beats_comparable_baseline": true,
+    "beats_position_median_baseline": true,
+    "uncertainty_empirical_coverage_valid": true,
+    "explainability_deterministic_non_causal": true,
+    "sufficiency_and_ood_gate_operational": true,
+    "reproducibility_verified": true
+  },
+  "artifact_path": "C:\\Users\\olive\\Downloads\\football-intelligence-os1\\football-intelligence-os\\data\\models\\valuation\\val_lightgbm_20260920.joblib"
+}

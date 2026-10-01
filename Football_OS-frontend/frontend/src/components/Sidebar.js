@@ -2,7 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   Activity, BarChart3, Beaker, Bookmark, Bot, Compass, Database, GitCompare,
   LayoutDashboard, Layers, Radar, Radio, ShieldAlert,
-  Trophy, Users,
+  Target, Trophy, Users, Briefcase, Eye, GitFork, Server, Globe, RefreshCw, Cpu
 } from "lucide-react";
 
 const groups = [
@@ -17,6 +17,9 @@ const groups = [
     { label: "Tactical fit", path: "/tactical/fit", icon: Radar },
   ]},
   { label: "Recruitment", items: [
+    { label: "Recruitment projects", path: "/recruitment/projects", icon: Briefcase },
+    { label: "Watchlists & alerts", path: "/watchlists", icon: Eye },
+    { label: "Decision engine", path: "/decisions", icon: Target },
     { label: "Market", path: "/market", icon: BarChart3 },
     { label: "Shortlists", path: "/shortlists", icon: Bookmark },
     { label: "Opportunities", path: "/market/opportunities", icon: Radio },
@@ -27,11 +30,14 @@ const groups = [
     { label: "Matches", path: "/matches", icon: Activity },
   ]},
   { label: "Squad", items: [
+    { label: "Decision Lab 2.0", path: "/decision-lab", icon: Cpu },
     { label: "Squad builder", path: "/squad/builder", icon: Trophy },
+    { label: "Scenarios (Multi-Alt)", path: "/scenarios", icon: GitFork },
     { label: "Transfer simulator", path: "/squad/simulator", icon: GitCompare },
     { label: "Scenario lab", path: "/squad/scenarios", icon: Beaker },
   ]},
   { label: "Research", items: [
+    { label: "Outcome intelligence", path: "/outcome-intelligence", icon: Activity },
     { label: "Research lab", path: "/research", icon: Beaker },
     { label: "Data sources", path: "/research/data", icon: Database },
   ]},
@@ -39,6 +45,9 @@ const groups = [
     { label: "Scout copilot", path: "/copilot", icon: Bot },
   ]},
   { label: "System", items: [
+    { label: "Live operations", path: "/operations", icon: Server },
+    { label: "Global operations", path: "/operations/global", icon: Globe },
+    { label: "Continuous learning", path: "/intelligence/continuous", icon: RefreshCw },
     { label: "Data quality", path: "/system/data-quality", icon: Database },
   ]},
 ];

@@ -68,7 +68,7 @@ class TacticalFitService:
 
         # 2. Retrieve or compute player role profile as of eval_time
         profile = await self.role_service.get_role_profile(player_id, as_of=eval_time)
-        if not profile:
+        if not profile or profile.as_of != eval_time:
             profile = await self.role_service.compute_and_save_role_profile(player_id, as_of=eval_time)
 
         # 3. Calculate component fits

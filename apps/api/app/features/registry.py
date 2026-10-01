@@ -214,8 +214,88 @@ for name, dtype, desc, inputs, nullable in MATCH_CONTEXT_FEATURES:
         source="silver.matches",
     )
 
+# Player contribution intelligence features (Phase 3.1)
+CONTRIBUTION_METRICS_CONFIG = [
+    ("passing_contribution_index", "float", "Normalized passing distribution contribution [0, 1]", ["passes_total", "pass_accuracy"], True),
+    ("creation_contribution_index", "float", "Normalized chance creation contribution [0, 1]", ["passes_key", "assists"], True),
+    ("finishing_contribution_index", "float", "Normalized goal scoring & shot threat contribution [0, 1]", ["shots_total", "goals"], True),
+    ("defending_contribution_index", "float", "Normalized defensive disruption contribution [0, 1]", ["tackles_total", "interceptions", "blocks"], True),
+    ("duels_contribution_index", "float", "Normalized duel winning contribution [0, 1]", ["duels_total", "duels_won"], True),
+    ("retention_contribution_index", "float", "Normalized dribbling & ball retention contribution [0, 1]", ["dribbles_success", "fouls_drawn"], True),
+    ("goalkeeping_contribution_index", "float", "Normalized goalkeeping shot stopping contribution [0, 1]", ["saves", "goals_conceded"], True),
+    ("action_volume_per_90", "float", "Total discrete canonical actions per 90 minutes", ["canonical_actions"], True),
+    ("net_action_impact_per_90", "float", "Deterministic net action impact score per 90 minutes", ["canonical_actions"], True),
+]
+
+for name, dtype, desc, inputs, nullable in CONTRIBUTION_METRICS_CONFIG:
+    FEATURE_REGISTRY[name] = FeatureDefinition(
+        name=name,
+        feature_set="contribution_v1",
+        entity_type="player",
+        version="1.0.0",
+        dtype=dtype,
+        description=desc,
+        required_inputs=inputs,
+        leakage_policy="pre-match-strict",
+        window="season_to_date",
+        nullable=nullable,
+        source="player_contribution_engine",
+    )
+
+# Player intelligence composite features (Phase 3.2)
+INTELLIGENCE_METRICS_CONFIG = [
+    ("context_competition_strength", "float", "Competition strength tier coefficient [0.70, 1.05]", ["competition_name"], True),
+    ("context_starter_ratio", "float", "Ratio of appearances made as starter [0, 1]", ["player_match_stats.is_starter"], True),
+    ("context_exposure_share", "float", "Ratio of available minutes played [0, 1]", ["player_match_stats.minutes"], True),
+    ("context_multiplier", "float", "Composite contextual multiplier based on league tier and starter status", ["competitions", "matches"], True),
+    ("peer_benchmark_average_percentile", "float", "Average normal percentile relative to position family peers [0, 100]", ["peer_distributions"], True),
+    ("trajectory_volatility_score", "float", "Standard deviation of match ratings across evaluation timeline", ["player_match_stats.rating"], True),
+    ("intelligence_composite_score", "float", "Normalized composite intelligence score across active features [0, 1]", ["intelligence_vector"], True),
+]
+
+for name, dtype, desc, inputs, nullable in INTELLIGENCE_METRICS_CONFIG:
+    FEATURE_REGISTRY[name] = FeatureDefinition(
+        name=name,
+        feature_set="intelligence_v1",
+        entity_type="player",
+        version="1.0.0",
+        dtype=dtype,
+        description=desc,
+        required_inputs=inputs,
+        leakage_policy="pre-match-strict",
+        window="season_to_date",
+        nullable=nullable,
+        source="player_intelligence_engine",
+    )
+
+# Valuation and Market features (Phase 4.1)
+VALUATION_METRICS_CONFIG = [
+    ("market_comparable_median_fee", "float", "Median fee in EUR across top comparable historical transfers", ["transfers"], True),
+    ("market_comparable_count", "int", "Number of qualified comparable transactions within window", ["transfers"], False),
+    ("market_fee_iqr", "float", "Interquartile range (Q3 - Q1) of comparable cohort fees in EUR", ["transfers"], True),
+    ("market_age_at_evaluation", "float", "Player chronological age at the as_of evaluation timestamp", ["players.date_of_birth"], True),
+    ("market_age_curve_factor", "float", "Empirical career trajectory multiplier based on player age", ["players.date_of_birth"], True),
+    ("market_valuation_baseline", "float", "Deterministic comparable-median baseline valuation in EUR", ["transfers", "players.date_of_birth"], True),
+]
+
+for name, dtype, desc, inputs, nullable in VALUATION_METRICS_CONFIG:
+    FEATURE_REGISTRY[name] = FeatureDefinition(
+        name=name,
+        feature_set="market_valuation_v1",
+        entity_type="player",
+        version="1.0.0",
+        dtype=dtype,
+        description=desc,
+        required_inputs=inputs,
+        leakage_policy="pre-match-strict",
+        window="all_historical",
+        nullable=nullable,
+        source="transfer_market_intelligence",
+    )
+
 
 def get_feature_definition(name: str) -> FeatureDefinition | None:
+
     return FEATURE_REGISTRY.get(name)
 
 

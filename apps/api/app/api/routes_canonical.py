@@ -24,7 +24,48 @@ from app.db.models.canonical import (
     PlayerIdentity,
     PlayerMatchStats,
     PlayerSeasonStats,
+    Transfer,
 )
+from app.market.adapters.open_data import load_bronze_open_transfers
+from app.market.comparables import ComparableTransferEngine
+from app.market.context import build_player_market_context
+from app.market.dataset import ValuationDatasetBuilder, ValuationTrainingRow
+from app.market.merging import merge_multi_source_transfers
+from app.market.readiness import MarketReadinessReport, evaluate_market_readiness
+from app.market.schemas import (
+    ComparableTransfersResponse,
+    MarketBenchmarkResponse,
+    MarketContextResponse,
+    MarketCoverageResponse,
+    TransferResponse,
+    ValuationBaselineResponse,
+    ValuationMLComparablesResponse,
+    ValuationMLExplanationResponse,
+    ValuationMLPredictionResponse,
+    ValuationModelStatusResponse,
+)
+from app.market.ml.service import ValuationMLService
+from app.market.universe import (
+    compute_market_coverage_audit,
+    get_temporal_transfers,
+    transfer_db_to_normalized,
+)
+from app.market.valuation import BaselineValuationEngine, MarketBenchmarkEngine
+from app.market.opportunities import (
+    MarketOpportunitiesEngine,
+    MarketOpportunitiesResponse,
+)
+from app.market.replacements import (
+    ReplacementFinderEngine,
+    ReplacementFinderRequest,
+    ReplacementFinderResponse,
+)
+from app.market.risk import (
+    TransferRiskEngine,
+    TransferRiskProfile,
+    TransferRiskBatchResponse,
+)
+
 from app.db.session import get_session
 from app.features.registry import list_features
 from app.features.schemas import (
@@ -1006,6 +1047,7 @@ async def get_similar_players(
     limit: int = Query(10, ge=1, le=50, description="Maximum number of similar players to return"),
     position_filter: str | None = Query(None, description="Filter by position group (GK, DEF, MID, ATT)"),
     min_minutes: int | None = Query(None, ge=0, description="Minimum sample minutes required"),
+    mode: str = Query("composite", description="Similarity mode: composite, contribution, role, tactical, replacement"),
     session: AsyncSession = Depends(get_session),
 ) -> SimilarPlayersResponse:
     """Finds top-N multi-dimensionally similar players with explainable contribution breakdowns."""
@@ -1021,6 +1063,7 @@ async def get_similar_players(
             limit=limit,
             position_filter=position_filter,
             min_minutes=min_minutes,
+            mode=mode,
         )
         await session.commit()
         return result
@@ -1034,6 +1077,7 @@ async def compare_player_similarity(
     player_id: uuid.UUID,
     other_id: uuid.UUID,
     as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    mode: str = Query("composite", description="Similarity mode: composite, contribution, role, tactical, replacement"),
     session: AsyncSession = Depends(get_session),
 ) -> PlayerComparisonResponse:
     """Detailed head-to-head comparison between two players with explainable dimension deltas."""
@@ -1051,6 +1095,7 @@ async def compare_player_similarity(
             player_a_id=player_id,
             player_b_id=other_id,
             as_of=as_of,
+            mode=mode,
         )
         await session.commit()
         return result
@@ -1220,5 +1265,742 @@ async def compare_players_tactical_fit(
     except Exception as exc:
         await session.rollback()
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# ============================================================
+# PLAYER CONTRIBUTION & ACTION-VALUE FOUNDATION (PHASE 3.1)
+# ============================================================
+
+from app.actions.schemas import CanonicalActionResponse, PlayerActionsResponse  # noqa: E402
+from app.contributions.schemas import PlayerContributionResponse  # noqa: E402
+from app.contributions.service import ContributionService  # noqa: E402
+from app.action_value.base import ActionValueResult  # noqa: E402
+from app.action_value.action_impact import ActionImpactModel  # noqa: E402
+from app.action_value.spatial_threat import SpatialThreatModel  # noqa: E402
+from app.intelligence.schemas import (  # noqa: E402
+    PlayerBenchmarksResponse,
+    PlayerIntelligenceResponse,
+    PlayerTrajectoryResponse,
+)
+from app.intelligence.service import PlayerIntelligenceService  # noqa: E402
+
+
+@router.get("/players/{player_id}/contributions", response_model=PlayerContributionResponse)
+async def get_player_contributions(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerContributionResponse:
+    """Returns multi-dimensional, position-aware player contribution profile with explicit confidence gates."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = ContributionService(session)
+    try:
+        profile = await service.get_player_contribution_profile(player_id, as_of)
+        await session.commit()
+        return profile
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/actions", response_model=PlayerActionsResponse)
+async def get_player_actions(
+    player_id: uuid.UUID,
+    limit: int = Query(50, ge=1, le=200, description="Max actions to return"),
+    offset: int = Query(0, ge=0, description="Pagination offset"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerActionsResponse:
+    """Returns paginated canonical actions recorded for a player."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = ContributionService(session)
+    try:
+        total, actions = await service.get_player_actions(player_id, limit=limit, offset=offset)
+        await session.commit()
+        return PlayerActionsResponse(
+            player_id=player_id,
+            total_actions=total,
+            limit=limit,
+            offset=offset,
+            actions=[CanonicalActionResponse.model_validate(a) for a in actions],
+        )
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/action-values", response_model=ActionValueResult)
+async def get_player_action_values(
+    player_id: uuid.UUID,
+    model: str = Query("impact", description="Model type: 'impact' (baseline) or 'spatial_threat'"),
+    session: AsyncSession = Depends(get_session),
+) -> ActionValueResult:
+    """Evaluates action value for a player. Enforces data sufficiency gate for spatial models."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = ContributionService(session)
+    try:
+        _, actions = await service.get_player_actions(player_id, limit=500, offset=0)
+        pms_res = await session.execute(
+            select(PlayerMatchStats.minutes).where(PlayerMatchStats.player_id == player_id)
+        )
+        minutes = sum(m for m in pms_res.scalars().all() if m)
+
+        val_model = SpatialThreatModel() if model == "spatial_threat" else ActionImpactModel()
+        result = val_model.evaluate(player_id, actions, minutes)
+        await session.commit()
+        return result
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/intelligence", response_model=PlayerIntelligenceResponse)
+async def get_player_intelligence(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerIntelligenceResponse:
+    """Retrieves or calculates point-in-time Player Intelligence Profile, Vectors, Benchmarks, and Explanations."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = PlayerIntelligenceService(session)
+    try:
+        intel = await service.get_player_intelligence(player_id=player_id, as_of=as_of)
+        await session.commit()
+        return intel
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/trajectory", response_model=PlayerTrajectoryResponse)
+async def get_player_trajectory(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerTrajectoryResponse:
+    """Returns chronological match-by-match trajectory and seasonal trend without predictive simulation."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = PlayerIntelligenceService(session)
+    try:
+        traj = await service.get_player_trajectory(player_id=player_id, as_of=as_of)
+        await session.commit()
+        return traj
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/benchmarks", response_model=PlayerBenchmarksResponse)
+async def get_player_benchmarks(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for historical evaluation"),
+    session: AsyncSession = Depends(get_session),
+) -> PlayerBenchmarksResponse:
+    """Returns position-group peer benchmarks, z-scores, and percentiles."""
+    p_check = await session.execute(select(Player.id).where(Player.id == player_id))
+    if p_check.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    service = PlayerIntelligenceService(session)
+    try:
+        bm = await service.get_player_benchmarks(player_id=player_id, as_of=as_of)
+        await session.commit()
+        return bm
+    except Exception as exc:
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+# ============================================================
+# TRANSFER MARKET INTELLIGENCE & VALUATION (PHASE 4.1)
+# ============================================================
+
+@router.get("/players/{player_id}/transfers", response_model=list[TransferResponse])
+async def get_player_transfers(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> list[TransferResponse]:
+    """Returns canonical transfer history for a player with full fee semantics and quality states."""
+    p_check = await session.execute(select(Player).where(Player.id == player_id))
+    player = p_check.scalar_one_or_none()
+    if player is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    transfers = await get_temporal_transfers(session, as_of=as_of, player_id=player_id)
+    return [
+        TransferResponse(
+            id=t.id,
+            player_id=t.player_id,
+            player_name=player.name,
+            from_club_id=t.from_club_id,
+            from_club_name=t.from_club.name if t.from_club else None,
+            to_club_id=t.to_club_id,
+            to_club_name=t.to_club.name if t.to_club else None,
+            transfer_date=t.transfer_date,
+            season_id=t.season_id,
+            competition_context=t.competition_context,
+            transfer_type=t.transfer_type,
+            fee_value=t.fee_value,
+            fee_currency=t.fee_currency,
+            fee_status=t.fee_status,
+            fee_eur_normalized=t.fee_eur_normalized,
+            is_loan=t.is_loan,
+            is_permanent=t.is_permanent,
+            option_type=t.option_type,
+            source_provider=t.source_provider,
+            source_record_id=t.source_record_id,
+            data_quality_status=t.data_quality_status,
+            quality_reasons=t.quality_reasons or [],
+            created_at=t.created_at,
+        )
+        for t in transfers
+    ]
+
+
+@router.get("/players/{player_id}/market-context", response_model=MarketContextResponse)
+async def get_player_market_context_endpoint(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> MarketContextResponse:
+    """Returns leakage-safe market context representation for a player as of a target timestamp."""
+    context = await build_player_market_context(session, player_id, as_of=as_of)
+    if not context:
+        raise HTTPException(status_code=404, detail="Player or market context not found")
+    return context
+
+
+@router.get("/players/{player_id}/transfer-comparables", response_model=ComparableTransfersResponse)
+async def get_player_transfer_comparables(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    top_k: int = Query(5, ge=1, le=20),
+    include_free: bool = Query(False, description="Include free transfers in candidate pool"),
+    session: AsyncSession = Depends(get_session),
+) -> ComparableTransfersResponse:
+    """Returns deterministic comparable historical transactions with similarity scores and breakdown."""
+    engine = ComparableTransferEngine()
+    try:
+        return await engine.find_comparables(
+            session, player_id, as_of=as_of, top_k=top_k, include_free=include_free
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/players/{player_id}/valuation-baseline", response_model=ValuationBaselineResponse)
+async def get_player_valuation_baseline(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> ValuationBaselineResponse:
+    """Returns deterministic comparable-median baseline valuation, uncertainty range, and sufficiency status."""
+    engine = BaselineValuationEngine()
+    try:
+        return await engine.compute_valuation_baseline(session, player_id, as_of=as_of)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get("/market/transfers", response_model=list[TransferResponse])
+async def list_market_transfers(
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    position_group: str | None = Query(None, description="Filter by position group (GK, DEF, MID, ATT)"),
+    fee_status: str | None = Query(None, description="Filter by fee status"),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: AsyncSession = Depends(get_session),
+) -> list[TransferResponse]:
+    """Search and filter verified historical transfers across the market universe."""
+    fee_statuses = [fee_status] if fee_status else None
+    transfers = await get_temporal_transfers(
+        session,
+        as_of=as_of,
+        position_group=position_group,
+        fee_statuses=fee_statuses,
+        limit=limit,
+        offset=offset,
+    )
+    return [
+        TransferResponse(
+            id=t.id,
+            player_id=t.player_id,
+            player_name=t.player.name if t.player else None,
+            from_club_id=t.from_club_id,
+            from_club_name=t.from_club.name if t.from_club else None,
+            to_club_id=t.to_club_id,
+            to_club_name=t.to_club.name if t.to_club else None,
+            transfer_date=t.transfer_date,
+            season_id=t.season_id,
+            competition_context=t.competition_context,
+            transfer_type=t.transfer_type,
+            fee_value=t.fee_value,
+            fee_currency=t.fee_currency,
+            fee_status=t.fee_status,
+            fee_eur_normalized=t.fee_eur_normalized,
+            is_loan=t.is_loan,
+            is_permanent=t.is_permanent,
+            option_type=t.option_type,
+            source_provider=t.source_provider,
+            source_record_id=t.source_record_id,
+            data_quality_status=t.data_quality_status,
+            quality_reasons=t.quality_reasons or [],
+            created_at=t.created_at,
+        )
+        for t in transfers
+    ]
+
+
+@router.get("/market/benchmarks", response_model=MarketBenchmarkResponse)
+async def get_market_benchmarks(
+    position_group: str = Query("ALL", description="Position group cohort (ALL, GK, DEF, MID, ATT)"),
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> MarketBenchmarkResponse:
+    """Returns sample-gated market fee percentiles and IQR dispersion for a position cohort."""
+    pos = None if position_group.upper() == "ALL" else position_group
+    transfers = await get_temporal_transfers(session, as_of=as_of, position_group=pos, limit=10000)
+    clean_fees = [
+        t.fee_eur_normalized
+        for t in transfers
+        if t.fee_eur_normalized is not None and t.fee_eur_normalized > 0 and t.is_permanent
+    ]
+    return MarketBenchmarkEngine.calculate_benchmarks(
+        clean_fees, position_group=position_group, min_sample=3
+    )
+
+
+@router.get("/market/coverage", response_model=MarketCoverageResponse)
+async def get_market_coverage(
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> MarketCoverageResponse:
+    """Returns transparent audit of the historical transfer universe and readiness status for ML."""
+    return await compute_market_coverage_audit(session, as_of=as_of)
+
+
+@router.get("/market/readiness", response_model=MarketReadinessReport)
+async def get_market_readiness(
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> MarketReadinessReport:
+    """Returns deterministic Phase 4.1B model readiness report answering all 15 audit questions."""
+    db_transfers = await get_temporal_transfers(session, as_of=as_of, limit=10000)
+    open_transfers = load_bronze_open_transfers()
+    all_normalized = [transfer_db_to_normalized(t) for t in db_transfers] + open_transfers
+    merged = merge_multi_source_transfers(all_normalized)
+
+    # Resolve player IDs present in database
+    stmt = select(Player.id)
+    res = await session.execute(stmt)
+    intel_player_ids = {str(pid) for pid in res.scalars().all()}
+
+    return evaluate_market_readiness(merged, player_intel_player_ids=intel_player_ids)
+
+
+@router.get("/market/dataset-preview", response_model=list[ValuationTrainingRow])
+async def get_market_dataset_preview(
+    limit: int = Query(50, ge=1, le=500, description="Max preview rows"),
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff"),
+    session: AsyncSession = Depends(get_session),
+) -> list[ValuationTrainingRow]:
+    """Returns preview of supervised learning training rows constructed by ValuationDatasetBuilder."""
+    db_transfers = await get_temporal_transfers(session, as_of=as_of, limit=10000)
+    open_transfers = load_bronze_open_transfers()
+    all_normalized = [transfer_db_to_normalized(t) for t in db_transfers] + open_transfers
+    merged = merge_multi_source_transfers(all_normalized)
+
+    cutoff = as_of.date() if as_of else None
+    builder = ValuationDatasetBuilder(as_of_date=cutoff)
+    dataset = builder.build_dataset(merged)
+    return dataset[:limit]
+
+
+# -------------------------------------------------------------------------
+# Phase 4.2: Machine Learning Transfer Valuation & Uncertainty Engine
+# -------------------------------------------------------------------------
+
+@router.get("/players/{player_id}/valuation", response_model=ValuationMLPredictionResponse)
+async def get_player_ml_valuation(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional valuation as-of timestamp"),
+    session: AsyncSession = Depends(get_session),
+) -> ValuationMLPredictionResponse:
+    """Estimates fair transfer value using the active Phase 4.2 ML valuation engine."""
+    try:
+        return await ValuationMLService.get_player_valuation(session, player_id, as_of=as_of)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.get("/players/{player_id}/valuation/explanation", response_model=ValuationMLExplanationResponse)
+async def get_player_valuation_explanation(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional valuation as-of timestamp"),
+    session: AsyncSession = Depends(get_session),
+) -> ValuationMLExplanationResponse:
+    """Returns deterministic SHAP and non-causal feature attributions for valuation prediction."""
+    try:
+        return await ValuationMLService.get_player_valuation_explanation(session, player_id, as_of=as_of)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.get("/players/{player_id}/valuation/comparables", response_model=ValuationMLComparablesResponse)
+async def get_player_valuation_comparables(
+    player_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional valuation as-of timestamp"),
+    top_k: int = Query(5, ge=1, le=20, description="Max comparable transfers to return"),
+    session: AsyncSession = Depends(get_session),
+) -> ValuationMLComparablesResponse:
+    """Returns model prediction alongside historical comparable transfers evidence."""
+    try:
+        return await ValuationMLService.get_player_valuation_comparables(
+            session, player_id, as_of=as_of, top_k=top_k
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+
+@router.get("/market/model-status", response_model=ValuationModelStatusResponse)
+async def get_market_model_status() -> ValuationModelStatusResponse:
+    """Returns operational status, versioning, and test evaluation metrics of active valuation model."""
+    return ValuationMLService.get_model_status()
+
+
+# ============================================================
+# MARKET OPPORTUNITIES (Phase 5B.1)
+# ============================================================
+
+@router.get("/market/opportunities", response_model=MarketOpportunitiesResponse)
+async def get_market_opportunities(
+    session: AsyncSession = Depends(get_session),
+    position_group: str | None = Query(None, description="Filter by position group: GK, DEF, MID, ATT, ALL"),
+    min_gap_pct: float | None = Query(None, description="Minimum absolute value gap percentage (e.g. 0.15 for 15%)"),
+    opportunity_class: str | None = Query(None, description="Filter by class: UNDERVALUED, FAIRLY_VALUED, PREMIUM"),
+    limit: int = Query(25, ge=1, le=100),
+) -> MarketOpportunitiesResponse:
+    """Identifies players with significant value gaps between estimated value and comparable market median."""
+    engine = MarketOpportunitiesEngine()
+    return await engine.scan_opportunities(
+        session,
+        position_group=position_group,
+        min_gap_pct=min_gap_pct,
+        opportunity_class=opportunity_class,
+        limit=limit,
+    )
+
+
+# ============================================================
+# REPLACEMENT FINDER (Phase 5B.2)
+# ============================================================
+
+@router.post("/market/replacements", response_model=ReplacementFinderResponse)
+async def find_replacements(
+    request: ReplacementFinderRequest,
+    session: AsyncSession = Depends(get_session),
+) -> ReplacementFinderResponse:
+    """Ranks candidate replacements for a departing player or role gap."""
+    engine = ReplacementFinderEngine()
+    return await engine.find_replacements(session, request)
+
+
+@router.get("/market/replacements/{player_id}", response_model=ReplacementFinderResponse)
+async def find_player_replacements(
+    player_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+    max_age: float | None = Query(None),
+    max_value_eur: float | None = Query(None),
+    limit: int = Query(15, ge=1, le=50),
+) -> ReplacementFinderResponse:
+    """Finds replacement candidates for a specific player based on their role and profile."""
+    request = ReplacementFinderRequest(
+        target_player_id=player_id,
+        max_age=max_age,
+        max_value_eur=max_value_eur,
+        limit=limit,
+    )
+    engine = ReplacementFinderEngine()
+    return await engine.find_replacements(session, request)
+
+
+# ============================================================
+# TRANSFER RISK ASSESSMENT (Phase 5B.3)
+# ============================================================
+
+@router.get("/players/{player_id}/transfer-risk", response_model=TransferRiskProfile)
+async def get_player_transfer_risk(
+    player_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> TransferRiskProfile:
+    """Returns multi-dimensional transfer risk assessment for a specific player."""
+    engine = TransferRiskEngine()
+    return await engine.assess_player_risk(session, player_id)
+
+
+@router.get("/market/risk", response_model=TransferRiskBatchResponse)
+async def get_market_risk_batch(
+    session: AsyncSession = Depends(get_session),
+    position_group: str | None = Query(None, description="Filter by position group"),
+    limit: int = Query(25, ge=1, le=100),
+) -> TransferRiskBatchResponse:
+    """Batch risk assessment across the player universe, sorted by highest risk first."""
+    engine = TransferRiskEngine()
+    return await engine.assess_batch(
+        session,
+        position_group=position_group,
+        limit=limit,
+    )
+
+
+# ============================================================
+# SQUAD INTELLIGENCE & TRANSFER SIMULATION (Phase 5A)
+# ============================================================
+from app.squad.schemas import (  # noqa: E402
+    SquadAnalysisResponse,
+    SquadBuildRequest,
+    TransferSimulationRequest,
+    TransferSimulationResponse,
+)
+from app.squad.service import SquadService  # noqa: E402
+from app.squad.simulator import TransferSimulator  # noqa: E402
+
+
+@router.get("/squads/build", response_model=SquadAnalysisResponse)
+async def build_squad_get(
+    club_id: uuid.UUID | None = Query(None, description="Optional club ID to filter squad"),
+    formation: str = Query("4-3-3", description="Formation: 4-3-3, 4-2-3-1, 3-5-2"),
+    session: AsyncSession = Depends(get_session),
+) -> SquadAnalysisResponse:
+    """Builds and analyzes squad formation structure, role coverage, and depth risk."""
+    service = SquadService(session)
+    req = SquadBuildRequest(club_id=club_id, formation=formation)
+    return await service.analyze_squad(req)
+
+
+@router.post("/squads/analyze", response_model=SquadAnalysisResponse)
+async def analyze_squad_post(
+    request: SquadBuildRequest,
+    session: AsyncSession = Depends(get_session),
+) -> SquadAnalysisResponse:
+    """Analyzes a custom or club squad roster against formation requirements."""
+    service = SquadService(session)
+    return await service.analyze_squad(request)
+
+
+@router.post("/squads/simulate-transfer", response_model=TransferSimulationResponse)
+async def simulate_transfer(
+    request: TransferSimulationRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TransferSimulationResponse:
+    """Models prospective incoming and outgoing transfers on squad health, quality, and depth."""
+    simulator = TransferSimulator(session)
+    return await simulator.simulate_transfer(request)
+
+
+@router.post("/scenarios/transfer", response_model=TransferSimulationResponse)
+async def simulate_scenario_transfer(
+    request: TransferSimulationRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TransferSimulationResponse:
+    """Scenario Lab: models roster change hypotheses with before/after impact attribution."""
+    simulator = TransferSimulator(session)
+    return await simulator.simulate_transfer(request)
+
+
+# ============================================================
+# MATCH PREDICTION & CALIBRATION ENGINE (Phase 6)
+# ============================================================
+from app.prediction.schemas import (  # noqa: E402
+    MatchPredictionHistoryResponse,
+    MatchPredictionResponse,
+    ModelStatusResponse,
+    PredictionExplanation,
+)
+from app.prediction.service import MatchPredictionService  # noqa: E402
+
+
+@router.get("/matches/{match_id}/prediction", response_model=MatchPredictionResponse)
+async def get_match_prediction(
+    match_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for leakage-safe evaluation (defaults to match date)"),
+    session: AsyncSession = Depends(get_session),
+) -> MatchPredictionResponse:
+    """Computes a temporally valid, leakage-safe, calibrated match prediction (1X2 probabilities and expected goals)."""
+    service = MatchPredictionService(session)
+    try:
+        return await service.predict_match(match_id=match_id, as_of=as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Prediction error: {str(exc)}") from exc
+
+
+@router.get("/matches/{match_id}/prediction/explanation", response_model=PredictionExplanation)
+async def get_match_prediction_explanation(
+    match_id: uuid.UUID,
+    as_of: datetime | None = Query(None, description="Optional temporal cutoff for leakage-safe evaluation (defaults to match date)"),
+    session: AsyncSession = Depends(get_session),
+) -> PredictionExplanation:
+    """Provides non-causal evidence factor breakdown and feature attribution for match prediction."""
+    service = MatchPredictionService(session)
+    try:
+        return await service.get_prediction_explanation(match_id=match_id, as_of=as_of)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Explanation error: {str(exc)}") from exc
+
+
+@router.get("/matches/{match_id}/prediction/history", response_model=MatchPredictionHistoryResponse)
+async def get_match_prediction_history(
+    match_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> MatchPredictionHistoryResponse:
+    """Retrieves point-in-time prediction evolution history and snapshot audit trail for a fixture."""
+    service = MatchPredictionService(session)
+    return await service.get_prediction_history(match_id=match_id)
+
+
+@router.get("/prediction/model-status", response_model=ModelStatusResponse)
+async def get_prediction_model_status() -> ModelStatusResponse:
+    """Returns verified operational status, Log Loss, Brier score, and calibration diagnostics for active model."""
+    service = MatchPredictionService()
+    return service.get_model_status()
+
+
+# ============================================================
+# UNIFIED DECISION INTELLIGENCE & RECRUITMENT ENGINE (Phase 7)
+# ============================================================
+from app.decisions.schemas import (  # noqa: E402
+    CandidateComparisonRequest,
+    CandidateComparisonResponse,
+    DecisionAssessment,
+    EvidenceGraphResponse,
+    RecruitmentTargetRequest,
+    RecruitmentTargetResponse,
+    ReplacementDecisionRequest,
+    ReplacementDecisionResponse,
+    TransferScenarioDecisionRequest,
+    TransferScenarioDecisionResponse,
+)
+from app.decisions.service import UnifiedDecisionService  # noqa: E402
+
+
+@router.get("/decisions/recruitment", response_model=RecruitmentTargetResponse)
+async def get_recruitment_targets(
+    target_position: str = Query("MF", description="Target position (GK, DEF, MID, ATT, etc.)"),
+    formation: str = Query("4-3-3", description="Formation: 4-3-3, 4-2-3-1, 3-5-2"),
+    target_role: str | None = Query(None, description="Optional target role"),
+    budget_eur: float | None = Query(None, description="Optional budget ceiling in EUR"),
+    risk_tolerance: str = Query("MEDIUM", description="Risk tolerance: LOW, MEDIUM, HIGH, ALL"),
+    limit: int = Query(15, ge=1, le=50),
+    session: AsyncSession = Depends(get_session),
+) -> RecruitmentTargetResponse:
+    """Deterministic recruitment target evaluation across multi-dimensional evidence."""
+    service = UnifiedDecisionService(session)
+    req = RecruitmentTargetRequest(
+        target_position=target_position,
+        formation=formation,
+        target_role=target_role,
+        budget_eur=budget_eur,
+        risk_tolerance=risk_tolerance,
+        limit=limit,
+    )
+    return await service.analyze_recruitment_targets(req)
+
+
+@router.post("/decisions/recruitment/analyze", response_model=RecruitmentTargetResponse)
+async def analyze_recruitment_targets_post(
+    request: RecruitmentTargetRequest,
+    session: AsyncSession = Depends(get_session),
+) -> RecruitmentTargetResponse:
+    """Advanced recruitment target evaluation with structured multi-constraint body."""
+    service = UnifiedDecisionService(session)
+    return await service.analyze_recruitment_targets(request)
+
+
+@router.post("/decisions/replacement", response_model=ReplacementDecisionResponse)
+async def analyze_player_replacement(
+    request: ReplacementDecisionRequest,
+    session: AsyncSession = Depends(get_session),
+) -> ReplacementDecisionResponse:
+    """Dedicated replacement intelligence connecting player intelligence, similarity, tactical fit, market, and risk."""
+    service = UnifiedDecisionService(session)
+    try:
+        return await service.analyze_replacement(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Replacement error: {str(exc)}") from exc
+
+
+@router.post("/decisions/transfer-scenario", response_model=TransferScenarioDecisionResponse)
+async def analyze_transfer_scenario(
+    request: TransferScenarioDecisionRequest,
+    session: AsyncSession = Depends(get_session),
+) -> TransferScenarioDecisionResponse:
+    """Evaluates multi-player roster changes against squad depth, finances, risk, and match forecast."""
+    service = UnifiedDecisionService(session)
+    try:
+        return await service.simulate_transfer_scenario(request)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Scenario error: {str(exc)}") from exc
+
+
+@router.post("/decisions/compare", response_model=CandidateComparisonResponse)
+async def compare_candidates(
+    request: CandidateComparisonRequest,
+    session: AsyncSession = Depends(get_session),
+) -> CandidateComparisonResponse:
+    """Side-by-side comparison of candidate targets across all 6 analytical dimensions."""
+    service = UnifiedDecisionService(session)
+    return await service.compare_candidates(request)
+
+
+@router.get("/decisions/{decision_id}", response_model=DecisionAssessment)
+async def get_decision_by_id(
+    decision_id: uuid.UUID,
+) -> DecisionAssessment:
+    """Retrieves an evaluated decision assessment snapshot and provenance."""
+    service = UnifiedDecisionService()
+    try:
+        return service.get_decision(decision_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/decisions/{decision_id}/evidence", response_model=EvidenceGraphResponse)
+async def get_decision_evidence_graph(
+    decision_id: uuid.UUID,
+) -> EvidenceGraphResponse:
+    """Retrieves the traceable evidence DAG for a previously evaluated decision assessment."""
+    service = UnifiedDecisionService()
+    try:
+        return service.get_decision_evidence(decision_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
 
 

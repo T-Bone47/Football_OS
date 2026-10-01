@@ -150,6 +150,13 @@ class Player(Base):
     tactical_fits: Mapped[list["PlayerTacticalFit"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
+    transfers: Mapped[list["Transfer"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
+    valuation_predictions: Mapped[list["ValuationPredictionRecord"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
+
 
 
 class PlayerIdentity(Base):
@@ -674,5 +681,310 @@ class PlayerTacticalFit(Base):
     season: Mapped["Season | None"] = relationship()
 
 
+class CanonicalAction(Base):
+    __tablename__ = "canonical_actions"
+    __table_args__ = (
+        UniqueConstraint(
+            "match_id", "player_id", "minute", "action_type", "action_subtype", "outcome",
+            name="uq_canonical_action_signature",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    match_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("matches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    club_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    period: Mapped[int | None] = mapped_column(Integer)
+    minute: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    extra_minute: Mapped[int | None] = mapped_column(Integer)
+
+    action_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    action_subtype: Mapped[str] = mapped_column(String(64), nullable=False)
+    action_quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False, default="UNKNOWN")
+
+    x: Mapped[float | None] = mapped_column(Float)
+    y: Mapped[float | None] = mapped_column(Float)
+    end_x: Mapped[float | None] = mapped_column(Float)
+    end_y: Mapped[float | None] = mapped_column(Float)
+
+    recipient_player_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("players.id", ondelete="SET NULL"), index=True
+    )
+    related_player_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("players.id", ondelete="SET NULL"), index=True
+    )
+
+    provider: Mapped[str] = mapped_column(String(64), nullable=False, default="api-football")
+    provider_event_id: Mapped[str | None] = mapped_column(String(128), index=True)
+    source_snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
+    )
+    normalization_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0")
+    raw_data: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    match: Mapped["Match"] = relationship()
+    player: Mapped["Player"] = relationship(foreign_keys=[player_id])
+    club: Mapped["Club"] = relationship()
+    recipient_player: Mapped["Player | None"] = relationship(foreign_keys=[recipient_player_id])
+
+
+class PlayerContributionSnapshot(Base):
+    __tablename__ = "player_contribution_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id", "as_of", "calculation_version",
+            name="uq_player_contribution_snapshot",
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    feature_set_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0")
+    calculation_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0")
+
+    position_group: Mapped[str] = mapped_column(String(16), nullable=False)
+    sample_minutes: Mapped[int] = mapped_column(Integer, nullable=False)
+    sample_matches: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    confidence: Mapped[str] = mapped_column(String(32), nullable=False)
+    contribution_status: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    dimension_scores: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    raw_metrics: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    strengths: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    weaknesses: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
+    provenance: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    player: Mapped["Player"] = relationship()
+
+
+class PlayerIntelligenceSnapshot(Base):
+    """Canonical Player Intelligence Snapshot (Phase 3.2).
+    Unifies Performance, Contribution (v2), Role, Context, Action Value, Peer Benchmarks,
+    Longitudinal Trajectory, and Uncertainty into a single point-in-time analytical record.
+    """
+    __tablename__ = "player_intelligence_snapshots"
+    __table_args__ = (
+        UniqueConstraint(
+            "player_id", "as_of", "calculation_version",
+            name="uq_player_intelligence_snapshot",
+        ),
+        Index("ix_player_intelligence_snapshots_player_id", "player_id"),
+        Index("ix_player_intelligence_snapshots_as_of", "as_of"),
+        Index("ix_player_intelligence_snapshots_data_status", "data_status"),
+        Index("ix_player_intelligence_snapshots_confidence", "confidence"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False
+    )
+    club_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    competition_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("competitions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    season_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    calculation_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0")
+
+    data_status: Mapped[str] = mapped_column(String(32), nullable=False)  # 'EVALUATED', 'INSUFFICIENT_SAMPLE', 'INSUFFICIENT_DATA'
+    sample_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    sample_matches: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    confidence: Mapped[str] = mapped_column(String(32), nullable=False)  # 'HIGH', 'MEDIUM', 'LOW', etc.
+    position_group: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    # Multi-layer vectors & subcomponents
+    contribution_vector: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    intelligence_vector: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    peer_benchmarks: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    contextual_adjustments: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    explanations: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    trajectory: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+
+    # Linkages to optional upstream specialized profiles
+    role_profile_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("player_role_profiles.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    tactical_fit_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("player_tactical_fits.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+
+    provenance: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    player: Mapped["Player"] = relationship()
+    club: Mapped["Club | None"] = relationship()
+    competition: Mapped["Competition | None"] = relationship()
+    season: Mapped["Season | None"] = relationship()
+    role_profile: Mapped["PlayerRoleProfile | None"] = relationship()
+    tactical_fit: Mapped["PlayerTacticalFit | None"] = relationship()
+
+
+class Transfer(Base):
+    """Canonical Transfer entity (Phase 4.1C).
+    Stores normalized football transfer transactions, preserving multi-currency
+    provenance, controlled fee semantics, identity resolution linkages, and data quality states.
+    """
+    __tablename__ = "transfers"
+    __table_args__ = (
+        UniqueConstraint("source_provider", "source_record_id", name="uq_transfer_source_record"),
+        Index("ix_transfers_player_id", "player_id"),
+        Index("ix_transfers_transfer_date", "transfer_date"),
+        Index("ix_transfers_fee_status", "fee_status"),
+        Index("ix_transfers_from_club_id", "from_club_id"),
+        Index("ix_transfers_to_club_id", "to_club_id"),
+        Index("ix_transfers_data_quality_status", "data_quality_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False
+    )
+    from_club_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True
+    )
+    to_club_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True
+    )
+    transfer_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    season_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True
+    )
+    competition_context: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    transfer_type: Mapped[str] = mapped_column(String(32), nullable=False, default="PERMANENT")
+
+    # Financial / fee fields
+    fee_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fee_currency: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    fee_status: Mapped[str] = mapped_column(String(32), nullable=False, default="UNKNOWN_FEE")
+    fee_eur_normalized: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fee_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    fee_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Deal structure
+    is_loan: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_permanent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    option_type: Mapped[str] = mapped_column(String(32), nullable=False, default="NONE")
+
+    # Provenance
+    source_id: Mapped[int | None] = mapped_column(
+        ForeignKey("data_sources.id", ondelete="SET NULL"), nullable=True
+    )
+    source_provider: Mapped[str] = mapped_column(String(64), nullable=False, default="api-football")
+    source_record_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    source_snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("data_snapshots.id", ondelete="SET NULL"), nullable=True
+    )
+    ingestion_run_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ingestion_runs.id", ondelete="SET NULL"), nullable=True
+    )
+    normalization_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0.0")
+
+    # Data Quality
+    data_quality_status: Mapped[str] = mapped_column(String(32), nullable=False, default="HIGH")
+    quality_reasons: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+    # Relationships
+    player: Mapped["Player"] = relationship(back_populates="transfers")
+    from_club: Mapped["Club | None"] = relationship(foreign_keys=[from_club_id])
+    to_club: Mapped["Club | None"] = relationship(foreign_keys=[to_club_id])
+    season: Mapped["Season | None"] = relationship()
+
+
+class ValuationModelRecord(Base):
+    """Stores metadata and operational status for trained valuation ML models (Phase 4.2W)."""
+    __tablename__ = "valuation_models"
+    __table_args__ = (
+        UniqueConstraint("model_id", name="uq_valuation_model_id"),
+        Index("ix_valuation_models_status", "status"),
+        Index("ix_valuation_models_is_active", "is_active"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    model_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    model_version: Mapped[str] = mapped_column(String(32), nullable=False, default="VALUATION_ML_V1")
+    dataset_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    feature_set_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    algorithm: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    training_start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    training_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    test_start_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    test_end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    hyperparameters: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    metrics: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+    release_checklist: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="MODEL_VALIDATED")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    artifact_path: Mapped[str] = mapped_column(String(256), nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ValuationPredictionRecord(Base):
+    """Stores point-in-time valuation inferences with uncertainty bounds and provenance (Phase 4.2W)."""
+    __tablename__ = "valuation_predictions"
+    __table_args__ = (
+        Index("ix_val_pred_player_as_of", "player_id", "as_of"),
+        Index("ix_val_pred_model_version", "model_version"),
+        Index("ix_val_pred_data_status", "data_status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("players.id", ondelete="CASCADE"), nullable=False
+    )
+    as_of: Mapped[date] = mapped_column(Date, nullable=False)
+    model_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    model_version: Mapped[str] = mapped_column(String(32), nullable=False)
+
+    estimated_value_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    lower_bound_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    upper_bound_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    uncertainty_eur: Mapped[float] = mapped_column(Float, nullable=False)
+    coverage_level: Mapped[float] = mapped_column(Float, nullable=False, default=0.80)
+
+    data_status: Mapped[str] = mapped_column(String(32), nullable=False, default="VALUATION_AVAILABLE")
+    feature_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    top_features: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    gate_decision: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    player: Mapped["Player"] = relationship(back_populates="valuation_predictions")
 
 

@@ -23,7 +23,9 @@ from app.db.models.canonical import (
     PlayerMatchStats,
     PlayerSeasonStats,
     Season,
+    Transfer,
 )
+
 from app.db.models.provenance import DataSnapshot, IngestionRun
 from app.normalization.schemas import (
     NormalizedClub,
@@ -44,6 +46,12 @@ from app.normalization.transformers import (
     transform_api_football_statistics,
     transform_api_football_teams,
 )
+from app.market.normalizer import (
+    assess_transfer_quality,
+    transform_api_football_transfers,
+    validate_transfer,
+)
+
 
 
 class NormalizationService:
@@ -1135,10 +1143,177 @@ class NormalizationService:
                 provider_name, payload, snapshot_id=snapshot.id, default_fixture_id=str_fixture_param
             )
             return {"entity": "player_match_stats", "count": len(player_stats), "snapshot_id": str(snapshot_id)}
+        elif endpoint in ("transfers", "player_transfers"):
+            transfers = await self.normalize_transfers_payload(
+                provider_name, payload, snapshot_id=snapshot.id, ingestion_run_id=run.id
+            )
+            return {"entity": "transfers", "count": len(transfers), "snapshot_id": str(snapshot_id)}
         else:
             return {
                 "entity": endpoint,
                 "count": 0,
                 "message": f"no normalizer mapped for endpoint {endpoint}",
             }
+
+    async def normalize_transfers_payload(
+        self,
+        provider: str,
+        payload: dict[str, Any],
+        snapshot_id: uuid.UUID | None = None,
+        ingestion_run_id: uuid.UUID | None = None,
+    ) -> list[Transfer]:
+        """Deterministic normalization of provider transfers into canonical Transfer entities (Phase 4.1F)."""
+        normalized_transfers = transform_api_football_transfers(payload)
+        transfers: list[Transfer] = []
+
+        for nt in normalized_transfers:
+            is_valid, _ = validate_transfer(nt)
+            if not is_valid:
+                continue
+
+            # 1. Resolve player identity
+            player_stmt = select(PlayerIdentity).where(
+                PlayerIdentity.provider == provider,
+                PlayerIdentity.provider_player_id == nt.provider_player_id,
+            )
+            player_ident = (await self._session.execute(player_stmt)).scalar_one_or_none()
+            player = None
+            if player_ident:
+                player = (await self._session.execute(select(Player).where(Player.id == player_ident.player_id))).scalar_one_or_none()
+
+            if not player:
+                name_stmt = select(Player).where(Player.name == nt.player_name)
+                player = (await self._session.execute(name_stmt)).scalar_one_or_none()
+                if player:
+                    self._session.add(PlayerIdentity(
+                        player_id=player.id,
+                        provider=provider,
+                        provider_player_id=nt.provider_player_id,
+                        confidence=0.95,
+                        resolution_method="NAME_EXACT_MATCH",
+                    ))
+                    await self._session.flush()
+
+            player_resolved = player is not None
+            if not player:
+                continue
+
+            # 2. Resolve from_club identity
+            from_club = None
+            if nt.from_provider_club_id:
+                fc_ident = (await self._session.execute(
+                    select(ClubIdentity).where(
+                        ClubIdentity.provider == provider,
+                        ClubIdentity.provider_club_id == nt.from_provider_club_id,
+                    )
+                )).scalar_one_or_none()
+                if fc_ident:
+                    from_club = (await self._session.execute(select(Club).where(Club.id == fc_ident.club_id))).scalar_one_or_none()
+                elif nt.from_club_name:
+                    fc_match = (await self._session.execute(select(Club).where(Club.name == nt.from_club_name))).scalar_one_or_none()
+                    if fc_match:
+                        from_club = fc_match
+                    else:
+                        from_club = Club(name=nt.from_club_name, country="Unknown")
+                        self._session.add(from_club)
+                        await self._session.flush()
+                        self._session.add(ClubIdentity(
+                            club_id=from_club.id,
+                            provider=provider,
+                            provider_club_id=nt.from_provider_club_id,
+                            confidence=1.0,
+                            resolution_method="DIRECT_PROVIDER_ID",
+                        ))
+                        await self._session.flush()
+
+            # 3. Resolve to_club identity
+            to_club = None
+            if nt.to_provider_club_id:
+                tc_ident = (await self._session.execute(
+                    select(ClubIdentity).where(
+                        ClubIdentity.provider == provider,
+                        ClubIdentity.provider_club_id == nt.to_provider_club_id,
+                    )
+                )).scalar_one_or_none()
+                if tc_ident:
+                    to_club = (await self._session.execute(select(Club).where(Club.id == tc_ident.club_id))).scalar_one_or_none()
+                elif nt.to_club_name:
+                    tc_match = (await self._session.execute(select(Club).where(Club.name == nt.to_club_name))).scalar_one_or_none()
+                    if tc_match:
+                        to_club = tc_match
+                    else:
+                        to_club = Club(name=nt.to_club_name, country="Unknown")
+                        self._session.add(to_club)
+                        await self._session.flush()
+                        self._session.add(ClubIdentity(
+                            club_id=to_club.id,
+                            provider=provider,
+                            provider_club_id=nt.to_provider_club_id,
+                            confidence=1.0,
+                            resolution_method="DIRECT_PROVIDER_ID",
+                        ))
+                        await self._session.flush()
+
+            from_club_resolved = from_club is not None if nt.from_provider_club_id else True
+            to_club_resolved = to_club is not None if nt.to_provider_club_id else True
+
+            # 4. Assess Quality
+            quality_status, quality_reasons = assess_transfer_quality(
+                nt, player_resolved, from_club_resolved, to_club_resolved
+            )
+
+            # 5. Check Idempotency via unique source_record_id
+            t_stmt = select(Transfer).where(
+                Transfer.source_provider == provider,
+                Transfer.source_record_id == nt.source_record_id,
+            )
+            transfer = (await self._session.execute(t_stmt)).scalar_one_or_none()
+
+            if transfer is not None:
+                transfer.player_id = player.id
+                transfer.from_club_id = from_club.id if from_club else None
+                transfer.to_club_id = to_club.id if to_club else None
+                transfer.transfer_date = nt.transfer_date
+                transfer.transfer_type = nt.transfer_type
+                transfer.fee_value = nt.fee_value
+                transfer.fee_currency = nt.fee_currency
+                transfer.fee_status = nt.fee_status
+                transfer.fee_eur_normalized = nt.fee_eur_normalized
+                transfer.is_loan = nt.is_loan
+                transfer.is_permanent = nt.is_permanent
+                transfer.option_type = nt.option_type
+                transfer.data_quality_status = quality_status
+                transfer.quality_reasons = quality_reasons
+                transfer.raw_data = nt.raw_data
+                transfers.append(transfer)
+                continue
+
+            transfer = Transfer(
+                player_id=player.id,
+                from_club_id=from_club.id if from_club else None,
+                to_club_id=to_club.id if to_club else None,
+                transfer_date=nt.transfer_date,
+                transfer_type=nt.transfer_type,
+                fee_value=nt.fee_value,
+                fee_currency=nt.fee_currency,
+                fee_status=nt.fee_status,
+                fee_eur_normalized=nt.fee_eur_normalized,
+                is_loan=nt.is_loan,
+                is_permanent=nt.is_permanent,
+                option_type=nt.option_type,
+                source_provider=provider,
+                source_record_id=nt.source_record_id,
+                source_snapshot_id=snapshot_id,
+                ingestion_run_id=ingestion_run_id,
+                normalization_version="1.0.0",
+                data_quality_status=quality_status,
+                quality_reasons=quality_reasons,
+                raw_data=nt.raw_data,
+            )
+            self._session.add(transfer)
+            transfers.append(transfer)
+
+        await self._session.commit()
+        return transfers
+
 

@@ -166,6 +166,7 @@ class RoleService:
                 feature_vector=standardized,
                 provenance=provenance,
             )
+            profile.player = player
             self.session.add(profile)
 
         await self.session.flush()
@@ -255,6 +256,7 @@ class RoleService:
         limit: int = 10,
         position_filter: str | None = None,
         min_minutes: int | None = None,
+        mode: str = "composite",
     ) -> SimilarPlayersResponse:
         """Finds top-N multi-dimensionally similar players with explainable contribution breakdowns."""
         eval_time = as_of or datetime.now(timezone.utc)
@@ -286,8 +288,11 @@ class RoleService:
         res = await self.session.execute(stmt)
         candidates = res.scalars().all()
 
+        p_res = await self.session.execute(select(Player).where(Player.id == player_id))
+        t_player = p_res.scalar_one_or_none()
+        target_name = t_player.name if t_player else "Target Player"
+
         evaluated: list[SimilarPlayerItem] = []
-        target_name = target_profile.player.name if target_profile.player else "Target Player"
 
         for cand in candidates:
             cand_name = cand.player.name if cand.player else "Candidate Player"
@@ -305,7 +310,7 @@ class RoleService:
                 cand.sample_minutes,
             )
             overall = self.similarity_engine.compute_overall_similarity(
-                stat_sim, role_sim, context_sim
+                stat_sim, role_sim, context_sim, mode=mode
             )
 
             explanations = self.similarity_engine.generate_explanations(
@@ -349,6 +354,7 @@ class RoleService:
         player_a_id: uuid.UUID,
         player_b_id: uuid.UUID,
         as_of: datetime | None = None,
+        mode: str = "composite",
     ) -> PlayerComparisonResponse:
         """Detailed head-to-head functional comparison of two players."""
         eval_time = as_of or datetime.now(timezone.utc)
@@ -361,8 +367,13 @@ class RoleService:
         if not prof_b:
             prof_b = await self.compute_and_save_role_profile(player_b_id, eval_time)
 
-        name_a = prof_a.player.name if prof_a.player else "Player A"
-        name_b = prof_b.player.name if prof_b.player else "Player B"
+        p_res_a = await self.session.execute(select(Player).where(Player.id == player_a_id))
+        p_a = p_res_a.scalar_one_or_none()
+        name_a = p_a.name if p_a else "Player A"
+
+        p_res_b = await self.session.execute(select(Player).where(Player.id == player_b_id))
+        p_b = p_res_b.scalar_one_or_none()
+        name_b = p_b.name if p_b else "Player B"
 
         stat_sim = self.similarity_engine.compute_statistical_similarity(
             prof_a.feature_vector, prof_b.feature_vector
@@ -374,7 +385,7 @@ class RoleService:
             prof_a.position_group, prof_b.position_group, prof_a.sample_minutes, prof_b.sample_minutes
         )
         overall = self.similarity_engine.compute_overall_similarity(
-            stat_sim, role_sim, context_sim
+            stat_sim, role_sim, context_sim, mode=mode
         )
 
         explanations = self.similarity_engine.generate_explanations(
