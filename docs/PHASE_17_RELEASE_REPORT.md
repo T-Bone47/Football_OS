@@ -186,7 +186,7 @@ The deterministic boundary is the Bronze snapshot. Replay re-verifies SHA-256 an
 | Unit (`tests/unit`) | **641 passed, 0 failed**, 20 skipped (13 `NOT_TESTED` out-of-repo Bronze, 7 pre-existing) |
 | Integration (`tests/integration`, real PostgreSQL 16) | **99 passed, 5 failed**, 1 skipped. The 5 failures are R22 (Phase 7 DB path), pre-existing and intentionally not masked |
 | New Phase 17 tests | 95 (52 unit including 2 API-contract, 13 functional integration, 30 adversarial) |
-| Frontend production build | success (2 pre-existing lint warnings outside Phase 17 pages) |
+| Frontend production build | success, locally and in CI. Four pre-existing `exhaustive-deps` warnings outside the Phase 17 pages failed the first CI build under `CI=true`; they are now annotated in place (§37, CI result) |
 
 Phase 16/10 tests changed by Phase 17. Each asserted behaviour reconnaissance found fabricated, and each is marked `Phase 17:` in place:
 - `test_phase16_production_platform.py`: seeded `AVAILABLE`, dummy predictions, `LIVE_TELEMETRY`, constant `HEALTHY`, failover with invented payloads.
@@ -252,11 +252,33 @@ Status vocabulary per §63.
 | G34 Decision Lineage | evidence graph, content hash | workflow step 17 | adversarial 13 | – | **VERIFIED** |
 | G35 Replay | `replay_snapshot` | workflow step 20 | adversarial 21 | – | **VERIFIED** |
 | G36 Frontend | 3 consoles | Chromium at desktop and mobile | build | 3 legacy pages not exercised | **VERIFIED** (ops pages) |
-| G37 CI/CD | `.github/workflows/ci.yml` (all §47 gates) | see the CI result appended below | – | integration gate fails on R22; frontend audit fails | **BLOCKED** (gate correctly red) |
+| G37 CI/CD | `.github/workflows/ci.yml` (all §47 gates) | GitHub Actions run 5 on `542d478`: every gate ran; 2 red (see below) | lint, migrations, unit, pip-audit and secret scan green in CI | integration fails on R22; frontend audit fails (60 high) | **BLOCKED** (gate correctly red) |
 | G38 Adversarial Tests | 30 scenarios | – | 30/30 | – | **VERIFIED** |
 | G39 Documentation | 12 Phase 17 docs + evidence | – | – | – | **VERIFIED** |
 | G40 Production Readiness | – | no deployment; providers blocked; model fails | – | – | **BLOCKED** |
 | G41 Final Release Audit | this report | – | – | – | **PHASE_17_RELEASE_BLOCKED** |
+
+### CI result (GitHub Actions)
+
+The base commit `eb2ad0d` failed CI on `main` (run 3) at its migrations step, before any test ran. That is R3 observed independently: the Phase 16 suite never ran in CI.
+
+Run 4 on `e296970`, the first Phase 17 push, exposed two defects in the new workflow. The frontend build failed under `CI=true`, which turns four pre-existing `react-hooks/exhaustive-deps` warnings (Decision Lab and Outcome Intelligence pages) into errors; the local verification build had not set `CI=true`. Each job also stopped at its first red gate, so pip-audit, the secret scan and the frontend audit never ran. Both were fixed in `542d478`: the four effects are annotated as intentionally key-scoped, and later gates now run unless the workflow is cancelled.
+
+[Run 5](https://github.com/T-Bone47/Football_OS/actions/runs/36893259233) on `542d478`, GitHub-hosted `ubuntu-latest`, PostgreSQL 16.15 and Redis 7.4 service containers:
+
+| Gate | Result |
+|---|---|
+| Lint (ruff E9,F on Phase 17 code) | pass |
+| Typing | NOT_CONFIGURED (reported, not faked) |
+| Migrations: upgrade → downgrade 0013 → upgrade | pass |
+| Unit tests (including API contract) | pass |
+| Integration, replay and adversarial (real PostgreSQL) | **fail: 5 failed, 99 passed, 1 skipped**. Identical to the local run; all 5 are R22 (`'PlayerSeasonStats' object has no attribute 'minutes_played'` and the dependent 500/422) |
+| pip-audit | pass: no known vulnerabilities |
+| Secret scan | pass: 0 findings |
+| Frontend production build | pass |
+| Frontend dependency audit (high and critical) | **fail: 79 advisories (60 high, 19 moderate)** across 1,492 packages, matching the local audit |
+
+The deployment gate is red for exactly the two reasons this report names, and for no other.
 
 ## 38. Final Certification
 
