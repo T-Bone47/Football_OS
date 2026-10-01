@@ -80,17 +80,19 @@ export default function DecisionLabPage() {
   const [copilotResponse, setCopilotResponse] = useState(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
 
+  // Each loader runs when its own keys change, not on every render; the loaders
+  // are recreated per render, so listing them would refetch continuously.
   useEffect(() => {
     loadLabData();
-  }, [clubId]);
+  }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadTacticalEvaluation(selectedFormation);
-  }, [selectedFormation, clubId]);
+  }, [selectedFormation, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     loadDepthEvaluation(congestionMode);
-  }, [congestionMode, clubId]);
+  }, [congestionMode, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadLabData = async () => {
     setLoading(true);

@@ -1,5 +1,6 @@
 # Production deployment gate (Phase 17 §47). Every job is required: a failed
-# critical gate blocks deployment. Gates that are not configured in this
+# critical gate blocks deployment. Later gates still run after an earlier one
+# fails, so each gate reports its own result. Gates that are not configured in this
 # repository (static typing) are listed as such rather than faked.
 name: CI
 on: [push, pull_request]
@@ -17,7 +18,7 @@ jobs:
           POSTGRES_DB: fios_test
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U fios -d fios_test"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -49,10 +50,13 @@ jobs:
       - name: Unit tests (includes API contract tests)
         run: pytest tests/unit -q
       - name: Integration, replay and adversarial tests (real PostgreSQL)
+        if: ${{ !cancelled() }}
         run: pytest tests/integration -q
       - name: Dependency audit
+        if: ${{ !cancelled() }}
         run: pip-audit -r requirements.txt --progress-spinner off
       - name: Secret scan
+        if: ${{ !cancelled() }}
         run: python tools/phase17/secret_scan.py && python -c "import json,sys; d=json.load(open('docs/evidence/phase17/secret_scan.json')); sys.exit(1 if d['total_findings'] else 0)"
 
   frontend:
@@ -72,4 +76,5 @@ jobs:
         env:
           REACT_APP_BACKEND_URL: https://api.example.invalid
       - name: Dependency audit (high and critical)
+        if: ${{ !cancelled() }}
         run: yarn audit --level high --groups dependencies

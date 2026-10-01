@@ -80,7 +80,7 @@ export default function OutcomeIntelligencePage() {
   // Initial Data Fetching
   useEffect(() => {
     fetchInitialData();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- load once on mount
 
   const fetchInitialData = async () => {
     setLoading(true);

@@ -43,7 +43,6 @@ from app.phase17.workspace import create_decision
 from phase17_support import FINAL_ID, ROOT, StatsBombFixtureTransport, _db_urls
 from test_phase17_live_operations import _watch_item, final_match, ingest_all
 
-pytestmark = pytest.mark.asyncio
 MATCHES_PATH = "/matches/43/106.json"
 PARAMS = {"competition_id": 43, "season_id": 106}
 
