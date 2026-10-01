@@ -59,6 +59,18 @@ from app.market.normalizer import (
 
 
 
+
+# Providers whose transfer responses this platform fetches itself and stores
+# as SHA-256 Bronze snapshots. Anything else (notably hand-curated
+# "open-transfers" lists, reconnaissance R21) has no verifiable origin.
+VERIFIED_TRANSFER_PROVIDERS = {"api-football"}
+
+
+def transfer_provenance_status(provider: str, snapshot_id) -> str:
+    if provider in VERIFIED_TRANSFER_PROVIDERS and snapshot_id is not None:
+        return "VERIFIED_SOURCE"
+    return "SOURCE_UNVERIFIED"
+
 class NormalizationService:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
@@ -1299,6 +1311,7 @@ class NormalizationService:
                 transfer.is_permanent = nt.is_permanent
                 transfer.option_type = nt.option_type
                 transfer.data_quality_status = quality_status
+                transfer.provenance_status = transfer_provenance_status(provider, snapshot_id)
                 transfer.quality_reasons = quality_reasons
                 transfer.raw_data = nt.raw_data
                 transfers.append(transfer)
@@ -1323,6 +1336,7 @@ class NormalizationService:
                 ingestion_run_id=ingestion_run_id,
                 normalization_version="1.0.0",
                 data_quality_status=quality_status,
+                provenance_status=transfer_provenance_status(provider, snapshot_id),
                 quality_reasons=quality_reasons,
                 raw_data=nt.raw_data,
             )

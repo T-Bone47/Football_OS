@@ -910,6 +910,11 @@ class Transfer(Base):
 
     # Data Quality
     data_quality_status: Mapped[str] = mapped_column(String(32), nullable=False)
+    # Phase 18 (R21, migration 0020): where this record's facts come from.
+    # VERIFIED_SOURCE: fetched by this platform from a provider and snapshot
+    # (SHA-256). SOURCE_UNVERIFIED: no verifiable origin (e.g. hand-curated
+    # open-transfers lists). DERIVED / ESTIMATED: computed, not observed.
+    provenance_status: Mapped[str] = mapped_column(String(32), nullable=False)
     quality_reasons: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
 

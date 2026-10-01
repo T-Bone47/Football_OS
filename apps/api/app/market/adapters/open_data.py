@@ -23,7 +23,8 @@ from app.market.taxonomy import (
 class OpenDataTransferAdapter(TransferSourceAdapter):
     """Adapter for open-license historical transfer benchmark payloads."""
 
-    def __init__(self, provider_name: str = "open-transfer-archive", license_type: str = "CC0-1.0 Public Domain") -> None:
+    def __init__(self, provider_name: str = "open-transfer-archive", license_type: str = "UNVERIFIED") -> None:
+        # Phase 18 (R21): the curated lists carry no verifiable licence or origin.
         self._provider_name = provider_name
         self._license_type = license_type
 

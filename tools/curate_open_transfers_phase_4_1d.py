@@ -1,14 +1,17 @@
-"""Curator for verified, factual European historical transfers — Phase 4.1D Expansion.
-Zero fabrication: every record represents a real-world transfer transaction
-cross-referenced with club filings, federation announcements, and press consensus.
-Adds 310 authentic historical transfers to complete the transfer universe beyond 500 qualified targets.
+"""Curator for HAND-CURATED (SOURCE_UNVERIFIED) European historical transfers — Phase 4.1D Expansion.
+These records were typed by hand. The earlier claims of cross-referencing
+with club filings and a passed "zero fabrication audit" were never
+evidenced (Phase 17 reconnaissance R21), so every record is labelled
+provenance_status SOURCE_UNVERIFIED and written outside Bronze.
 """
 from __future__ import annotations
 
 import json
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "bronze" / "open-transfers"
+# Phase 18 (R21): hand-typed lists are not provider responses and never enter
+# Bronze (provider snapshots only). They live in a separate, labelled area.
+DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "curated" / "open-transfers"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 # 1. Continental / Feeder Leagues Expansion (60 records)
@@ -346,21 +349,21 @@ LIGUE1_V2 = [
 ]
 
 def save_payload(filename: str, dataset_name: str, transfers: list[dict]):
+    from datetime import datetime, timezone
+
     payload = {
         "metadata": {
             "dataset": dataset_name,
-            "version": "2.0.0",
-            "retrieval_date": "2026-09-21T01:00:00Z",
-            "license": "CC0-1.0 Universal / Public Domain Dedication",
-            "source_url": f"https://github.com/football-data/transfer-benchmarks/{dataset_name}",
-            "description": f"Verified factual historical transfers ({dataset_name}) cross-referenced with regulatory filings.",
-            "provenance": {
-                "compiler": "Football Intelligence OS Open Data Ingestion",
-                "verification_method": "Statutory club reports, official federation releases, and press consensus",
-                "zero_fabrication_audit": "PASSED"
-            }
+            "origin": "HAND_CURATED",
+            "provenance_status": "SOURCE_UNVERIFIED",
+            "license": "UNVERIFIED",
+            "source_url": None,
+            "curated_at": datetime.now(timezone.utc).isoformat(),
+            "note": ("Typed by hand from public reporting. Not a provider response: no retrieval, no "
+                     "source URL, no independent verification. Never stored in Bronze; models trained "
+                     "on it inherit lineage_status SOURCE_UNVERIFIED."),
         },
-        "transfers": transfers
+        "transfers": [{**t, "provenance_status": "SOURCE_UNVERIFIED"} for t in transfers],
     }
     path = DATA_DIR / filename
     with open(path, "w", encoding="utf-8") as f:
