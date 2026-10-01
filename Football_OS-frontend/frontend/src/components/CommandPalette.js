@@ -3,6 +3,7 @@ import { Command, Search, Sparkles, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { getClubs, getPlayers } from "@/lib/footballApi";
+import { fade, motion, pop } from "@/lib/motion";
 
 const pages = [
   { label: "Player discovery", path: "/players", hint: "Filter the connected player universe" },
@@ -50,8 +51,10 @@ export default function CommandPalette({ open, onClose }) {
   const backendUnavailable = players.isError || clubs.isError;
 
   return (
-    <div className="command-backdrop" role="presentation" onClick={onClose} data-testid="command-palette-backdrop">
-      <section
+    <motion.div className="command-backdrop" role="presentation" onClick={onClose} data-testid="command-palette-backdrop"
+                variants={fade} initial="initial" animate="animate" exit="exit">
+      <motion.section
+        variants={pop}
         className="command-palette"
         role="dialog"
         aria-modal="true"
@@ -152,7 +155,7 @@ export default function CommandPalette({ open, onClose }) {
             </p>
           )}
         </div>
-      </section>
-    </div>
+      </motion.section>
+    </motion.div>
   );
 }

@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { LayoutGroup, motion, spring } from "@/lib/motion";
 import {
   Activity, BarChart3, Beaker, Bookmark, Bot, Compass, Database, GitCompare,
   LayoutDashboard, Layers, Radar, Radio, ShieldAlert,
@@ -61,6 +62,7 @@ export default function Sidebar() {
         <span className="brand-mark small" aria-hidden="true">FI</span>
         <span>FOOTBALL<br />INTELLIGENCE OS</span>
       </div>
+      <LayoutGroup id="primary-nav">
       <nav aria-label="Primary navigation" data-testid="primary-navigation">
         {groups.map((group) => (
           <div className="nav-group" key={group.label} data-testid={`nav-group-${group.label.toLowerCase().replaceAll(" ", "-")}`}>
@@ -73,13 +75,20 @@ export default function Sidebar() {
                 className={({ isActive }) => isActive ? "nav-item active" : "nav-item"}
                 data-testid={`nav-link-${label.toLowerCase().replaceAll(" ", "-")}`}
               >
-                <Icon size={13} aria-hidden="true" />
-                <span>{label}</span>
+                {({ isActive }) => (
+                  <>
+                    {/* One shared indicator that slides to the active entry. */}
+                    {isActive && <motion.span layoutId="nav-active" className="nav-indicator" transition={spring} aria-hidden="true" />}
+                    <Icon size={13} aria-hidden="true" />
+                    <span>{label}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
         ))}
       </nav>
+      </LayoutGroup>
       <div className="sidebar-foot" data-testid="sidebar-data-status">
         <span className="live-dot warn" />
         <span>Backend pending</span>

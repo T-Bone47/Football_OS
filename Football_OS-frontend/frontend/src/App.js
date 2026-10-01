@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { MotionConfig } from "@/lib/motion";
 import axios from "axios";
 import { ArrowRight, CheckCircle2, CircleAlert, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
@@ -163,7 +164,15 @@ function AppRouter() {
 }
 
 function App() {
-  return <div className="App"><BrowserRouter><AppRouter /></BrowserRouter></div>;
+  // reducedMotion="user": people who ask their OS for reduced motion get
+  // opacity changes only, never movement.
+  return (
+    <div className="App">
+      <MotionConfig reducedMotion="user">
+        <BrowserRouter><AppRouter /></BrowserRouter>
+      </MotionConfig>
+    </div>
+  );
 }
 
 export default App;

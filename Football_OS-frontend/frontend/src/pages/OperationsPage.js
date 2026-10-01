@@ -4,7 +4,7 @@
 // nothing has happened the page says so.
 import React from "react";
 import { Link } from "react-router-dom";
-import { Ago, Empty, OpsGate, Remote, Section, StatusBadge, Table, useOps } from "@/components/ops/OpsKit";
+import { Ago, CountUp, Empty, Grid, OpsGate, Remote, Section, StatusBadge, Table, Tile, useOps } from "@/components/ops/OpsKit";
 
 function SystemHealth() {
   const q = useOps("/system/status");
@@ -14,9 +14,9 @@ function SystemHealth() {
         {(s) => (
           <>
             <p className="ops-muted">Overall <StatusBadge value={s.status} /> · environment {s.environment} · checked <Ago ts={s.checked_at} /></p>
-            <div className="ops-grid">
+            <Grid>
               {Object.entries(s.components).map(([name, c]) => (
-                <div className="ops-tile" key={name}>
+                <Tile key={name}>
                   <div className="label">{name.replace(/_/g, " ")}</div>
                   <div className="value">{c.status ? <StatusBadge value={c.status} /> : c.backend ? c.backend
                     : Object.entries(c).map(([p, v]) => <div key={p}>{p}: <StatusBadge value={v.status} /></div>)}</div>
@@ -25,9 +25,9 @@ function SystemHealth() {
                     {c.migration_head && ` · migration ${c.migration_head}`}
                     {c.detail || c.note || c.degraded_mode || ""}
                   </div>
-                </div>
+                </Tile>
               ))}
-            </div>
+            </Grid>
             {!s.environment_audit.ok && <div className="ops-banner">Environment policy violations: {s.environment_audit.violations.join("; ")}</div>}
           </>
         )}
@@ -106,16 +106,16 @@ function ModelHealth() {
     <Section title="Match prediction health" subtitle="From the immutable inference log. Live and historical-replay requests are counted separately.">
       <Remote query={q} what="model health" empty="No model health data.">
         {(h) => h.inference_volume === 0 ? <Empty>No prediction request has been logged.</Empty> : (
-          <div className="ops-grid">
-            <div className="ops-tile"><div className="label">Requests logged</div><div className="value">{h.inference_volume}</div>
-              <div className="detail">{h.live_inference_volume} live</div></div>
-            <div className="ops-tile"><div className="label">Refusal rate</div><div className="value">{h.refusal_rate}</div>
-              <div className="detail">{Object.entries(h.by_status).map(([k, v]) => `${k} ${v}`).join(" · ")}</div></div>
-            <div className="ops-tile"><div className="label">Latency p50 / p95 / p99</div>
-              <div className="value">{h.latency_ms.p50} / {h.latency_ms.p95} / {h.latency_ms.p99} ms</div></div>
-            <div className="ops-tile"><div className="label">Live calibration</div><div className="value"><StatusBadge value={h.live_calibration.status} /></div>
-              <div className="detail">{h.live_calibration.n ?? 0} live outcomes (minimum {h.live_calibration.minimum_required ?? "—"})</div></div>
-          </div>
+          <Grid>
+            <Tile><div className="label">Requests logged</div><div className="value"><CountUp value={h.inference_volume} /></div>
+              <div className="detail">{h.live_inference_volume} live</div></Tile>
+            <Tile><div className="label">Refusal rate</div><div className="value"><CountUp value={h.refusal_rate} /></div>
+              <div className="detail">{Object.entries(h.by_status).map(([k, v]) => `${k} ${v}`).join(" · ")}</div></Tile>
+            <Tile><div className="label">Latency p50 / p95 / p99</div>
+              <div className="value">{h.latency_ms.p50} / {h.latency_ms.p95} / {h.latency_ms.p99} ms</div></Tile>
+            <Tile><div className="label">Live calibration</div><div className="value"><StatusBadge value={h.live_calibration.status} /></div>
+              <div className="detail">{h.live_calibration.n ?? 0} live outcomes (minimum {h.live_calibration.minimum_required ?? "—"})</div></Tile>
+          </Grid>
         )}
       </Remote>
     </Section>

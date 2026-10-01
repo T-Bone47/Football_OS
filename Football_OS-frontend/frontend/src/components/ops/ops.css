@@ -32,3 +32,25 @@
   .ops-section { padding: 12px; }
   .ops-kv { grid-template-columns: 1fr; }
 }
+
+/* Motion (src/lib/motion.js). Transforms only; layout never shifts. */
+.ops-tabbar button { position: relative; }
+.ops-tabbar button.active { border-bottom-color: transparent; }
+.ops-tab-underline {
+  position: absolute; left: 0; right: 0; bottom: -2px; height: 2px;
+  background: var(--cyan); pointer-events: none;
+}
+.ops-loading { display: grid; gap: 10px; }
+.ops-loading-text { font-size: 12px; }
+.ops-skeleton { display: grid; gap: 6px; }
+.ops-skeleton i {
+  display: block; height: 10px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--surface-elev) 0%, var(--surface-hover) 50%, var(--surface-elev) 100%);
+  background-size: 200% 100%; animation: ops-shimmer 1.4s ease-in-out infinite;
+}
+.ops-skeleton i:nth-child(2) { width: 82%; }
+.ops-skeleton i:nth-child(3) { width: 64%; }
+@keyframes ops-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .ops-skeleton i { animation: none; }
+}

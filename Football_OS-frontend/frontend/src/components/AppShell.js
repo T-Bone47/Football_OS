@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Search } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import CommandPalette from "@/components/CommandPalette";
+import { AnimatePresence, fadeUp, motion } from "@/lib/motion";
 
 const BREADCRUMBS = [
   { pattern: /^\/dashboard/, trail: ["Overview", "Dashboard"] },
@@ -81,9 +82,17 @@ export default function AppShell({ children }) {
             <kbd>⌘K</kbd>
           </button>
         </div>
-        {children}
+        {/* Route change: the new page fades in. Enter-only on purpose: an
+            exit-then-enter ("wait") transition held whole pages in the DOM and
+            could leave the workspace blank. */}
+        <motion.div key={location.pathname} className="page-transition" variants={fadeUp}
+                    initial="initial" animate="animate">
+          {children}
+        </motion.div>
       </main>
-      <CommandPalette open={open} onClose={close} />
+      <AnimatePresence>
+        {open && <CommandPalette open={open} onClose={close} />}
+      </AnimatePresence>
     </div>
   );
 }

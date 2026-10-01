@@ -3,7 +3,7 @@
 // evidence are always shown separately.
 import React, { useState } from "react";
 import { describeError, opsPost } from "@/lib/opsApi";
-import { Empty, OpsGate, Remote, Section, StatusBadge, Table, Tabs, useOps } from "@/components/ops/OpsKit";
+import { CountUp, Empty, Grid, OpsGate, Remote, Section, StatusBadge, Table, TabPanel, Tabs, Tile, useOps } from "@/components/ops/OpsKit";
 
 function Registry({ me }) {
   const q = useOps("/models");
@@ -66,13 +66,13 @@ function Health() {
       <Remote query={q} what="health" empty="No health data.">
         {(h) => h.inference_volume === 0 ? <Empty>No inference request has been logged.</Empty> : (
           <>
-            <div className="ops-grid">
-              <div className="ops-tile"><div className="label">Volume</div><div className="value">{h.inference_volume}</div><div className="detail">live {h.live_inference_volume}</div></div>
-              <div className="ops-tile"><div className="label">Refusal rate</div><div className="value">{h.refusal_rate}</div></div>
-              <div className="ops-tile"><div className="label">OOD rate</div><div className="value">{h.ood_rate}</div></div>
-              <div className="ops-tile"><div className="label">Missing features</div><div className="value">{h.missing_feature_rate ?? "—"}</div></div>
-              <div className="ops-tile"><div className="label">Latency p95</div><div className="value">{h.latency_ms.p95} ms</div></div>
-            </div>
+            <Grid>
+              <Tile><div className="label">Volume</div><div className="value"><CountUp value={h.inference_volume} /></div><div className="detail">live {h.live_inference_volume}</div></Tile>
+              <Tile><div className="label">Refusal rate</div><div className="value"><CountUp value={h.refusal_rate} /></div></Tile>
+              <Tile><div className="label">OOD rate</div><div className="value"><CountUp value={h.ood_rate} /></div></Tile>
+              <Tile><div className="label">Missing features</div><div className="value">{h.missing_feature_rate ?? "—"}</div></Tile>
+              <Tile><div className="label">Latency p95</div><div className="value"><CountUp value={h.latency_ms.p95} suffix=" ms" /></div></Tile>
+            </Grid>
             <p className="ops-muted">By status: {Object.entries(h.by_status).map(([k, v]) => `${k} ${v}`).join(" · ")}</p>
             <p className="ops-muted">By evidence mode: {Object.entries(h.by_evidence_mode).map(([k, v]) => `${k} ${v}`).join(" · ")}</p>
             {h.confidence_histogram && (
@@ -95,12 +95,12 @@ function Calibration({ mode }) {
       <Remote query={q} what={label} empty="No calibration data.">
         {(c) => c.status !== "MEASURED" ? <Empty><StatusBadge value={c.status} /> — {c.n} of {c.minimum_required} required outcomes.</Empty> : (
           <>
-            <div className="ops-grid">
+            <Grid>
               {["n", "log_loss", "baseline_class_prior_log_loss", "brier", "ece", "mce", "accuracy"].map((k) => (
-                <div className="ops-tile" key={k}><div className="label">{k.replace(/_/g, " ")}</div><div className="value">{String(c[k])}</div></div>
+                <Tile key={k}><div className="label">{k.replace(/_/g, " ")}</div><div className="value">{String(c[k])}</div></Tile>
               ))}
-              <div className="ops-tile"><div className="label">Beats class-prior baseline</div><div className="value"><StatusBadge value={c.beats_class_prior_baseline ? "PASS" : "FAIL"} /></div></div>
-            </div>
+              <Tile><div className="label">Beats class-prior baseline</div><div className="value"><StatusBadge value={c.beats_class_prior_baseline ? "PASS" : "FAIL"} /></div></Tile>
+            </Grid>
             <Table rowKey={(r) => r.bin.join("-")} rows={c.calibration_curve} columns={[
               { key: "bin", label: "Confidence bin", render: (r) => `${r.bin[0]}–${r.bin[1]}` },
               { key: "n", label: "n", num: true }, { key: "mean_confidence", label: "Mean confidence", num: true },
@@ -142,10 +142,12 @@ export default function ModelOpsPage() {
       {(me) => (
         <div data-testid="model-ops-page">
           <Tabs tabs={TABS} active={tab} onChange={setTab} />
-          {tab === "registry" && <Registry me={me} />}
-          {tab === "health" && <Health />}
-          {tab === "calibration" && <><Calibration mode="LIVE" /><Calibration mode="HISTORICAL_REPLAY" /></>}
-          {tab === "drift" && <><Drift mode="LIVE" /><Drift mode="VALIDATION_BACKTEST" /></>}
+          <TabPanel id={tab}>
+            {tab === "registry" && <Registry me={me} />}
+            {tab === "health" && <Health />}
+            {tab === "calibration" && <><Calibration mode="LIVE" /><Calibration mode="HISTORICAL_REPLAY" /></>}
+            {tab === "drift" && <><Drift mode="LIVE" /><Drift mode="VALIDATION_BACKTEST" /></>}
+          </TabPanel>
         </div>
       )}
     </OpsGate>

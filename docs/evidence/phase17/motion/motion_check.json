@@ -1,0 +1,168 @@
+[
+ {
+  "reduced": false,
+  "nav_indicators": 1,
+  "indicator_on_active": true,
+  "tab_underlines": 1,
+  "mid_tab_switch": "0.740334",
+  "runs_panel_visible": [
+   1,
+   "1",
+   "INGESTION RUNS\n\nEvery execution with its"
+  ],
+  "underline_under_runs": true,
+  "route_samples": [
+   [
+    "0",
+    "matrix(1, 0, 0, 1, 0, 5.63416)"
+   ],
+   [
+    "0.476207",
+    "matrix(1, 0, 0, 1, 0, 3.06694)"
+   ],
+   [
+    "0.671115",
+    "matrix(1, 0, 0, 1, 0, 0.646408)"
+   ],
+   [
+    "0.931557",
+    "matrix(1, 0, 0, 1, 0, 0.297633)"
+   ],
+   [
+    "0.961943",
+    "matrix(1, 0, 0, 1, 0, 0.135932)"
+   ],
+   [
+    "0.995941",
+    "matrix(1, 0, 0, 1, 0, 0.0135205)"
+   ],
+   [
+    "0.995941",
+    "matrix(1, 0, 0, 1, 0, 0.0135205)"
+   ],
+   [
+    "0.999988",
+    "matrix(1, 0, 0, 1, 0, 6.36501e-08)"
+   ],
+   [
+    "1",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ]
+  ],
+  "url_after": "/model-ops",
+  "indicator_moved": true,
+  "page_after_route": [
+   1,
+   "1",
+   "none",
+   true
+  ],
+  "any_transform_during_route": true,
+  "palette_open_opacity": "0.930858",
+  "palette_still_in_dom_during_exit": true,
+  "palette_removed_after_exit": true,
+  "tabs_present": [
+   "tab-registry",
+   "tab-health",
+   "tab-calibration",
+   "tab-drift"
+  ],
+  "main_text": "FOOTBALL INTELLIGENCE OS\nSearch players, clubs, actions\n⌘K\nPHASE 17 · MODEL OPS\nModel operations\nSigned in as\nUI Validator\n·\nADMIN\nSign out\nRegistry & deployment\nHealth\nCalibration\nDrift & OOD\nMODEL R",
+  "overflow": 0
+ },
+ {
+  "reduced": true,
+  "nav_indicators": 1,
+  "indicator_on_active": true,
+  "tab_underlines": 1,
+  "mid_tab_switch": "0.991802",
+  "runs_panel_visible": [
+   1,
+   "1",
+   "INGESTION RUNS\n\nEvery execution with its"
+  ],
+  "underline_under_runs": true,
+  "route_samples": [
+   [
+    "1",
+    "none"
+   ],
+   [
+    "0",
+    "none"
+   ],
+   [
+    "0.555247",
+    "none"
+   ],
+   [
+    "0.834269",
+    "none"
+   ],
+   [
+    "0.944285",
+    "none"
+   ],
+   [
+    "0.984354",
+    "none"
+   ],
+   [
+    "0.992756",
+    "none"
+   ],
+   [
+    "0.999162",
+    "none"
+   ],
+   [
+    "0.999999",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ],
+   [
+    "1",
+    "none"
+   ]
+  ],
+  "url_after": "/model-ops",
+  "indicator_moved": true,
+  "page_after_route": [
+   1,
+   "1",
+   "none",
+   true
+  ],
+  "any_transform_during_route": false,
+  "palette_open_opacity": "0.939327",
+  "palette_still_in_dom_during_exit": true,
+  "palette_removed_after_exit": true,
+  "tabs_present": [
+   "tab-registry",
+   "tab-health",
+   "tab-calibration",
+   "tab-drift"
+  ],
+  "main_text": "FOOTBALL INTELLIGENCE OS\nSearch players, clubs, actions\n⌘K\nPHASE 17 · MODEL OPS\nModel operations\nSigned in as\nUI Validator\n·\nADMIN\nSign out\nRegistry & deployment\nHealth\nCalibration\nDrift & OOD\nMODEL R",
+  "overflow": 0
+ }
+]

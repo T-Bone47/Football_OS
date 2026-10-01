@@ -192,6 +192,17 @@ kbd, .global-command-button kbd {
   color: var(--text); background: var(--surface-hover);
   border-left-color: var(--cyan); font-weight: 500;
 }
+/* Motion: the active highlight is a shared element that slides between
+   entries, so the static active styling moves onto it. */
+.nav-item { position: relative; }
+.nav-item > svg, .nav-item > span:not(.nav-indicator) { position: relative; z-index: 1; }
+.nav-item.active { background: transparent; border-left-color: transparent; }
+.nav-indicator {
+  position: absolute; inset: 0 0 0 -2px; z-index: 0;
+  background: var(--surface-hover); border-left: 2px solid var(--cyan);
+  border-radius: 0 3px 3px 0; pointer-events: none;
+}
+.page-transition { min-width: 0; }
 .sidebar-foot {
   margin-top: auto; color: #4c5865; font-size: 10.5px;
   display: flex; align-items: center; gap: 8px; padding: 10px 12px 4px;
@@ -839,7 +850,8 @@ tbody tr:last-child td { border-bottom: 0; }
     border-bottom: 2px solid transparent; padding: 6px 10px;
     min-height: 26px;
   }
-  .nav-item.active { border-left: 0; border-bottom-color: var(--cyan); background: transparent; }
+  .nav-item.active { border-left: 0; border-bottom-color: transparent; background: transparent; }
+  .nav-indicator { inset: auto 0 -2px 0; height: 2px; border-left: 0; background: var(--cyan); border-radius: 0; }
   .sidebar-foot { display: none; }
   .workspace { padding: 14px 14px 30px; }
   .workspace-header, .page-heading, .profile-header { flex-direction: column; align-items: flex-start; }

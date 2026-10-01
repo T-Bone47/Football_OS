@@ -2,7 +2,7 @@
 // /api/v1/ops; empty tables mean nothing has been recorded.
 import React, { useState } from "react";
 import { describeError, opsPost } from "@/lib/opsApi";
-import { Ago, Empty, OpsGate, Remote, Section, StatusBadge, Table, Tabs, useOps } from "@/components/ops/OpsKit";
+import { Ago, Empty, Grid, OpsGate, Remote, Section, StatusBadge, Table, TabPanel, Tabs, Tile, useOps } from "@/components/ops/OpsKit";
 
 function Providers({ me }) {
   const q = useOps("/providers");
@@ -168,12 +168,12 @@ function Coverage() {
             {Object.entries(m.providers).map(([p, v]) => (
               <div key={p} className="ops-section">
                 <p><strong>{p}</strong> · connectivity <StatusBadge value={v.connectivity} /> · {v.timing?.data_mode}</p>
-                <div className="ops-grid">
+                <Grid>
                   {Object.entries(v.resources).filter(([, r]) => r.state !== "UNAVAILABLE").map(([res, r]) => (
-                    <div key={res} className="ops-tile"><div className="label">{res}</div><div className="value"><StatusBadge value={r.state} /></div>
-                      <div className="detail">{r.evidence}{r.successful_scopes ? ` · ${r.successful_scopes} scope(s)` : ""}</div></div>
+                    <Tile key={res}><div className="label">{res}</div><div className="value"><StatusBadge value={r.state} /></div>
+                      <div className="detail">{r.evidence}{r.successful_scopes ? ` · ${r.successful_scopes} scope(s)` : ""}</div></Tile>
                   ))}
-                </div>
+                </Grid>
               </div>
             ))}
             <p className="ops-muted">StatsBomb index: {m.statsbomb_competition_seasons.filter((c) => c.matches === "LIVE_AVAILABLE").length} of {m.statsbomb_competition_seasons.length} competition seasons ingested.</p>
@@ -203,13 +203,15 @@ export default function DataOpsPage() {
       {(me) => (
         <div data-testid="data-ops-page">
           <Tabs tabs={TABS} active={tab} onChange={setTab} />
-          {tab === "providers" && <Providers me={me} />}
-          {tab === "runs" && <Jobs />}
-          {tab === "snapshots" && <Snapshots />}
-          {tab === "freshness" && <Freshness />}
-          {tab === "quality" && <Quality />}
-          {tab === "failed" && <Jobs failedOnly />}
-          {tab === "coverage" && <Coverage />}
+          <TabPanel id={tab}>
+            {tab === "providers" && <Providers me={me} />}
+            {tab === "runs" && <Jobs />}
+            {tab === "snapshots" && <Snapshots />}
+            {tab === "freshness" && <Freshness />}
+            {tab === "quality" && <Quality />}
+            {tab === "failed" && <Jobs failedOnly />}
+            {tab === "coverage" && <Coverage />}
+          </TabPanel>
         </div>
       )}
     </OpsGate>
