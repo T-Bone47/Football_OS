@@ -195,9 +195,9 @@ def _compose(intent: str, results: dict[str, Any]) -> str:
             (f" All competitions: {states}." if r else " No competition data is loaded.")
     if intent == "ACTIVE_MODEL":
         m = results["models"]
-        active = [f"{x['model_id']}:{x['model_version']}" for x in m if x["deployment_state"] == "ACTIVE"]
+        active = [f"{x['model_id']}:{x['model_version']}" for x in m if x["deployment_state"] == "PRODUCTION"]
         shadow = [f"{x['model_id']}:{x['model_version']}" for x in m if x["deployment_state"] == "SHADOW"]
-        return f"ACTIVE: {', '.join(active) or 'none'}. SHADOW: {', '.join(shadow) or 'none'}."
+        return f"PRODUCTION: {', '.join(active) or 'none'}. SHADOW: {', '.join(shadow) or 'none'}."
     if intent == "PREDICTION_HEALTH":
         h = results["model_health"]
         if h["inference_volume"] == 0:

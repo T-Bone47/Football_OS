@@ -1,0 +1,33 @@
+{
+  "as_of_rule": "features use only finished matches strictly before kickoff",
+  "dataset_id": "statsbomb-2015-16-top5-match-outcomes",
+  "dataset_sha256": "57357d6fdbd0f6c842ab8eed295932ed9d907c5ff94936805fec9b032d60e712",
+  "excluded": {
+    "insufficient_history": 234,
+    "missing_feature": 0
+  },
+  "first_kickoff": "2015-09-18T20:30:00+00:00",
+  "last_kickoff": "2016-05-17T21:00:00+00:00",
+  "lineage_status": "VERIFIED",
+  "provider": "statsbomb (open data)",
+  "row_format": "canonical JSON per line: provider, fixture (provider match id), kickoff (UTC), competition, features (rounded to 8 dp), label (H/D/A)",
+  "rows": 1317,
+  "scope": {
+    "competitions": [
+      "1. Bundesliga (Germany)",
+      "La Liga (Spain)",
+      "Ligue 1 (France)",
+      "Premier League (England)",
+      "Serie A (Italy)"
+    ],
+    "season": "2015"
+  },
+  "silver_rows_without_snapshot": 0,
+  "source_snapshot_sha256": [
+    "1fd6519dc64f268e40395a2e65c82f1feb9974c2705253a2af2c37aa34a5655d",
+    "4e2074c633559f3b88e9593a752d8d15d9d9ba0d6c8a25316a68ec6526b4d14b",
+    "613cd3cc70699ba613cb1b3c27b4c8a01b0b5fa28415e09c928d020208905c7a",
+    "733c7cf47bd7a19d9acae5add722c32b404664d949377057a280bd0b0f0d2464",
+    "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b"
+  ]
+}

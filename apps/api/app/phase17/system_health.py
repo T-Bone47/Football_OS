@@ -99,12 +99,12 @@ async def system_status(session: AsyncSession, engine: AsyncEngine, settings: Se
             components["jobs"] = {"status": H.DEGRADED.value if stuck else H.HEALTHY.value, "stuck_running": stuck,
                                   "last_job_started": last_job.isoformat() if last_job else None}
             servable = (await session.execute(select(ModelRegistryEntry.model_id, ModelRegistryEntry.deployment_state)
-                                              .where(ModelRegistryEntry.deployment_state.in_(["ACTIVE", "SHADOW"])))).all()
+                                              .where(ModelRegistryEntry.deployment_state.in_(["PRODUCTION", "CANARY", "SHADOW"])))).all()
             components["model_serving"] = {
-                "status": H.HEALTHY.value if any(s == "ACTIVE" for _, s in servable) else
+                "status": H.HEALTHY.value if any(s == "PRODUCTION" for _, s in servable) else
                 (H.DEGRADED.value if servable else H.UNAVAILABLE.value),
                 "models": [{"model_id": m, "deployment_state": s} for m, s in servable],
-                "note": None if any(s == "ACTIVE" for _, s in servable) else "no ACTIVE model; SHADOW models serve labelled shadow predictions only",
+                "note": None if any(s == "PRODUCTION" for _, s in servable) else "no PRODUCTION model; SHADOW/CANARY models serve labelled predictions only",
             }
         except Exception as exc:  # noqa: BLE001
             components["providers"] = {"status": "UNKNOWN", "error": type(exc).__name__}

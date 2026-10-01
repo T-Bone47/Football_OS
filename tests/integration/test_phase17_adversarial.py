@@ -291,10 +291,17 @@ async def test_adv_15_unauthorized_model_promotion(p17_session, tmp_path, api):
     _, scout = await issue_user(p17_session, "Org", "s@example.test", "S", OpsRole.SCOUT)
     _, admin = await issue_user(p17_session, "Org", "ad@example.test", "Ad", OpsRole.ADMIN)
     await p17_session.commit()
-    r = await api.post("/api/v1/ops/models/calibrated_multinomial_logit_v1/promote", headers=H(scout))
+    r = await api.post("/api/v1/ops/models/match_outcome_logit/promote", headers=H(scout),
+                       json={"target_state": "SHADOW", "reason": "try"})
     assert r.status_code == 403
-    r2 = await api.post("/api/v1/ops/models/calibrated_multinomial_logit_v1/promote", headers=H(admin))
-    assert r2.status_code == 409 and r2.json()["detail"]["status"] == "PROMOTION_BLOCKED"  # no live evidence
+    # Phase 18: VALIDATED -> SHADOW additionally needs a recorded reproduction.
+    r2 = await api.post("/api/v1/ops/models/match_outcome_logit/promote", headers=H(admin),
+                        json={"target_state": "SHADOW", "reason": "first shadow run"})
+    assert r2.status_code == 409 and r2.json()["detail"]["status"] == "PROMOTION_BLOCKED"
+    assert any("reproduction" in b for b in r2.json()["detail"]["blockers"])
+    r3 = await api.post("/api/v1/ops/models/match_outcome_logit/promote", headers=H(admin),
+                        json={"target_state": "PRODUCTION", "reason": "skip the line"})
+    assert r3.status_code == 409 and any("the only promotion is to" in b for b in r3.json()["detail"]["blockers"]), r3.json()
     async with p17_session.test_sessionmaker() as s:
         kinds = (await s.execute(select(AuditEvent.event_type))).scalars().all()
     assert "UNAUTHORIZED_MODEL_PROMOTION_ATTEMPT" in kinds and "MODEL_PROMOTION_REFUSED" in kinds
@@ -447,7 +454,8 @@ async def test_adv_27_model_artifact_corruption(p17_session, tmp_path):
     model.artifact_sha256 = "0" * 64
     await p17_session.commit()
     res = await infer_match(p17_session, final.id, as_of=final.date - timedelta(seconds=1), mode="HISTORICAL_REPLAY")
-    assert res.status == "MODEL_UNAVAILABLE" and "ARTIFACT_INTEGRITY_FAILED" in res.reasons[0] and res.output == {}
+    # Phase 18: the registry SHA-256 no longer matches the artifact bytes.
+    assert res.status == "MODEL_ARTIFACT_MISMATCH" and "does not match the registry" in res.reasons[0] and res.output == {}
 
 
 # 28 ------------------------------------------------------------------------

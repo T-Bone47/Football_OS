@@ -1,0 +1,75 @@
+{
+  "command": "scripts/evidence/ingestion_evidence.py",
+  "environment": {
+    "app_environment": "development",
+    "execution_context": "claude-code-cloud-sandbox",
+    "host": "vm",
+    "platform": "Linux-6.18.44-fc-v50-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  },
+  "evidence": "ingestion_evidence",
+  "git_commit": "2e168a495d866502e38a66f8f75e8768a3e7a8bd",
+  "inputs": {
+    "database": "fios_p17_live",
+    "provider": "statsbomb (open data, historical archive)",
+    "seasons": [
+      "Premier League 2015/2016",
+      "La Liga 2015/2016",
+      "1. Bundesliga 2015/2016",
+      "Serie A 2015/2016",
+      "Ligue 1 2015/2016"
+    ]
+  },
+  "outputs": {
+    "bronze_rehash": {
+      "checked": 533,
+      "mismatches": []
+    },
+    "idempotency": {
+      "rerun_status": "SUCCESS",
+      "same_sha256": true,
+      "silver_matches_after": 1649,
+      "silver_matches_before": 1649
+    },
+    "jobs": [
+      {
+        "errors": [],
+        "label": "Premier League 2015/2016",
+        "records": 380,
+        "snapshot_sha256": "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+        "status": "SUCCESS"
+      },
+      {
+        "errors": [],
+        "label": "La Liga 2015/2016",
+        "records": 380,
+        "snapshot_sha256": "4e2074c633559f3b88e9593a752d8d15d9d9ba0d6c8a25316a68ec6526b4d14b",
+        "status": "SUCCESS"
+      },
+      {
+        "errors": [],
+        "label": "1. Bundesliga 2015/2016",
+        "records": 34,
+        "snapshot_sha256": "1fd6519dc64f268e40395a2e65c82f1feb9974c2705253a2af2c37aa34a5655d",
+        "status": "SUCCESS"
+      },
+      {
+        "errors": [],
+        "label": "Serie A 2015/2016",
+        "records": 380,
+        "snapshot_sha256": "613cd3cc70699ba613cb1b3c27b4c8a01b0b5fa28415e09c928d020208905c7a",
+        "status": "SUCCESS"
+      },
+      {
+        "errors": [],
+        "label": "Ligue 1 2015/2016",
+        "records": 377,
+        "snapshot_sha256": "733c7cf47bd7a19d9acae5add722c32b404664d949377057a280bd0b0f0d2464",
+        "status": "SUCCESS"
+      }
+    ]
+  },
+  "sha256": "ed38e9e5fec80b3c21966db74767d7cba6db58ee5b008f4f9feabdb753aa5c66",
+  "status": "VERIFIED",
+  "timestamp": "2026-10-01T17:53:17.446848+00:00"
+}

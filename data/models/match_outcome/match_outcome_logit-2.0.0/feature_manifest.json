@@ -1,0 +1,15 @@
+{
+  "builder": "app.prediction.features.PreMatchFeatureBuilder",
+  "feature_set_version": "match_prediction_v2",
+  "features": [
+    "elo_diff",
+    "points_diff_l5",
+    "home_goal_diff_l5",
+    "away_goal_diff_l5",
+    "home_venue_points_l5",
+    "away_venue_points_l5",
+    "rest_days_diff"
+  ],
+  "min_history_matches": 5,
+  "missing_value_policy": "row excluded (never imputed)"
+}

@@ -1,0 +1,30 @@
+{
+  "command": "scripts/reproduce_match_model.py --from-database --record",
+  "environment": {
+    "app_environment": "development",
+    "execution_context": "claude-code-cloud-sandbox",
+    "host": "vm",
+    "platform": "Linux-6.18.44-fc-v50-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  },
+  "evidence": "reproducibility_evidence_database",
+  "git_commit": "2e168a495d866502e38a66f8f75e8768a3e7a8bd+uncommitted-changes",
+  "inputs": {
+    "model": "match_outcome_logit 2.0.0",
+    "source": "silver_database"
+  },
+  "outputs": {
+    "artifact_sha256": "22c7f1c41f4165163869453fccf909f585482caa7cc90f1b95304998a06bff4a",
+    "baseline_log_loss": 1.04700288,
+    "dataset_rows": 1317,
+    "dataset_sha256": "57357d6fdbd0f6c842ab8eed295932ed9d907c5ff94936805fec9b032d60e712",
+    "mismatches": {},
+    "source": "silver_database",
+    "status": "REPRODUCED",
+    "test_log_loss": 0.98123364,
+    "verdict": "VALIDATED"
+  },
+  "sha256": "f17002902ebb2a35aff67b6e62004ac1de237fd781c34795b9ddbc933998ade1",
+  "status": "REPRODUCED",
+  "timestamp": "2026-10-01T18:11:10.683491+00:00"
+}

@@ -34,6 +34,7 @@ from app.db.models.canonical import Competition, CompetitionSeason, Match, Seaso
 from app.db.models.operations import InferenceLog, ModelRegistryEntry, OutcomeRecord
 from app.db.models.provenance import DataSnapshot
 from app.phase17 import DriftClass, InferenceStatus, PredictionType
+from app.ml.serving import ArtifactRefused, load_registered_artifact
 from app.phase17.feature_refresh import feature_staleness
 from app.prediction.features import FEATURE_SET_VERSION, PreMatchFeatureBuilder
 from app.prediction.gating import PredictionGatingEngine
@@ -41,15 +42,18 @@ from app.prediction.models import (
     CLASS_PRIOR_AWAY,
     CLASS_PRIOR_DRAW,
     CLASS_PRIOR_HOME,
-    CalibratedMultinomialModel,
     determine_match_target,
     target_to_index,
 )
 
 MATCH_DOMAIN = "match_outcome"
-MATCH_MODEL_ID = "calibrated_multinomial_logit_v1"
-MATCH_MODEL_VERSION = "1.2.0"
-SERVABLE_STATES = ("ACTIVE", "SHADOW")
+MATCH_MODEL_ID = "match_outcome_logit"
+MATCH_MODEL_VERSION = "2.0.0"
+# Phase 18 registry vocabulary. Served to users: PRODUCTION, CANARY, SHADOW
+# (labelled). Offline validation backtests may also use VALIDATED/CANDIDATE.
+SERVABLE_STATES = ("PRODUCTION", "CANARY", "SHADOW")
+VALIDATION_STATES = SERVABLE_STATES + ("VALIDATED", "CANDIDATE")
+from app.ml.match_outcome import OOD_Z_LIMIT  # noqa: E402  (one definition for training and serving)
 FINISHED = ("FINISHED", "FT", "AET", "PEN")
 
 MIN_CALIBRATION_OUTCOMES = 100
@@ -78,42 +82,55 @@ async def match_context(session: AsyncSession, match_id: uuid.UUID) -> tuple[Mat
     return tuple(row) if row else None
 
 
-def match_model_artifact_digest(model: CalibratedMultinomialModel | None = None) -> str:
-    """The match model has no file artifact: its artifact is its parameter
-    set. The registry pins the SHA-256 of those parameters."""
-    model = model or CalibratedMultinomialModel()
-    params = {k: getattr(model, k) for k in ("temperature", "w_home", "w_elo", "w_points", "w_matchup", "w_rest")}
-    return hashlib.sha256(json.dumps(params, sort_keys=True).encode()).hexdigest()
+def _committed_manifests() -> tuple[dict[str, Any], dict[str, Any]] | None:
+    from app.ml.serving import artifact_root
+
+    d = artifact_root() / "match_outcome" / f"{MATCH_MODEL_ID}-{MATCH_MODEL_VERSION}"
+    try:
+        return (json.loads((d / "model_manifest.json").read_text()),
+                json.loads((d / "evaluation_manifest.json").read_text()))
+    except (OSError, ValueError):
+        return None
 
 
 async def ensure_match_model_registered(session: AsyncSession) -> ModelRegistryEntry:
-    """Registers the existing match model as REGISTERED (not servable).
-    Declared metrics from prediction/registry.py are not copied: they are
-    not evidenced in this repository (reconnaissance R18)."""
+    """Registers the trained, committed match model from its manifests if the
+    registry does not hold it. State follows the evidence: VALIDATED only when
+    the evaluation verdict is VALIDATED and dataset lineage is VERIFIED,
+    otherwise BLOCKED. Never a serving state: SHADOW and above are human
+    promotions. Without manifests there is nothing to register."""
     row = (await session.execute(select(ModelRegistryEntry).where(
         ModelRegistryEntry.model_id == MATCH_MODEL_ID, ModelRegistryEntry.model_version == MATCH_MODEL_VERSION
     ))).scalar_one_or_none()
-    if row is None:
-        row = ModelRegistryEntry(
-            domain=MATCH_DOMAIN, model_id=MATCH_MODEL_ID, model_version=MATCH_MODEL_VERSION,
-            feature_version=FEATURE_SET_VERSION, dataset_version="NONE_EVIDENCED",
-            artifact_sha256=match_model_artifact_digest(),
-            supported_competitions=[], deployment_state="REGISTERED",
-            validation_metrics={"declared_metrics_status": "DECLARED_UNVERIFIED (prediction/registry.py)"},
-            min_history_matches=5, max_feature_age_hours=72.0,
-        )
-        session.add(row)
-        await session.flush()
+    if row is not None:
+        return row
+    found = _committed_manifests()
+    if found is None:
+        raise RuntimeError("match model manifests not found; run scripts/train_match_model.py")
+    manifest, evaluation = found
+    validated = manifest["verdict"] == "VALIDATED" and manifest["lineage_status"] == "VERIFIED"
+    row = ModelRegistryEntry(
+        domain=MATCH_DOMAIN, model_id=MATCH_MODEL_ID, model_version=MATCH_MODEL_VERSION,
+        feature_version=FEATURE_SET_VERSION, dataset_version=f"statsbomb-2015-16-top5@{manifest['dataset_sha256'][:12]}",
+        artifact_sha256=manifest["artifact_sha256"], artifact_uri=manifest["artifact_uri"],
+        dataset_sha256=manifest["dataset_sha256"], windows=evaluation["windows"],
+        supported_competitions=evaluation["supported_competitions"] if validated else [],
+        supported_horizons=["PRE_MATCH"], deployment_state="VALIDATED" if validated else "BLOCKED",
+        validation_metrics=evaluation, lineage_status=manifest["lineage_status"],
+        status_reason=f"registered from committed manifests (verdict {manifest['verdict']})",
+        min_history_matches=5, max_feature_age_hours=72.0,
+    )
+    session.add(row)
+    await session.flush()
     return row
 
 
-async def servable_model(session: AsyncSession, domain: str, allow_registered: bool = False) -> ModelRegistryEntry | None:
-    states = SERVABLE_STATES + (("REGISTERED",) if allow_registered else ())
+async def servable_model(session: AsyncSession, domain: str, validation: bool = False) -> ModelRegistryEntry | None:
+    states = VALIDATION_STATES if validation else SERVABLE_STATES
     rows = (await session.execute(select(ModelRegistryEntry).where(
         ModelRegistryEntry.domain == domain, ModelRegistryEntry.deployment_state.in_(states)
     ))).scalars().all()
-    order = {"ACTIVE": 0, "SHADOW": 1, "REGISTERED": 2}
-    return sorted(rows, key=lambda r: order[r.deployment_state])[0] if rows else None
+    return sorted(rows, key=lambda r: VALIDATION_STATES.index(r.deployment_state))[0] if rows else None
 
 
 def _digest(obj: Any) -> str:
@@ -132,7 +149,7 @@ async def infer_match(
     reasons: list[str] = []
     ctx = await match_context(session, match_id)
     validation = mode == MODE_VALIDATION
-    model = await servable_model(session, MATCH_DOMAIN, allow_registered=validation)
+    model = await servable_model(session, MATCH_DOMAIN, validation=validation)
     cutoff = as_of or now
     base = dict(domain=MATCH_DOMAIN, prediction_type=PredictionType.PRE_MATCH.value, subject_id=str(match_id),
                 input_digest=_digest({"match_id": str(match_id), "cutoff": cutoff.isoformat(), "mode": mode}),
@@ -158,16 +175,14 @@ async def infer_match(
         return row
     base.update(model_id=model.model_id, model_version=model.model_version,
                 feature_version=model.feature_version, dataset_version=model.dataset_version)
-    if model.artifact_sha256 != match_model_artifact_digest():
-        row = refuse(InferenceStatus.MODEL_UNAVAILABLE,
-                     "ARTIFACT_INTEGRITY_FAILED: loaded model parameters do not match the registered artifact_sha256")
+    try:
+        artifact = load_registered_artifact(model)
+    except ArtifactRefused as refused:
+        row = refuse(InferenceStatus(refused.status), refused.reason)
         await session.flush()
         return row
-    if model.feature_version != FEATURE_SET_VERSION:
-        row = refuse(InferenceStatus.MODEL_UNAVAILABLE,
-                     f"feature version mismatch: model expects {model.feature_version}, builder produces {FEATURE_SET_VERSION}")
-        await session.flush()
-        return row
+    base["evidence"] = {"mode": mode, "artifact_sha256": model.artifact_sha256,
+                        "deployment_state": model.deployment_state}
 
     if mode == MODE_LIVE and cutoff < now - LIVE_BACKDATE_TOLERANCE:
         row = refuse(InferenceStatus.TEMPORAL_VIOLATION,
@@ -228,8 +243,7 @@ async def infer_match(
     evidence = {"mode": mode, "history_match_ids": [str(h.id) for h in history],
                 "history_max_date": history[-1].date.isoformat() if history else None,
                 "home_sample": snapshot.home_sample_size, "away_sample": snapshot.away_sample_size}
-    base["evidence"] = evidence
-
+    base["evidence"] = {**base["evidence"], **evidence}
     if min(snapshot.home_sample_size, snapshot.away_sample_size) < model.min_history_matches:
         row = refuse(InferenceStatus.INSUFFICIENT_DATA,
                      f"history {snapshot.home_sample_size}/{snapshot.away_sample_size} matches "
@@ -246,13 +260,36 @@ async def infer_match(
         await session.flush()
         return row
 
-    probs = CalibratedMultinomialModel().predict(snapshot.features)
+    from app.ml import match_outcome as mo
+
+    x = mo.features_vector(artifact, snapshot.features)
+    if x is None:
+        missing_model = [f for f in artifact["features"] if snapshot.features.get(f) is None]
+        row = refuse(InferenceStatus.INSUFFICIENT_DATA, f"model features unavailable: {', '.join(missing_model)}")
+        await session.flush()
+        return row
+    z = (x[0] - artifact["mean"]) / artifact["scale"]
+    far = [f"{f} (z={zi:+.1f})" for f, zi in zip(artifact["features"], z) if abs(zi) > OOD_Z_LIMIT]
+    if far:
+        row = refuse(InferenceStatus.OUT_OF_DISTRIBUTION,
+                     f"outside the training distribution (|z| > {OOD_Z_LIMIT}): {', '.join(far)}")
+        await session.flush()
+        return row
+    p = mo.predict_proba(artifact, x)[0]
+    probs = {"home_win": round(float(p[0]), 6), "draw": round(float(p[1]), 6), "away_win": round(float(p[2]), 6)}
+    top = int(p.argmax())
+    contributions = sorted(((f, float(artifact["coef"][top][j]) * float(z[j])) for j, f in enumerate(artifact["features"])),
+                           key=lambda kv: -abs(kv[1]))
     reasons.extend(gate.reasons)
-    base["output"] = {"home_win": probs.home_win, "draw": probs.draw, "away_win": probs.away_win,
-                      "gate": gate.status, "kickoff": match.date.isoformat()}
+    base["output"] = {**probs, "gate": gate.status, "kickoff": match.date.isoformat(), "modality": "MODELLED",
+                      "deployment_state": model.deployment_state,
+                      "explanation": {"predicted_class": mo.CLASSES[top],
+                                      "logit_contributions": [{"feature": f, "contribution": round(c, 4)}
+                                                              for f, c in contributions],
+                                      "method": "coefficient x standardised feature (non-causal)"}}
     row = InferenceLog(
         **base, status=InferenceStatus.SERVED.value, reasons=reasons, is_ood=False,
-        confidence=max(probs.home_win, probs.draw, probs.away_win),
+        confidence=max(probs.values()),
         latency_ms=round((time.perf_counter() - t0) * 1000, 2),
     )
     session.add(row)
@@ -510,8 +547,7 @@ async def validate_competition_support(session: AsyncSession, competition: str) 
     elif verdict["status"] != "MODEL_VALIDATED" and competition in supported:
         supported.remove(competition)
     model.supported_competitions = supported
-    if supported and model.deployment_state == "REGISTERED":
-        model.deployment_state = "SHADOW"
-    model.dataset_version = _digest(sorted(supported))[:16] if supported else "NONE_EVIDENCED"
+    # Phase 18: support follows evidence; the deployment state never changes
+    # here. Every promotion (VALIDATED -> SHADOW -> CANARY -> PRODUCTION) is human.
     await session.commit()
     return verdict

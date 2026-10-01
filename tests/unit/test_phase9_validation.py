@@ -658,8 +658,8 @@ class TestModelRegistry:
         assert m.model_id == "test_model"
         assert m.model_version == "1.0.0"
         assert m.feature_version == "v1"
-        assert m.status in ("MODEL_VALIDATED", "MODEL_CANDIDATE",
-                            "PREDICTION_FOUNDATION_COMPLETE", "MODEL_RELEASE_BLOCKED")
+        # Phase 18: metadata built without evidence is UNVERIFIED by default.
+        assert m.status == "UNVERIFIED"
 
     def test_valuation_registry_manifest_exists(self):
         """Valuation model registry manifest exists on disk."""

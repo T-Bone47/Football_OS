@@ -8,4 +8,6 @@ COPY apps/api/app ./app
 # from the same artifact it deploys.
 COPY alembic.ini ./
 COPY database ./database
+# Registered model artifacts: serving verifies their SHA-256 against the registry.
+COPY data/models ./data/models
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

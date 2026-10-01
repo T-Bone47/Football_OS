@@ -1,0 +1,75 @@
+{
+  "command": "scripts/evidence/model_serving_evidence.py",
+  "environment": {
+    "app_environment": "development",
+    "execution_context": "claude-code-cloud-sandbox",
+    "host": "vm",
+    "platform": "Linux-6.18.44-fc-v50-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  },
+  "evidence": "model_serving_evidence",
+  "git_commit": "2e168a495d866502e38a66f8f75e8768a3e7a8bd+uncommitted-changes",
+  "inputs": {
+    "database": "fios_p17_live",
+    "model_dir": "data/models/match_outcome/match_outcome_logit-2.0.0"
+  },
+  "outputs": {
+    "integrity_drills": {
+      "foreign_feature_schema": {
+        "reasons": [
+          "artifact features match_prediction_v2 / registry match_prediction_v0; the builder produces match_prediction_v2"
+        ],
+        "status": "FEATURE_SCHEMA_MISMATCH"
+      },
+      "registry_restored": true,
+      "wrong_registry_sha256": {
+        "reasons": [
+          "artifact SHA-256 22c7f1c41f416516... does not match the registry 0000000000000000..."
+        ],
+        "status": "MODEL_ARTIFACT_MISMATCH"
+      }
+    },
+    "live_request": {
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "status": "MODEL_UNAVAILABLE"
+    },
+    "model": {
+      "artifact_sha256": "22c7f1c41f4165163869453fccf909f585482caa7cc90f1b95304998a06bff4a",
+      "model_id": "match_outcome_logit",
+      "reproduction": {
+        "at": "2026-10-01T18:11:10.671989+00:00",
+        "evidence": "evidence/reproducibility_evidence*.json",
+        "source": "silver_database",
+        "status": "REPRODUCED"
+      },
+      "state": "VALIDATED",
+      "version": "2.0.0"
+    },
+    "validation_backtest": {
+      "silver_matches_found": 306,
+      "statuses": {
+        "OUT_OF_DISTRIBUTION": 10,
+        "SERVED": 296
+      },
+      "test_window_fixtures": 306,
+      "train_serve_skew": []
+    },
+    "valuation": {
+      "modality": "NOT_AVAILABLE",
+      "model_id": "val_lightgbm_20260920",
+      "reasons": [
+        "registry state UNVERIFIED",
+        "training dataset (open-transfers) is not in the repository: metrics cannot be reproduced (REPRODUCTION_BLOCKED)",
+        "open-transfers provenance is self-asserted (R21): lineage SOURCE_UNVERIFIED",
+        "the record-path dataset builder assigned identical invented player features to every row (N12)",
+        "declared test R^2 -0.0904: no better than predicting the mean"
+      ],
+      "status": "MODEL_UNVERIFIED"
+    }
+  },
+  "sha256": "1e61af311985d3569db46b00621556ce55602e8697500ea7295ae742fbaf3d54",
+  "status": "VERIFIED",
+  "timestamp": "2026-10-01T18:11:17.010511+00:00"
+}

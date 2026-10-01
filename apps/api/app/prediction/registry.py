@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.dev_fixtures import dev_seed_enabled
 from app.prediction.schemas import ModelStatusResponse
 
 MODEL_REGISTRY_VERSION = "registry_v1"
@@ -34,7 +35,8 @@ class ModelMetadata(BaseModel):
     metrics: dict[str, float] = Field(default_factory=dict)
     calibration_method: str = "TEMPERATURE_SCALING"
     calibration_params: dict[str, Any] = Field(default_factory=dict)
-    status: str = "MODEL_VALIDATED"  # MODEL_VALIDATED, MODEL_CANDIDATE, PREDICTION_FOUNDATION_COMPLETE, MODEL_RELEASE_BLOCKED
+    # Phase 18: nothing is validated by default; the authoritative registry is ops_model_registry.
+    status: str = "UNVERIFIED"  # MODEL_VALIDATED, MODEL_CANDIDATE, PREDICTION_FOUNDATION_COMPLETE, MODEL_RELEASE_BLOCKED
     temporal_validation_passed: bool = True
     leakage_tests_passed: bool = True
     random_seed: int = 42
@@ -47,7 +49,8 @@ class PredictionModelRegistry:
     def __init__(self) -> None:
         self._models: dict[str, ModelMetadata] = {}
         self._active_model_id: str | None = None
-        self._init_default_models()
+        if dev_seed_enabled():  # hand-written metadata, demo fixtures only (Phase 18, N3)
+            self._init_default_models()
 
     def _init_default_models(self) -> None:
         """Initializes the baseline models and the primary calibrated ML model."""

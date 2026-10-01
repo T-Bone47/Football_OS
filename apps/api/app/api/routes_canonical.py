@@ -5,11 +5,13 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.ml.valuation_registry import ModelNotServable
 from app.db.models.canonical import (
     Club,
     ClubIdentity,
@@ -1644,6 +1646,8 @@ async def get_player_ml_valuation(
     """Estimates fair transfer value using the active Phase 4.2 ML valuation engine."""
     try:
         return await ValuationMLService.get_player_valuation(session, player_id, as_of=as_of)
+    except ModelNotServable as e:  # Phase 18: refused by the authoritative registry
+        return JSONResponse(e.body(player_id=str(player_id)))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -1659,6 +1663,8 @@ async def get_player_valuation_explanation(
     """Returns deterministic SHAP and non-causal feature attributions for valuation prediction."""
     try:
         return await ValuationMLService.get_player_valuation_explanation(session, player_id, as_of=as_of)
+    except ModelNotServable as e:  # Phase 18: refused by the authoritative registry
+        return JSONResponse(e.body(player_id=str(player_id)))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
@@ -1677,16 +1683,23 @@ async def get_player_valuation_comparables(
         return await ValuationMLService.get_player_valuation_comparables(
             session, player_id, as_of=as_of, top_k=top_k
         )
+    except ModelNotServable as e:  # Phase 18: refused by the authoritative registry
+        return JSONResponse(e.body(player_id=str(player_id)))
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
 
 
-@router.get("/market/model-status", response_model=ValuationModelStatusResponse)
-async def get_market_model_status() -> ValuationModelStatusResponse:
-    """Returns operational status, versioning, and test evaluation metrics of active valuation model."""
-    return ValuationMLService.get_model_status()
+@router.get("/market/model-status")
+async def get_market_model_status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Valuation model state from the authoritative registry (ops_model_registry)."""
+    from app.ml.valuation_registry import VALUATION_DOMAIN
+    from app.observability.system_health import check_model_health
+
+    status = await check_model_health(session)
+    status["models"] = [m for m in status["models"] if m["domain"] == VALUATION_DOMAIN]
+    return status
 
 
 # ============================================================
@@ -1832,62 +1845,65 @@ async def simulate_scenario_transfer(
 # ============================================================
 # MATCH PREDICTION & CALIBRATION ENGINE (Phase 6)
 # ============================================================
-from app.prediction.schemas import (  # noqa: E402
-    MatchPredictionHistoryResponse,
-    MatchPredictionResponse,
-    ModelStatusResponse,
-    PredictionExplanation,
-)
-from app.prediction.service import MatchPredictionService  # noqa: E402
 
 
-@router.get("/matches/{match_id}/prediction", response_model=MatchPredictionResponse)
+# Phase 18 (R8): match predictions come only from the authoritative registry
+# and a verified artifact (app.phase17.model_ops.infer_match). The previous
+# service answered from five hand-typed weights; it is no longer reachable.
+
+@router.get("/matches/{match_id}/prediction")
 async def get_match_prediction(
     match_id: uuid.UUID,
-    as_of: datetime | None = Query(None, description="Optional temporal cutoff for leakage-safe evaluation (defaults to match date)"),
+    as_of: datetime | None = Query(None, description="Past cutoff for a labelled historical replay; omit for a live pre-match request"),
     session: AsyncSession = Depends(get_session),
-) -> MatchPredictionResponse:
-    """Computes a temporally valid, leakage-safe, calibrated match prediction (1X2 probabilities and expected goals)."""
-    service = MatchPredictionService(session)
-    try:
-        return await service.predict_match(match_id=match_id, as_of=as_of)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Prediction error: {str(exc)}") from exc
+) -> dict[str, Any]:
+    """Served only through registry gates; refusals carry their status and reasons."""
+    from app.api.routes_phase17 import inference_dict
+    from app.phase17.model_ops import MODE_LIVE, MODE_REPLAY, infer_match
+
+    row = await infer_match(session, match_id, as_of=as_of, mode=MODE_REPLAY if as_of else MODE_LIVE)
+    await session.commit()
+    return inference_dict(row)
 
 
-@router.get("/matches/{match_id}/prediction/explanation", response_model=PredictionExplanation)
+@router.get("/matches/{match_id}/prediction/explanation")
 async def get_match_prediction_explanation(
     match_id: uuid.UUID,
-    as_of: datetime | None = Query(None, description="Optional temporal cutoff for leakage-safe evaluation (defaults to match date)"),
+    as_of: datetime | None = Query(None),
     session: AsyncSession = Depends(get_session),
-) -> PredictionExplanation:
-    """Provides non-causal evidence factor breakdown and feature attribution for match prediction."""
-    service = MatchPredictionService(session)
-    try:
-        return await service.get_prediction_explanation(match_id=match_id, as_of=as_of)
-    except ValueError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Explanation error: {str(exc)}") from exc
+) -> dict[str, Any]:
+    """Coefficient x standardised-feature contributions of the served model
+    (non-causal). No explanation exists for a refused request."""
+    from app.phase17.model_ops import MODE_LIVE, MODE_REPLAY, infer_match
+
+    row = await infer_match(session, match_id, as_of=as_of, mode=MODE_REPLAY if as_of else MODE_LIVE)
+    await session.commit()
+    return {"status": row.status, "reasons": row.reasons,
+            "explanation": (row.output or {}).get("explanation") if row.status == "SERVED" else None}
 
 
-@router.get("/matches/{match_id}/prediction/history", response_model=MatchPredictionHistoryResponse)
+@router.get("/matches/{match_id}/prediction/history")
 async def get_match_prediction_history(
     match_id: uuid.UUID,
     session: AsyncSession = Depends(get_session),
-) -> MatchPredictionHistoryResponse:
-    """Retrieves point-in-time prediction evolution history and snapshot audit trail for a fixture."""
-    service = MatchPredictionService(session)
-    return await service.get_prediction_history(match_id=match_id)
+) -> dict[str, Any]:
+    """Every inference ever logged for this fixture (immutable log), served or refused."""
+    from app.api.routes_phase17 import inference_dict
+    from app.db.models.operations import InferenceLog
+
+    rows = (await session.execute(select(InferenceLog).where(InferenceLog.subject_id == str(match_id))
+                                  .order_by(InferenceLog.created_at.asc()))).scalars().all()
+    return {"match_id": str(match_id), "inferences": [inference_dict(r) for r in rows]}
 
 
-@router.get("/prediction/model-status", response_model=ModelStatusResponse)
-async def get_prediction_model_status() -> ModelStatusResponse:
-    """Returns verified operational status, Log Loss, Brier score, and calibration diagnostics for active model."""
-    service = MatchPredictionService()
-    return service.get_model_status()
+@router.get("/prediction/model-status")
+async def get_prediction_model_status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Match-model state from the authoritative registry (ops_model_registry)."""
+    from app.observability.system_health import check_model_health
+
+    status = await check_model_health(session)
+    status["models"] = [m for m in status["models"] if m["domain"] == "match_outcome"]
+    return status
 
 
 # ============================================================

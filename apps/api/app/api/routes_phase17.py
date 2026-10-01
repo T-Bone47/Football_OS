@@ -248,47 +248,77 @@ async def get_drift(mode: str = Query(MODE_LIVE, pattern=f"^({MODE_LIVE}|{MODE_R
     return await drift_report(session, mode)
 
 
+class PromotionRequest(BaseModel):
+    target_state: str
+    reason: str = Field(min_length=3, max_length=500)
+
+
+MIN_CANARY_LIVE_OUTCOMES = 30
+PROMOTION_PATH = {"VALIDATED": "SHADOW", "SHADOW": "CANARY", "CANARY": "PRODUCTION"}
+DEMOTION_PATH = {"PRODUCTION": "CANARY", "CANARY": "SHADOW", "SHADOW": "VALIDATED"}
+
+
 @router.post("/models/{model_id}/promote")
-async def promote_model(model_id: str, user: OpsUser = Depends(current_user),
+async def promote_model(model_id: str, body: PromotionRequest | None = None, user: OpsUser = Depends(current_user),
                         session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
-    """Human promotion to ACTIVE, gated on live evidence. Never automatic."""
-    if user.role != OpsRole.ADMIN.value:
+    """One human step up VALIDATED -> SHADOW -> CANARY -> PRODUCTION, each gated
+    on evidence. Never automatic, and never more than one step."""
+    if user.role != OpsRole.ADMIN.value:  # checked before the body, so probing yields 403 not 422
         await append_event(session, "UNAUTHORIZED_MODEL_PROMOTION_ATTEMPT", str(user.id), model_id,
                            {"role": user.role}, commit=True)
         raise HTTPException(status_code=403, detail="only ADMIN may promote a model")
-    model = (await session.execute(select(ModelRegistryEntry).where(ModelRegistryEntry.model_id == model_id))).scalars().first()
+    if body is None:
+        raise HTTPException(status_code=422, detail="body {target_state, reason} required")
+    model = (await session.execute(select(ModelRegistryEntry).where(ModelRegistryEntry.model_id == model_id)
+                                   .order_by(ModelRegistryEntry.registered_at.desc()))).scalars().first()
     if model is None:
         raise HTTPException(status_code=404, detail="model not registered")
+    blockers: list[str] = []
+    expected = PROMOTION_PATH.get(model.deployment_state)
+    if expected is None:
+        blockers.append(f"deployment_state {model.deployment_state} cannot be promoted")
+    elif body.target_state != expected:
+        blockers.append(f"from {model.deployment_state} the only promotion is to {expected}")
+    if model.lineage_status != "VERIFIED":
+        blockers.append(f"dataset lineage {model.lineage_status or 'UNKNOWN'}")
     live = await calibration_report(session, MODE_LIVE, model_id=model.model_id)
-    drift = await drift_report(session, MODE_LIVE)
-    blockers = []
-    if model.deployment_state != "SHADOW":
-        blockers.append(f"deployment_state is {model.deployment_state}; only SHADOW models can be promoted")
-    if live["status"] != "MEASURED":
-        blockers.append(f"live calibration {live['status']} ({live.get('n', 0)}/{MIN_LIVE_OUTCOMES_FOR_PRODUCTION} live outcomes)")
-    elif not live.get("beats_class_prior_baseline"):
-        blockers.append("live log loss does not beat the class-prior baseline")
-    if drift["status"] in ("CRITICAL_DRIFT",):
-        blockers.append("critical drift on live inputs")
+    if body.target_state == "SHADOW" and (model.reproduction or {}).get("status") != "REPRODUCED":
+        blockers.append("no successful reproduction recorded (scripts/reproduce_match_model.py)")
+    if body.target_state == "CANARY" and live.get("n", 0) < MIN_CANARY_LIVE_OUTCOMES:
+        blockers.append(f"{live.get('n', 0)}/{MIN_CANARY_LIVE_OUTCOMES} live outcomes for CANARY")
+    if body.target_state == "PRODUCTION":
+        drift = await drift_report(session, MODE_LIVE)
+        if live["status"] != "MEASURED":
+            blockers.append(f"live calibration {live['status']} ({live.get('n', 0)}/{MIN_LIVE_OUTCOMES_FOR_PRODUCTION} live outcomes)")
+        elif not live.get("beats_class_prior_baseline"):
+            blockers.append("live log loss does not beat the class-prior baseline")
+        if drift["status"] in ("CRITICAL_DRIFT",):
+            blockers.append("critical drift on live inputs")
     if blockers:
-        await append_event(session, "MODEL_PROMOTION_REFUSED", str(user.id), model_id, {"blockers": blockers}, commit=True)
+        await append_event(session, "MODEL_PROMOTION_REFUSED", str(user.id), model_id,
+                           {"target": body.target_state, "blockers": blockers}, commit=True)
         raise HTTPException(status_code=409, detail={"status": "PROMOTION_BLOCKED", "blockers": blockers})
-    model.deployment_state = "ACTIVE"
-    await append_event(session, "MODEL_PROMOTED", str(user.id), model_id, {"live_outcomes": live["n"]})
+    previous = model.deployment_state
+    model.deployment_state = body.target_state
+    model.promoted_at = datetime.now(timezone.utc)
+    model.promoted_by = user.id
+    await append_event(session, "MODEL_PROMOTED", str(user.id), model_id,
+                       {"from": previous, "to": body.target_state, "reason": body.reason, "live_outcomes": live.get("n", 0)})
     await session.commit()
-    return {"status": "PROMOTED", "model_id": model_id}
+    return {"status": "PROMOTED", "model_id": model_id, "from": previous, "to": body.target_state}
 
 
 @router.post("/models/{model_id}/demote")
 async def demote_model(model_id: str, user: OpsUser = Depends(require("model:promote")),
                        session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
-    """Model rollback lever: ACTIVE -> SHADOW, SHADOW -> REGISTERED. Takes
-    effect on the next request; predictions already logged are untouched."""
-    model = (await session.execute(select(ModelRegistryEntry).where(ModelRegistryEntry.model_id == model_id))).scalars().first()
+    """Rollback lever, one step: PRODUCTION -> CANARY -> SHADOW -> VALIDATED.
+    Takes effect on the next request; logged predictions are untouched."""
+    model = (await session.execute(select(ModelRegistryEntry).where(ModelRegistryEntry.model_id == model_id)
+                                   .order_by(ModelRegistryEntry.registered_at.desc()))).scalars().first()
     if model is None:
         raise HTTPException(status_code=404, detail="model not registered")
     previous = model.deployment_state
-    target = {"ACTIVE": "SHADOW", "SHADOW": "REGISTERED"}.get(previous)
+    target = DEMOTION_PATH.get(previous)
     if target is None:
         raise HTTPException(status_code=409, detail=f"nothing to roll back from {previous}")
     model.deployment_state = target
@@ -306,12 +336,20 @@ async def infer(match_id: uuid.UUID, as_of: datetime | None = None,
     explicit past cutoff, labelled as replay in the immutable log."""
     row = await infer_match(session, match_id, as_of=as_of, mode=mode)
     await session.commit()
+    return inference_dict(row)
+
+
+def inference_dict(row: Any) -> dict[str, Any]:
+    """One response shape for every inference, served or refused."""
     return {"inference_id": str(row.id), "status": row.status, "prediction_type": row.prediction_type,
             "mode": (row.evidence or {}).get("mode"),
             "output": row.output, "reasons": row.reasons, "model_id": row.model_id, "model_version": row.model_version,
             "feature_version": row.feature_version, "dataset_version": row.dataset_version,
+            "artifact_sha256": (row.evidence or {}).get("artifact_sha256"),
+            "deployment_state": (row.evidence or {}).get("deployment_state"),
             "data_cutoff": _iso(row.data_cutoff), "competition": row.competition, "is_ood": row.is_ood,
-            "missing_features": row.missing_features, "latency_ms": row.latency_ms}
+            "missing_features": row.missing_features, "latency_ms": row.latency_ms,
+            "created_at": _iso(row.created_at) if getattr(row, "created_at", None) else None}
 
 
 @router.post("/features/refresh/{competition_season_id}")

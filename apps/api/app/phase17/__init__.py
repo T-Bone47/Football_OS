@@ -94,6 +94,10 @@ class InferenceStatus(str, Enum):
     # A pre-match prediction requested with a cutoff at/after kickoff, or a
     # feature input dated at/after the cutoff (§15, adversarial 20).
     TEMPORAL_VIOLATION = "TEMPORAL_VIOLATION"
+    # Phase 18: the registered artifact's bytes do not hash to the registry
+    # SHA-256, or its feature schema differs from the builder's.
+    MODEL_ARTIFACT_MISMATCH = "MODEL_ARTIFACT_MISMATCH"
+    FEATURE_SCHEMA_MISMATCH = "FEATURE_SCHEMA_MISMATCH"
 
 
 class PredictionType(str, Enum):

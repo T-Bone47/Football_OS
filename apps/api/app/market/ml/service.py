@@ -10,6 +10,8 @@ from datetime import date, datetime, timezone
 import uuid
 from typing import Any, Dict, List, Optional
 import numpy as np
+
+from app.ml.valuation_registry import valuation_gate
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.market.comparables import ComparableTransferEngine
@@ -123,6 +125,8 @@ class ValuationMLService:
 
         registry = get_valuation_registry()
         active_bundle = registry.get_active_model()
+        # Phase 18: served only if the authoritative registry allows it.
+        await valuation_gate(session, active_bundle.metadata.model_id if active_bundle else None)
         if not active_bundle:
             raise RuntimeError("No active transfer valuation ML model is registered.")
 
@@ -172,6 +176,8 @@ class ValuationMLService:
 
         registry = get_valuation_registry()
         active_bundle = registry.get_active_model()
+        # Phase 18: served only if the authoritative registry allows it.
+        await valuation_gate(session, active_bundle.metadata.model_id if active_bundle else None)
         if not active_bundle:
             raise RuntimeError("No active transfer valuation ML model is registered.")
 

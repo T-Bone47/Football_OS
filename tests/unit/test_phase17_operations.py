@@ -32,7 +32,7 @@ from app.phase17.environments import (
     resolve_environment,
 )
 from app.phase17.match_state import PROVIDER_TIMING, derive_state
-from app.phase17.model_ops import calibration_metrics, classify_psi, match_model_artifact_digest, psi
+from app.phase17.model_ops import calibration_metrics, classify_psi, psi
 from app.phase17.provider_probe import ProbeTarget, probe_target
 from app.phase17.rate_governor import ProviderBudget, RateGovernor, instrumented_client
 from app.providers.statsbomb import StatsBombProvider
@@ -347,13 +347,37 @@ def test_psi_classification_thresholds():
     assert classify_psi(psi(ref, shifted)).value in ("DRIFT", "CRITICAL_DRIFT")
 
 
-def test_match_model_artifact_digest_is_parameter_bound():
-    from app.prediction.models import CalibratedMultinomialModel
+def test_registered_artifact_is_verified_before_use(tmp_path, monkeypatch):
+    """Phase 18 (R8): serving loads the registry-named artifact and refuses
+    tampered bytes, a foreign feature schema, or a path outside the store."""
+    import hashlib
+    import json
+    from types import SimpleNamespace
 
-    tampered = CalibratedMultinomialModel()
-    tampered.w_elo = 9.99
-    assert match_model_artifact_digest() == match_model_artifact_digest(CalibratedMultinomialModel())
-    assert match_model_artifact_digest(tampered) != match_model_artifact_digest()
+    import app.ml.serving as serving
+    from app.prediction.features import FEATURE_SET_VERSION
+
+    monkeypatch.setattr(serving, "artifact_root", lambda: tmp_path)
+    body = json.dumps({"feature_set_version": FEATURE_SET_VERSION, "features": ["x"]}).encode()
+    (tmp_path / "m.json").write_bytes(body)
+    good = SimpleNamespace(artifact_uri="m.json", artifact_sha256=hashlib.sha256(body).hexdigest(),
+                           feature_version=FEATURE_SET_VERSION)
+    assert serving.load_registered_artifact(good)["features"] == ["x"]
+
+    (tmp_path / "m.json").write_bytes(body + b" ")  # one byte changed on disk
+    with pytest.raises(serving.ArtifactRefused) as exc:
+        serving.load_registered_artifact(good)
+    assert exc.value.status == "MODEL_ARTIFACT_MISMATCH"
+
+    (tmp_path / "m.json").write_bytes(body)
+    with pytest.raises(serving.ArtifactRefused) as exc:
+        serving.load_registered_artifact(SimpleNamespace(**{**vars(good), "feature_version": "other_v9"}))
+    assert exc.value.status == "FEATURE_SCHEMA_MISMATCH"
+
+    for uri in ("../outside.json", None):
+        with pytest.raises(serving.ArtifactRefused) as exc:
+            serving.load_registered_artifact(SimpleNamespace(**{**vars(good), "artifact_uri": uri}))
+        assert exc.value.status == "MODEL_UNAVAILABLE"
 
 
 # ------------------------------------------------------------------ copilot (§26, §54)

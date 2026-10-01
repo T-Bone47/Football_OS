@@ -318,7 +318,7 @@ async def test_api_decision_workflow_with_provenance(p17_session, tmp_path, api)
     prov = (await api.get(f"/api/v1/ops/decisions/{d1.json()['id']}/provenance", headers=H(token))).json()
     node = prov["evidence_graph"]["nodes"][0]
     assert prov["integrity_verified"] is True and prov["evidence_graph"]["complete"] is True
-    assert node["model"]["model_id"] == "calibrated_multinomial_logit_v1"
+    assert node["model"]["model_id"] == "match_outcome_logit"
     assert node["subject_match"]["snapshot"]["provider"]["name"] == "statsbomb"
     assert node["history"]["snapshots"][0]["sha256"]
     assert prov["staleness"]["state"] == "CURRENT"

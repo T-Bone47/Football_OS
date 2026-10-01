@@ -1,0 +1,164 @@
+{
+  "class_prior_from_train": {
+    "A": 0.27873563,
+    "D": 0.27586207,
+    "H": 0.4454023
+  },
+  "per_competition": {
+    "La Liga (Spain)": {
+      "baseline_class_prior": {
+        "accuracy": 0.5125,
+        "brier": 0.62509331,
+        "ece": 0.0670977,
+        "log_loss": 1.0394776,
+        "n": 80
+      },
+      "log_loss_difference_vs_baseline": {
+        "ci95_high": 0.05485253,
+        "ci95_low": -0.16866766,
+        "mean_difference": -0.0585779,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "model": {
+        "accuracy": 0.55,
+        "brier": 0.57406524,
+        "ece": 0.071235,
+        "log_loss": 0.9808997,
+        "n": 80
+      },
+      "reason": "improvement over its own baseline not established (95% CI reaches zero)",
+      "supported": false
+    },
+    "Ligue 1 (France)": {
+      "baseline_class_prior": {
+        "accuracy": 0.46376812,
+        "brier": 0.64128209,
+        "ece": 0.01836582,
+        "log_loss": 1.06221942,
+        "n": 69
+      },
+      "log_loss_difference_vs_baseline": {
+        "ci95_high": -0.00859601,
+        "ci95_low": -0.17562924,
+        "mean_difference": -0.092825,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "model": {
+        "accuracy": 0.56521739,
+        "brier": 0.57915158,
+        "ece": 0.1548892,
+        "log_loss": 0.96939442,
+        "n": 69
+      },
+      "reason": "beats its own baseline (95% CI below zero)",
+      "supported": true
+    },
+    "Premier League (England)": {
+      "baseline_class_prior": {
+        "accuracy": 0.48051948,
+        "brier": 0.63639817,
+        "ece": 0.03511718,
+        "log_loss": 1.05562977,
+        "n": 77
+      },
+      "log_loss_difference_vs_baseline": {
+        "ci95_high": 0.00344164,
+        "ci95_low": -0.16764176,
+        "mean_difference": -0.08613101,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "model": {
+        "accuracy": 0.51948052,
+        "brier": 0.57797657,
+        "ece": 0.0688575,
+        "log_loss": 0.96949876,
+        "n": 77
+      },
+      "reason": "improvement over its own baseline not established (95% CI reaches zero)",
+      "supported": false
+    },
+    "Serie A (Italy)": {
+      "baseline_class_prior": {
+        "accuracy": 0.525,
+        "brier": 0.62063929,
+        "ece": 0.0795977,
+        "log_loss": 1.03310053,
+        "n": 80
+      },
+      "log_loss_difference_vs_baseline": {
+        "ci95_high": 0.0782159,
+        "ci95_low": -0.13302097,
+        "mean_difference": -0.03002681,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "model": {
+        "accuracy": 0.5375,
+        "brier": 0.5963961,
+        "ece": 0.10453574,
+        "log_loss": 1.00307372,
+        "n": 80
+      },
+      "reason": "improvement over its own baseline not established (95% CI reaches zero)",
+      "supported": false
+    }
+  },
+  "rows": {
+    "test": 306,
+    "train": 696,
+    "validation": 315
+  },
+  "supported_competitions": [
+    "Ligue 1 (France)"
+  ],
+  "test": {
+    "baseline_class_prior": {
+      "accuracy": 0.49673203,
+      "brier": 0.63042396,
+      "ece": 0.05132973,
+      "log_loss": 1.04700288,
+      "n": 306
+    },
+    "log_loss_difference_vs_baseline": {
+      "ci95_high": -0.01627775,
+      "ci95_low": -0.11108479,
+      "mean_difference": -0.06576924,
+      "resamples": 2000,
+      "seed": 7
+    },
+    "model": {
+      "accuracy": 0.54248366,
+      "brier": 0.58203452,
+      "ece": 0.02375792,
+      "log_loss": 0.98123364,
+      "n": 306
+    },
+    "served_subset": {
+      "baseline_class_prior": {
+        "accuracy": 0.48986486,
+        "brier": 0.63271796,
+        "ece": 0.04446257,
+        "log_loss": 1.05023054,
+        "n": 296
+      },
+      "model": {
+        "accuracy": 0.54054054,
+        "brier": 0.58223026,
+        "ece": 0.02662241,
+        "log_loss": 0.97896306,
+        "n": 296
+      },
+      "refused_ood": 10
+    }
+  },
+  "validation_log_loss_at_fitted_temperature": 0.99818334,
+  "verdict": "VALIDATED",
+  "windows": {
+    "test": ">= 2016-04-01",
+    "train": "< 2016-02-01",
+    "validation": "[2016-02-01, 2016-04-01)"
+  }
+}

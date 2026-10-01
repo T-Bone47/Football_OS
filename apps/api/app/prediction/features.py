@@ -15,7 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.prediction.elo import DEFAULT_HOME_ADVANTAGE, EloRatingEngine
 
-FEATURE_SET_VERSION = "match_prediction_v1"
+FEATURE_SET_VERSION = "match_prediction_v2"
 CALCULATION_VERSION = "temporal_pre_match_v1"
 
 
@@ -189,7 +189,10 @@ class PreMatchFeatureBuilder:
             last_m = history[-1]
             last_date = getattr(last_m, "date", None) or last_m.get("date")
             if last_date:
-                days = (cutoff - last_date).total_seconds() / 86400.0
+                # Rest before the fixture, measured at kickoff. (v1 measured at
+                # the request time, so the same fixture got different values
+                # depending on when it was asked; train/serve skew, Phase 18.)
+                days = (kickoff_time - last_date).total_seconds() / 86400.0
                 return round(max(0.0, min(30.0, days)), 1)
             return None
 

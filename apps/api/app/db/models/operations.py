@@ -146,6 +146,19 @@ class ModelRegistryEntry(Base):
     min_history_matches: Mapped[int] = mapped_column(Integer, nullable=False, default=5)
     max_feature_age_hours: Mapped[float | None] = mapped_column(Float)
     registered_at: Mapped[datetime] = _created()
+    # Phase 18 (migration 0019): the single authoritative registry (R20).
+    # deployment_state vocabulary: CANDIDATE, VALIDATED, SHADOW, CANARY,
+    # PRODUCTION, RETIRED, BLOCKED, UNVERIFIED.
+    artifact_uri: Mapped[str | None] = mapped_column(String(1024))
+    dataset_sha256: Mapped[str | None] = mapped_column(String(64))
+    windows: Mapped[dict | None] = mapped_column(JSONB)          # training / validation / test
+    supported_horizons: Mapped[list | None] = mapped_column(JSONB)
+    lineage_status: Mapped[str | None] = mapped_column(String(32))  # VERIFIED | SOURCE_UNVERIFIED | UNVERIFIED
+    reproduction: Mapped[dict | None] = mapped_column(JSONB)      # status + evidence of the last reproduction
+    status_reason: Mapped[str | None] = mapped_column(Text)
+    promoted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    promoted_by: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("ops_users.id", ondelete="SET NULL", name="fk_ops_model_registry_promoted_by"))
 
 
 class InferenceLog(Base):

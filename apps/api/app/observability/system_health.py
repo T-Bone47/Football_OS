@@ -135,7 +135,7 @@ async def check_model_health(session: AsyncSession | None = None) -> dict[str, A
         }
         for r in rows
     ]
-    servable = [m for m in models if m["status"] in ("ACTIVE", "SHADOW") and m["supported_competitions"]]
+    servable = [m for m in models if m["status"] in ("PRODUCTION", "CANARY", "SHADOW") and m["supported_competitions"]]
     if not models:
         status = "NO_MODELS_REGISTERED"
     elif not servable:

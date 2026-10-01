@@ -113,11 +113,11 @@ async def test_model_status_reads_the_registry(api, p17_session):
     await p17_session.execute(text(
         "INSERT INTO ops_model_registry (id, domain, model_id, model_version, feature_version, dataset_version, "
         "supported_competitions, deployment_state, validation_metrics, min_history_matches) VALUES "
-        "(gen_random_uuid(), 'match_outcome', 'm', '1', 'f1', 'd1', '[]', 'REGISTERED', '{}', 5)"))
+        "(gen_random_uuid(), 'match_outcome', 'm', '1', 'f1', 'd1', '[]', 'CANDIDATE', '{}', 5)"))
     await p17_session.commit()
     body = (await api.get("/model-status", headers=h)).json()
     assert body["status"] == "NO_SERVABLE_MODEL"
-    assert body["models"][0]["status"] == "REGISTERED" and body["models"][0]["has_validation_evidence"] is False
+    assert body["models"][0]["status"] == "CANDIDATE" and body["models"][0]["has_validation_evidence"] is False
 
 
 async def test_deep_health_requires_authentication(api):

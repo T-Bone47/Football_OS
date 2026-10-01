@@ -1,0 +1,30 @@
+{
+  "C": 1.0,
+  "algorithm": "multinomial logistic regression (scikit-learn, lbfgs) on standardised features",
+  "classes": [
+    "H",
+    "D",
+    "A"
+  ],
+  "dataset_sha256": "57357d6fdbd0f6c842ab8eed295932ed9d907c5ff94936805fec9b032d60e712",
+  "random_seed": 20151,
+  "rows": {
+    "test": 306,
+    "train": 696,
+    "validation": 315
+  },
+  "temperature": {
+    "fitted_on": "validation window",
+    "grid": [
+      0.5,
+      2.0,
+      0.01
+    ],
+    "value": 1.03
+  },
+  "windows": {
+    "test": ">= 2016-04-01",
+    "train": "< 2016-02-01",
+    "validation": "[2016-02-01, 2016-04-01)"
+  }
+}

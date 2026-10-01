@@ -1,0 +1,15 @@
+{
+  "artifact_sha256": "22c7f1c41f4165163869453fccf909f585482caa7cc90f1b95304998a06bff4a",
+  "artifact_uri": "match_outcome/match_outcome_logit-2.0.0/model.json",
+  "dataset_sha256": "57357d6fdbd0f6c842ab8eed295932ed9d907c5ff94936805fec9b032d60e712",
+  "lineage_status": "VERIFIED",
+  "manifests_sha256": {
+    "dataset_manifest.json": "868e3a66f23d7a56bd8698cdb7f797a98452610857d1cf573ee95daef0a4ea5d",
+    "evaluation_manifest.json": "af9fc122e906d69d745d57149f6b9a28d744e15dfcffc190c514b409c9043afa",
+    "feature_manifest.json": "66aa0258ea4f87557db52f160c7a78c12f15191f41b78414d8ee7e0d7c085d0d",
+    "training_manifest.json": "0cf5d9660ead6184678b76caa93782ce6702d188e9380f0d10faf264127e3929"
+  },
+  "model_id": "match_outcome_logit",
+  "model_version": "2.0.0",
+  "verdict": "VALIDATED"
+}

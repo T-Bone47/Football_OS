@@ -159,7 +159,8 @@ async def competition_readiness(session: AsyncSession) -> list[dict[str, Any]]:
             .where(InferenceLog.competition == key, OutcomeRecord.observation_mode == MODE_LIVE))).scalar_one()
         quality = (await session.execute(select(QualityReport.overall).where(QualityReport.scope.in_(
             [f"silver:{p}:{cid}" for p in providers for cid in cs_ids])).order_by(QualityReport.created_at.desc()).limit(1))).scalar_one_or_none()
-        verdict = (model.validation_metrics or {}).get(key) if model else None
+        metrics = (model.validation_metrics or {}) if model else {}
+        verdict = (metrics.get("per_competition") or {}).get(key) or metrics.get(key)
         supported = bool(model and key in (model.supported_competitions or []))
 
         if not matches:
@@ -168,9 +169,9 @@ async def competition_readiness(session: AsyncSession) -> list[dict[str, Any]]:
             state = C.INSUFFICIENT_DATA
         elif not supported:
             state = C.DATA_AVAILABLE
-        elif model.deployment_state == "SHADOW":
+        elif model.deployment_state in ("SHADOW", "CANARY"):
             state = C.SHADOW
-        elif live_outcomes >= MIN_LIVE_OUTCOMES_FOR_PRODUCTION and model.deployment_state == "ACTIVE":
+        elif live_outcomes >= MIN_LIVE_OUTCOMES_FOR_PRODUCTION and model.deployment_state == "PRODUCTION":
             state = C.PRODUCTION_READY
         else:
             state = C.MODEL_VALIDATED

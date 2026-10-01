@@ -96,9 +96,9 @@ async def test_role_limits(api, p17_session):
     assert (await api.post("/api/v1/normalization/snapshots/" + str(uuid.uuid4()), headers=analyst)).status_code == 403
     # escalation: an analyst cannot mint users or promote models
     assert (await api.post("/api/v1/ops/users", headers=analyst,
-                           json={"email": "x@example.test", "name": "x", "role": "ADMIN"})).status_code == 403
+                           json={"email": "x@example.com", "name": "x", "role": "ADMIN"})).status_code == 403
     assert (await api.post(f"/api/v1/ops/models/{uuid.uuid4()}/promote", headers=analyst,
-                           json={"target_state": "ACTIVE", "reason": "x"})).status_code == 403
+                           json={"target_state": "PRODUCTION", "reason": "escalate"})).status_code == 403
 
 
 async def test_in_memory_routes_are_retired_outside_demo_mode(api, p17_session, monkeypatch):

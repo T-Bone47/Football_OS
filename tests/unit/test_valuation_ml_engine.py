@@ -599,18 +599,12 @@ def test_model_registry_save_load_and_reproducibility():
 
 @pytest.mark.asyncio
 async def test_market_model_status_api():
-    """GET /api/v1/market/model-status returns active model operational status."""
-    from app.main import app
-    import httpx
+    """Phase 18 (R20): valuation status comes from the authoritative registry
+    (ops_model_registry), never from the model's own JSON manifest. Without a
+    database nothing is asserted. The registry-backed result is covered in
+    tests/integration/test_phase18_model_registry.py."""
+    from app.api.routes_canonical import get_market_model_status
 
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/api/v1/market/model-status")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "active" in data
-        assert "status" in data
-        if data["active"]:
-            assert data["algorithm"] is not None
-            assert "test_metrics" in data
-            assert "release_gate_checklist" in data
+    data = await get_market_model_status(session=None)
+    assert data["status"] == "NOT_MEASURED"
+    assert data["models"] == []
