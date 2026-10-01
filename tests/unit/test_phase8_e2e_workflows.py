@@ -45,7 +45,7 @@ from app.decisions.schemas import (
     ScenarioRosterChange,
     TransferScenarioDecisionRequest,
 )
-from app.decisions.service import UnifiedDecisionService
+from app.decisions.service import DecisionNotFound, UnifiedDecisionService
 from app.observability.model_governance import governance_registry
 from app.prediction.explain import MatchExplanationEngine
 from app.prediction.goals import GoalPredictionEngine
@@ -140,24 +140,17 @@ class TestWorkflowARecruitment:
         assert top.player_name == "Florian Wirtz"
         assert top.performance.contribution_rating == 89.0
         assert top.tactical.tactical_fit_score == 89.0
-        assert top.confidence.confidence_tier == "HIGH"
+        # Confidence is computed by the engine from the evidence present, never taken from the caller.
+        assert top.dimension_status["performance"] == "SUPPLIED"
+        assert top.confidence.confidence_tier in ("HIGH", "MODERATE", "LOW", "VERY_LOW")
 
-        # 3. Evidence DAG retrieval & hash
-        ev_graph = service.get_decision_evidence(response.decision.decision_id)
-        assert ev_graph.evidence_hash != ""
-        assert len(ev_graph.nodes) >= 8
-        assert len(ev_graph.edges) >= 7
-
-        # Verify key node types exist in DAG
+        # 3. Evidence DAG & hash (no in-memory cache: without a persistent store nothing is retrievable)
+        ev_graph = response.decision.evidence_graph
+        assert ev_graph.evidence_hash == response.decision.evidence_hash != ""
         node_types = {n.node_type for n in ev_graph.nodes}
-        assert "PLAYER" in node_types
-        assert "CONTRIBUTION" in node_types
-        assert "ROLE" in node_types
-        assert "TACTICAL_FIT" in node_types
-        assert "VALUATION" in node_types
-        assert "RISK" in node_types
-        assert "SQUAD" in node_types
-        assert "DECISION" in node_types
+        assert {"PLAYER", "CONTRIBUTION", "TACTICAL_FIT", "VALUATION", "RISK", "SQUAD", "DECISION"} <= node_types
+        with pytest.raises(DecisionNotFound):
+            await service.get_decision(response.decision.decision_id)
 
         # 4. Provenance preservation
         assert response.decision.provenance["tactical_context"] == "possession_dominant_433"

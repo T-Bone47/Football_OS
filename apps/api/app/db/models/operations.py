@@ -520,3 +520,29 @@ class OperationalMetric(Base):
     window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     source: Mapped[str] = mapped_column(String(64), nullable=False)
     recorded_at: Mapped[datetime] = _created()
+
+
+class DecisionAnalysis(Base):
+    """A computed recruitment / replacement / scenario / comparison analysis.
+
+    Phase 18 (R12, R22): analyses used to live in a process-wide dict shared
+    by every caller and lost on restart. Each is now a row scoped to the
+    organization that ran it, stored with the exact payload served and its
+    SHA-256 so GET /decisions/{id} returns what was computed, not a re-run.
+    """
+
+    __tablename__ = "ops_decision_analyses"
+    __table_args__ = (
+        UniqueConstraint("organization_id", "decision_id", "content_sha256", name="uq_decision_analysis_content"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ops_organizations.id", ondelete="RESTRICT"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ops_users.id", ondelete="RESTRICT"), nullable=False)
+    decision_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    decision_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = _created()

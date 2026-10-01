@@ -1,0 +1,332 @@
+{
+  "command": "scripts/evidence/recruitment_evidence.py",
+  "environment": {
+    "app_environment": "development",
+    "execution_context": "claude-code-cloud-sandbox",
+    "host": "vm",
+    "platform": "Linux-6.18.44-fc-v50-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  },
+  "evidence": "recruitment_evidence",
+  "git_commit": "055bca9b0569e0e3502a3a933ee72131be818a65+uncommitted-changes",
+  "inputs": {
+    "as_of": "2016-06-01T00:00:00+00:00",
+    "database": "fios_p17_live"
+  },
+  "outputs": {
+    "as_of": "2016-06-01T00:00:00+00:00",
+    "comparison": {
+      "dimension_leaders": {},
+      "requested": [
+        "f5deb666-001b-493f-8385-63e43166cf99",
+        "02663a0a-e4b4-4de2-a989-5c28867175a4"
+      ],
+      "returned": [
+        "f5deb666-001b-493f-8385-63e43166cf99",
+        "02663a0a-e4b4-4de2-a989-5c28867175a4"
+      ]
+    },
+    "database_counts": {
+      "clubs": 135,
+      "lineup_rows": 18275,
+      "players": 1802
+    },
+    "recruitment": {
+      "DF": {
+        "dimension_status_counts": {
+          "age": {
+            "UNKNOWN": 10
+          },
+          "market": {
+            "MODEL_UNVERIFIED": 10
+          },
+          "minutes": {
+            "UNKNOWN": 10
+          },
+          "performance": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "risk": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "tactical": {
+            "INSUFFICIENT_DATA": 10
+          }
+        },
+        "elapsed_ms": 165.1,
+        "evaluated": 644,
+        "excluded": 524,
+        "insufficient_evidence_listed": 10,
+        "ranked": 0,
+        "sample": [
+          {
+            "age": null,
+            "club": "West Ham United",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Aaron Cresswell",
+            "position": "D",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "Sunderland",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Adam Matthews",
+            "position": "D",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "Manchester City",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Aleksandar Kolarov",
+            "position": "D",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          }
+        ],
+        "status": "INSUFFICIENT_EVIDENCE"
+      },
+      "FW": {
+        "dimension_status_counts": {
+          "age": {
+            "UNKNOWN": 10
+          },
+          "market": {
+            "MODEL_UNVERIFIED": 10
+          },
+          "minutes": {
+            "UNKNOWN": 10
+          },
+          "performance": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "risk": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "tactical": {
+            "INSUFFICIENT_DATA": 10
+          }
+        },
+        "elapsed_ms": 98.5,
+        "evaluated": 644,
+        "excluded": 595,
+        "insufficient_evidence_listed": 10,
+        "ranked": 0,
+        "sample": [
+          {
+            "age": null,
+            "club": "Newcastle United",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Aleksandar Mitrovi\u0107",
+            "position": "F",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "Swansea City",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Baf\u00e9timbi Gomis",
+            "position": "F",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "AFC Bournemouth",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Benik Afobe",
+            "position": "F",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          }
+        ],
+        "status": "INSUFFICIENT_EVIDENCE"
+      },
+      "MF": {
+        "dimension_status_counts": {
+          "age": {
+            "UNKNOWN": 10
+          },
+          "market": {
+            "MODEL_UNVERIFIED": 10
+          },
+          "minutes": {
+            "UNKNOWN": 10
+          },
+          "performance": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "risk": {
+            "INSUFFICIENT_DATA": 10
+          },
+          "tactical": {
+            "INSUFFICIENT_DATA": 10
+          }
+        },
+        "elapsed_ms": 64.5,
+        "evaluated": 644,
+        "excluded": 434,
+        "insufficient_evidence_listed": 10,
+        "ranked": 0,
+        "sample": [
+          {
+            "age": null,
+            "club": "Everton",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Aaron Lennon",
+            "position": "M",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "Arsenal",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Aaron Ramsey",
+            "position": "M",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          },
+          {
+            "age": null,
+            "club": "Liverpool",
+            "dimension_status": {
+              "age": "UNKNOWN",
+              "market": "MODEL_UNVERIFIED",
+              "minutes": "UNKNOWN",
+              "performance": "INSUFFICIENT_DATA",
+              "risk": "INSUFFICIENT_DATA",
+              "similarity": "NOT_ASSESSED",
+              "squad_impact": "NOT_ASSESSED",
+              "tactical": "INSUFFICIENT_DATA"
+            },
+            "minutes": null,
+            "player": "Adam David Lallana",
+            "position": "M",
+            "ranking_status": "INSUFFICIENT_EVIDENCE"
+          }
+        ],
+        "status": "INSUFFICIENT_EVIDENCE"
+      }
+    },
+    "replacement": {
+      "evaluated": 643,
+      "excluded": 524,
+      "insufficient_evidence_listed": 5,
+      "ranked": 0,
+      "replaced": "Daley Blind",
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    "scenario": {
+      "club": "Manchester United",
+      "financial_impact": {
+        "fees_missing_for": [
+          "3f055bca-70f6-47f6-bd7e-09d769009044"
+        ],
+        "fees_supplied_for": [],
+        "financial_feasibility": "UNKNOWN",
+        "initial_budget_eur": 20000000.0,
+        "modality": "SCENARIO_ASSUMPTION",
+        "net_transfer_spend_eur": null,
+        "remaining_budget_eur": null,
+        "total_expenditure_eur": 0,
+        "total_income_eur": null
+      },
+      "modality": "COUNTERFACTUAL",
+      "squad_summary": {
+        "depth_status_after": "LOW",
+        "depth_status_before": "LOW",
+        "role_coverage_after": 1.0,
+        "role_coverage_before": 1.0,
+        "roster_size_after": 37,
+        "roster_size_before": 38,
+        "squad_source": [
+          "player_season_stats",
+          "match_lineups"
+        ],
+        "status": "SQUAD_ANALYSED"
+      },
+      "stored_roster_size": 38
+    },
+    "violations": []
+  },
+  "sha256": "6a7236863df58d4c6b0c1f8672966962838720fd861ef3ec9673ec8a3542dc78",
+  "status": "VERIFIED",
+  "timestamp": "2026-10-01T18:41:26.197262+00:00"
+}

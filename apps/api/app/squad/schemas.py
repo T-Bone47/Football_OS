@@ -10,8 +10,8 @@ class SquadPlayerProfile(BaseModel):
     player_name: str
     age: float | None = None
     nationality: str | None = None
-    primary_position: str
-    position_group: str  # GK, DEF, MID, ATT
+    primary_position: str | None = None  # None = not reported by any provider
+    position_group: str  # GK, DEF, MID, ATT, UNKNOWN
     primary_role: str | None = None
     role_confidence: float | None = None
     tactical_fit_score: float | None = None
@@ -38,12 +38,18 @@ class SquadAnalysisResponse(BaseModel):
     club_id: UUID | None = None
     club_name: str | None = None
     formation: str = "4-3-3"
+    # SQUAD_ANALYSED | NO_SQUAD_DATA (no player linked to the club in stored data)
+    status: str = "SQUAD_ANALYSED"
+    # Where the roster comes from (season stats and/or lineups at or before as_of).
+    squad_source: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
     total_players: int = 0
     starters_count: int = 0
     backups_count: int = 0
-    average_age: float = 0.0
-    total_estimated_value_eur: float = 0.0
-    squad_quality_score: float = 0.0  # [0.0, 1.0]
+    average_age: float | None = None  # None when no date of birth is known
+    # Valuation is not served while the valuation model is UNVERIFIED.
+    total_estimated_value_eur: float | None = None
+    squad_quality_score: float | None = None  # [0.0, 1.0]; None without role evidence
     role_coverage_score: float = 0.0  # [0.0, 1.0]
     tactical_fit_score: float = 0.0  # [0.0, 1.0]
     depth_risk_score: float = 0.0  # [0.0, 1.0]
@@ -72,10 +78,11 @@ class TransferSimulationRequest(BaseModel):
 
 
 class TransferSimulationImpact(BaseModel):
-    """Quantitative impact metrics comparing pre- and post-transfer squad state."""
-    delta_squad_quality: float
-    delta_average_age: float
-    delta_total_value_eur: float
+    """Quantitative impact metrics comparing pre- and post-transfer squad state.
+    A delta is None when either side is unknown."""
+    delta_squad_quality: float | None
+    delta_average_age: float | None
+    delta_total_value_eur: float | None
     delta_role_coverage: float
     delta_tactical_fit: float
     delta_depth_risk: float
@@ -89,6 +96,6 @@ class TransferSimulationResponse(BaseModel):
     after: SquadAnalysisResponse
     outgoing_players: list[SquadPlayerProfile] = Field(default_factory=list)
     incoming_players: list[SquadPlayerProfile] = Field(default_factory=list)
-    net_spend_eur: float = 0.0  # incoming total value - outgoing total value
+    net_spend_eur: float | None = None  # incoming - outgoing value; None when values are unknown
     impact: TransferSimulationImpact
     evaluated_at: datetime

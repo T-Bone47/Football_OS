@@ -5,16 +5,11 @@ age profile, role coverage, and depth risk.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import uuid
-from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models.canonical import Player
 from app.squad.schemas import (
     SquadBuildRequest,
-    SquadPlayerProfile,
     TransferSimulationImpact,
     TransferSimulationRequest,
     TransferSimulationResponse,
@@ -41,8 +36,10 @@ class TransferSimulator:
         curr_players = await self.squad_service.get_squad_players(
             club_id=request.club_id,
             player_ids=request.current_player_ids,
+            as_of=eval_time,
         )
         curr_ids = [p.id for p in curr_players]
+        roster_source = list(self.squad_service.last_squad_source)
 
         # 2. Compute BEFORE squad analysis
         before_req = SquadBuildRequest(
@@ -82,16 +79,22 @@ class TransferSimulator:
             formation=request.formation,
         )
         after = await self.squad_service.analyze_squad(after_req, as_of=eval_time)
+        before = before.model_copy(update={"squad_source": roster_source})
+        after = after.model_copy(update={"squad_source": roster_source + ["SCENARIO_ROSTER_CHANGES"]})
 
         # 5. Financial Net Spend
-        outgoing_val = sum(p.estimated_value_eur or 0.0 for p in outgoing_profiles)
-        incoming_val = sum(p.estimated_value_eur or 0.0 for p in incoming_profiles)
-        net_spend = round(incoming_val - outgoing_val, 2)
+        values = [p.estimated_value_eur for p in outgoing_profiles + incoming_profiles]
+        net_spend = (round(sum(p.estimated_value_eur for p in incoming_profiles)
+                           - sum(p.estimated_value_eur for p in outgoing_profiles), 2)
+                     if values and all(v is not None for v in values) else None)
 
         # 6. Delta Metrics
-        delta_quality = round(after.squad_quality_score - before.squad_quality_score, 3)
-        delta_age = round(after.average_age - before.average_age, 2)
-        delta_value = round(after.total_estimated_value_eur - before.total_estimated_value_eur, 2)
+        def delta(a: float | None, b: float | None, nd: int) -> float | None:
+            return round(a - b, nd) if a is not None and b is not None else None
+
+        delta_quality = delta(after.squad_quality_score, before.squad_quality_score, 3)
+        delta_age = delta(after.average_age, before.average_age, 2)
+        delta_value = delta(after.total_estimated_value_eur, before.total_estimated_value_eur, 2)
         delta_coverage = round(after.role_coverage_score - before.role_coverage_score, 3)
         delta_fit = round(after.tactical_fit_score - before.tactical_fit_score, 3)
         delta_depth_risk = round(after.depth_risk_score - before.depth_risk_score, 3)
@@ -103,7 +106,9 @@ class TransferSimulator:
                 f"Modeled {len(outgoing_profiles)} departure(s) and {len(incoming_profiles)} arrival(s)."
             )
 
-        if delta_quality > 0:
+        if delta_quality is None:
+            summary_parts.append("Squad quality change UNKNOWN (no role evidence on one side).")
+        elif delta_quality > 0:
             summary_parts.append(f"Squad quality improves by +{delta_quality * 100:.1f}%.")
         elif delta_quality < 0:
             summary_parts.append(f"Squad quality drops by {delta_quality * 100:.1f}%.")
@@ -122,7 +127,9 @@ class TransferSimulator:
             recommendations.append(
                 "Review departing positions: roster depth is stretched thin in vacated tactical slots."
             )
-        if delta_age > 1.0:
+        if delta_age is None:
+            pass
+        elif delta_age > 1.0:
             recommendations.append(
                 f"Squad average age increased by +{delta_age:.1f} years; evaluate long-term renewal pipeline."
             )
@@ -135,8 +142,6 @@ class TransferSimulator:
         elif delta_fit < -0.05:
             recommendations.append("Tactical compatibility decreases; incoming profiles may require system adjustments.")
 
-        if not recommendations:
-            recommendations.append("Balanced roster impact with stable tactical continuity.")
 
         impact = TransferSimulationImpact(
             delta_squad_quality=delta_quality,

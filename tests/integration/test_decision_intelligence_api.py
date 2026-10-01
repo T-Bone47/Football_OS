@@ -113,6 +113,7 @@ async def decision_client(postgres_url):
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test", headers=await bearer_headers(Session)) as client:
+        client.sessionmaker = Session
         client.test_club_id = club_id
         client.p1_id = p1_id
         client.p2_id = p2_id
@@ -135,12 +136,13 @@ async def test_get_recruitment_targets_api(decision_client):
 
 @pytest.mark.asyncio
 async def test_post_recruitment_analyze_api(decision_client):
+    """Real DB state: two players with reported minutes, no date of birth and
+    no contribution or tactical evidence. Unknown age fails the requested age
+    window; nothing is ranked on invented evidence."""
     payload = {
         "target_position": "CM",
         "tactical_context_id": "433_cm_progressive_midfielder",
         "budget_eur": 50000000.0,
-        "min_age": 20,
-        "max_age": 28,
         "min_minutes": 500,
         "risk_tolerance": "MEDIUM",
         "limit": 5,
@@ -149,7 +151,36 @@ async def test_post_recruitment_analyze_api(decision_client):
     assert res.status_code == 200
     data = res.json()
     assert data["decision"]["decision_type"] == "RECRUITMENT"
-    assert data["decision"]["confidence"]["confidence_tier"] in ["HIGH", "MODERATE", "LOW", "VERY_LOW"]
+    assert data["status"] == "INSUFFICIENT_EVIDENCE" and data["top_recommendations"] == []
+    by_name = {c["player_name"]: c for c in data["insufficient_evidence"]}
+    assert by_name["Martin Odegaard"]["minutes_played"] == 2500  # provider-reported
+    assert by_name["Martin Odegaard"]["dimension_status"]["minutes"] == "OBSERVED"
+    assert by_name["Martin Odegaard"]["performance"] is None and by_name["Martin Odegaard"]["market"] is None
+
+    payload["min_age"] = 20
+    data = (await decision_client.post("/api/v1/decisions/recruitment/analyze", json=payload)).json()
+    reasons = [r for e in data["excluded_summaries"] for r in e["exclusion_reasons"]]
+    assert data["insufficient_evidence"] == [] and any("Age UNKNOWN" in r for r in reasons)
+
+
+@pytest.mark.asyncio
+async def test_analysis_is_persisted_and_scoped_to_the_organization(decision_client):
+    data = (await decision_client.get("/api/v1/decisions/recruitment?target_position=CM&limit=5")).json()
+    decision_id = data["decision"]["decision_id"]
+    stored = await decision_client.get(f"/api/v1/decisions/{decision_id}")
+    assert stored.status_code == 200
+    body = stored.json()
+    assert body["analysis"]["decision"]["decision_id"] == decision_id and len(body["content_sha256"]) == 64
+    assert (await decision_client.get(f"/api/v1/decisions/{decision_id}/evidence")).status_code == 200
+
+    from app.phase17 import OpsRole
+    from app.phase17.auth import issue_user
+
+    async with decision_client.sessionmaker() as s:
+        _, token = await issue_user(s, "Another organization", f"o-{uuid.uuid4().hex[:8]}@example.com", "Other", OpsRole.ANALYST)
+        await s.commit()
+    other = await decision_client.get(f"/api/v1/decisions/{decision_id}", headers={"Authorization": f"Bearer {token}"})
+    assert other.status_code == 404  # another organization never reads this analysis
 
 
 @pytest.mark.asyncio
@@ -165,35 +196,56 @@ async def test_post_replacement_api(decision_client):
     assert res.status_code == 200
     data = res.json()
     assert data["replaced_player_id"] == decision_client.p1_id
-    assert "decision" in data
+    assert data["status"] == "INSUFFICIENT_EVIDENCE"  # no stored role profiles to compare
+    assert [c["player_name"] for c in data["insufficient_evidence"]] == ["Declan Rice"]
+    assert data["insufficient_evidence"][0]["dimension_status"]["similarity"] == "NOT_ASSESSED"
+
+    missing = await decision_client.post("/api/v1/decisions/replacement",
+                                         json={"player_id_to_replace": str(uuid.uuid4())})
+    assert missing.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_post_transfer_scenario_api(decision_client):
     payload = {
         "club_id": decision_client.test_club_id,
-        "players_in_ids": [decision_client.p2_id],
-        "players_out_ids": [decision_client.p1_id],
-        "budget_ceiling_eur": 80000000.0,
+        "roster_changes": [
+            {"player_id": decision_client.p3_id, "direction": "IN"},
+            {"player_id": decision_client.p1_id, "direction": "OUT", "fee_eur": 40000000.0},
+        ],
+        "budget_eur": 80000000.0,
     }
     res = await decision_client.post("/api/v1/decisions/transfer-scenario", json=payload)
     assert res.status_code == 200
     data = res.json()
     assert data["decision"]["decision_type"] == "TRANSFER_SCENARIO"
-    assert "net_financial_impact_eur" in data
-    assert "scenario_assumptions" in data
+    assert data["decision"]["provenance"]["modality"] == "COUNTERFACTUAL"
+    fin = data["financial_impact"]
+    assert fin["fees_missing_for"] == [decision_client.p3_id]
+    assert fin["net_transfer_spend_eur"] is None and fin["financial_feasibility"] == "UNKNOWN"
+    squad = data["squad_impact_summary"]
+    assert squad["roster_size_before"] == 2 and squad["roster_size_after"] == 2  # the stored roster, not a seed
+    assert data["match_prediction_impact"] is None
+
+    unknown = dict(payload, club_id=str(uuid.uuid4()))
+    assert (await decision_client.post("/api/v1/decisions/transfer-scenario", json=unknown)).status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_post_compare_api(decision_client):
-    payload = {
-        "candidate_ids": [decision_client.p1_id, decision_client.p2_id],
-    }
+    missing = str(uuid.uuid4())
+    payload = {"candidate_ids": [decision_client.p1_id, decision_client.p2_id, missing]}
     res = await decision_client.post("/api/v1/decisions/compare", json=payload)
     assert res.status_code == 200
     data = res.json()
-    assert len(data["candidates"]) == 2
-    assert "dimensional_divergences" in data
+    assert [c["player_name"] for c in data["candidates"]] == ["Martin Odegaard", "Declan Rice"]
+    assert data["not_found_candidate_ids"] == [missing]
+    # Risk is scored from reported minutes and appearances (two dimensions);
+    # no tactical, performance or value evidence is stored, so no such leader.
+    assert set(data["dimension_leaders"]) == {"lowest_risk"}
+    risk = data["candidates"][0]["risk"]
+    assert risk["financial_risk"] is None and risk["adaptation_risk"] is None
+    assert data["candidates"][0]["dimension_status"]["risk"] == "MODELLED"
 
 
 @pytest.mark.asyncio

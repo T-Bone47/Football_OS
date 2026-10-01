@@ -4,7 +4,7 @@ from datetime import date, datetime, timezone
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -14,19 +14,14 @@ from sqlalchemy.orm import selectinload
 from app.ml.valuation_registry import ModelNotServable
 from app.db.models.canonical import (
     Club,
-    ClubIdentity,
     Competition,
     CompetitionSeason,
     Match,
     MatchEvent,
     MatchLineup,
     MatchStatistics,
-    MatchTeam,
     Player,
-    PlayerIdentity,
     PlayerMatchStats,
-    PlayerSeasonStats,
-    Transfer,
 )
 from app.market.adapters.open_data import load_bronze_open_transfers
 from app.market.comparables import ComparableTransferEngine
@@ -44,7 +39,6 @@ from app.market.schemas import (
     ValuationMLComparablesResponse,
     ValuationMLExplanationResponse,
     ValuationMLPredictionResponse,
-    ValuationModelStatusResponse,
 )
 from app.market.ml.service import ValuationMLService
 from app.market.universe import (
@@ -86,7 +80,6 @@ from app.roles.schemas import (
 from app.roles.service import RoleService
 from app.tactical.contexts import (
     STANDARD_TACTICAL_CONTEXTS,
-    TacticalContext,
     build_custom_context,
     get_standard_context,
 )
@@ -1912,7 +1905,6 @@ async def get_prediction_model_status(session: AsyncSession = Depends(get_sessio
 from app.decisions.schemas import (  # noqa: E402
     CandidateComparisonRequest,
     CandidateComparisonResponse,
-    DecisionAssessment,
     EvidenceGraphResponse,
     RecruitmentTargetRequest,
     RecruitmentTargetResponse,
@@ -1921,11 +1913,16 @@ from app.decisions.schemas import (  # noqa: E402
     TransferScenarioDecisionRequest,
     TransferScenarioDecisionResponse,
 )
-from app.decisions.service import UnifiedDecisionService  # noqa: E402
+from app.decisions.service import DecisionNotFound, UnifiedDecisionService  # noqa: E402
+
+
+def _principal(request: Request):
+    return getattr(request.state, "principal", None)
 
 
 @router.get("/decisions/recruitment", response_model=RecruitmentTargetResponse)
 async def get_recruitment_targets(
+    request: Request,
     target_position: str = Query("MF", description="Target position (GK, DEF, MID, ATT, etc.)"),
     formation: str = Query("4-3-3", description="Formation: 4-3-3, 4-2-3-1, 3-5-2"),
     target_role: str | None = Query(None, description="Optional target role"),
@@ -1934,8 +1931,8 @@ async def get_recruitment_targets(
     limit: int = Query(15, ge=1, le=50),
     session: AsyncSession = Depends(get_session),
 ) -> RecruitmentTargetResponse:
-    """Deterministic recruitment target evaluation across multi-dimensional evidence."""
-    service = UnifiedDecisionService(session)
+    """Recruitment targets ranked only from stored, point-in-time evidence."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
     req = RecruitmentTargetRequest(
         target_position=target_position,
         formation=formation,
@@ -1949,73 +1946,79 @@ async def get_recruitment_targets(
 
 @router.post("/decisions/recruitment/analyze", response_model=RecruitmentTargetResponse)
 async def analyze_recruitment_targets_post(
-    request: RecruitmentTargetRequest,
+    body: RecruitmentTargetRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> RecruitmentTargetResponse:
-    """Advanced recruitment target evaluation with structured multi-constraint body."""
-    service = UnifiedDecisionService(session)
-    return await service.analyze_recruitment_targets(request)
+    """Recruitment targeting with a structured multi-constraint body."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
+    return await service.analyze_recruitment_targets(body)
 
 
 @router.post("/decisions/replacement", response_model=ReplacementDecisionResponse)
 async def analyze_player_replacement(
-    request: ReplacementDecisionRequest,
+    body: ReplacementDecisionRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> ReplacementDecisionResponse:
-    """Dedicated replacement intelligence connecting player intelligence, similarity, tactical fit, market, and risk."""
-    service = UnifiedDecisionService(session)
+    """Replacement candidates ranked by stored role-profile similarity."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
     try:
-        return await service.analyze_replacement(request)
+        return await service.analyze_replacement(body)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Replacement error: {str(exc)}") from exc
 
 
 @router.post("/decisions/transfer-scenario", response_model=TransferScenarioDecisionResponse)
 async def analyze_transfer_scenario(
-    request: TransferScenarioDecisionRequest,
+    body: TransferScenarioDecisionRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> TransferScenarioDecisionResponse:
-    """Evaluates multi-player roster changes against squad depth, finances, risk, and match forecast."""
-    service = UnifiedDecisionService(session)
+    """COUNTERFACTUAL: roster changes applied to the club's stored roster."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
     try:
-        return await service.simulate_transfer_scenario(request)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Scenario error: {str(exc)}") from exc
+        return await service.simulate_transfer_scenario(body)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.post("/decisions/compare", response_model=CandidateComparisonResponse)
 async def compare_candidates(
-    request: CandidateComparisonRequest,
+    body: CandidateComparisonRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ) -> CandidateComparisonResponse:
-    """Side-by-side comparison of candidate targets across all 6 analytical dimensions."""
-    service = UnifiedDecisionService(session)
-    return await service.compare_candidates(request)
+    """Exactly the requested candidates, side by side, with each dimension's status."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
+    return await service.compare_candidates(body)
 
 
-@router.get("/decisions/{decision_id}", response_model=DecisionAssessment)
+@router.get("/decisions/{decision_id}")
 async def get_decision_by_id(
     decision_id: uuid.UUID,
-) -> DecisionAssessment:
-    """Retrieves an evaluated decision assessment snapshot and provenance."""
-    service = UnifiedDecisionService()
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """The stored analysis exactly as served, for the caller's organization."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
     try:
-        return service.get_decision(decision_id)
-    except ValueError as exc:
+        return await service.get_decision(decision_id)
+    except DecisionNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/decisions/{decision_id}/evidence", response_model=EvidenceGraphResponse)
 async def get_decision_evidence_graph(
     decision_id: uuid.UUID,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
 ) -> EvidenceGraphResponse:
-    """Retrieves the traceable evidence DAG for a previously evaluated decision assessment."""
-    service = UnifiedDecisionService()
+    """The evidence DAG stored with the analysis."""
+    service = UnifiedDecisionService(session, principal=_principal(request))
     try:
-        return service.get_decision_evidence(decision_id)
-    except ValueError as exc:
+        return await service.get_decision_evidence(decision_id)
+    except DecisionNotFound as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 

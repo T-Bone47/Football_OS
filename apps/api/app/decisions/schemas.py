@@ -33,7 +33,8 @@ class HardConstraintResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     passed: bool
-    checks: dict[str, bool] = Field(default_factory=dict)
+    # None = the constraint could not be verified (the value is unknown).
+    checks: dict[str, bool | None] = Field(default_factory=dict)
     exclusion_reasons: list[str] = Field(default_factory=list)
 
 
@@ -42,9 +43,9 @@ class DimensionPerformance(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     contribution_rating: float = Field(..., ge=0.0, le=100.0)
-    percentile_in_role: float = Field(..., ge=0.0, le=100.0)
-    offensive_impact: float = 0.0
-    defensive_impact: float = 0.0
+    percentile_in_role: float | None = Field(None, ge=0.0, le=100.0)
+    offensive_impact: float | None = None
+    defensive_impact: float | None = None
     trajectory: str = "STABLE"  # ASCENDING, STABLE, PEAK, DESCENDING
     sample_minutes: int = 0
     sample_matches: int = 0
@@ -92,10 +93,10 @@ class DimensionRisk(BaseModel):
 
     overall_risk_score: float = Field(..., ge=0.0, le=1.0)
     risk_level: str = "MEDIUM"  # LOW, MEDIUM, HIGH, CRITICAL
-    performance_risk: float = Field(..., ge=0.0, le=1.0)
-    adaptation_risk: float = Field(..., ge=0.0, le=1.0)
-    financial_risk: float = Field(..., ge=0.0, le=1.0)
-    availability_risk: float = Field(..., ge=0.0, le=1.0)
+    performance_risk: float | None = Field(None, ge=0.0, le=1.0)
+    adaptation_risk: float | None = Field(None, ge=0.0, le=1.0)
+    financial_risk: float | None = Field(None, ge=0.0, le=1.0)
+    availability_risk: float | None = Field(None, ge=0.0, le=1.0)
     key_risk_drivers: list[str] = Field(default_factory=list)
 
 
@@ -136,18 +137,25 @@ class MultiDimensionalCandidateAssessment(BaseModel):
     current_club_id: uuid.UUID | None = None
     current_club_name: str | None = None
     age: float | None = None
-    primary_position: str
+    primary_position: str | None = None
     target_role: str
-    minutes_played: int = 0
+    minutes_played: int | None = None  # None = not reported by any provider
     competition_name: str | None = None
 
     hard_constraints: HardConstraintResult
-    performance: DimensionPerformance
-    tactical: DimensionTactical
-    similarity: DimensionSimilarity
-    market: DimensionMarket
-    risk: DimensionRisk
-    squad_impact: DimensionSquadImpact
+    # Phase 18 (R23): a dimension is present only when stored evidence backs
+    # it. Otherwise it is None and dimension_status says why.
+    performance: DimensionPerformance | None = None
+    tactical: DimensionTactical | None = None
+    similarity: DimensionSimilarity | None = None
+    market: DimensionMarket | None = None
+    risk: DimensionRisk | None = None
+    squad_impact: DimensionSquadImpact | None = None
+    # dimension -> OBSERVED | MODELLED | INSUFFICIENT_DATA | UNKNOWN | MODEL_UNVERIFIED | NOT_ASSESSED
+    dimension_status: dict[str, str] = Field(default_factory=dict)
+    # RANKED (enough evidence to compare) or INSUFFICIENT_EVIDENCE (listed, never recommended)
+    ranking_status: str = "INSUFFICIENT_EVIDENCE"
+    ranking_score: float | None = None
     prediction_impact: DimensionPredictionImpact | None = None
     confidence: ConfidenceDecomposition
 
@@ -228,9 +236,10 @@ class RecruitmentTargetRequest(BaseModel):
     tactical_context_id: str = "possession_dominant_433"
     formation: str = "4-3-3"
     budget_eur: float | None = None
-    min_age: float | None = 16.0
-    max_age: float | None = 34.0
-    min_minutes: int | None = 450
+    # Phase 18 (R23): a constraint applies only when the caller sets it.
+    min_age: float | None = None
+    max_age: float | None = None
+    min_minutes: int | None = None
     risk_tolerance: str = "MEDIUM"  # LOW, MEDIUM, HIGH, ALL
     limit: int = 15
     as_of: datetime | None = None
@@ -241,7 +250,11 @@ class RecruitmentTargetResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     decision: DecisionAssessment
+    # RANKED | INSUFFICIENT_EVIDENCE | NO_ELIGIBLE_CANDIDATES
+    status: str = "NO_ELIGIBLE_CANDIDATES"
     top_recommendations: list[MultiDimensionalCandidateAssessment]
+    # Passed the hard constraints but lack the evidence to be ranked; never recommended.
+    insufficient_evidence: list[MultiDimensionalCandidateAssessment] = Field(default_factory=list)
     excluded_summaries: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -267,8 +280,11 @@ class ReplacementDecisionResponse(BaseModel):
     replaced_player_id: uuid.UUID
     replaced_player_name: str
     replaced_player_role: str
+    status: str = "NO_ELIGIBLE_CANDIDATES"
     decision: DecisionAssessment
     top_replacements: list[MultiDimensionalCandidateAssessment]
+    insufficient_evidence: list[MultiDimensionalCandidateAssessment] = Field(default_factory=list)
+    excluded_summaries: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ScenarioRosterChange(BaseModel):
@@ -321,5 +337,8 @@ class CandidateComparisonResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     candidates: list[MultiDimensionalCandidateAssessment]
+    # Requested ids with no player record: reported, never replaced by others.
+    not_found_candidate_ids: list[uuid.UUID] = Field(default_factory=list)
     trade_off_analysis: list[dict[str, Any]] = Field(default_factory=list)
+    # A leader is named only among candidates that have that dimension.
     dimension_leaders: dict[str, str] = Field(default_factory=dict)

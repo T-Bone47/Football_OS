@@ -30,7 +30,7 @@ from app.decisions.schemas import (
     ScenarioRosterChange,
     TransferScenarioDecisionRequest,
 )
-from app.decisions.service import UnifiedDecisionService
+from app.decisions.service import DecisionNotFound, UnifiedDecisionService
 from pydantic import ValidationError
 
 
@@ -295,12 +295,12 @@ class TestDatabaseAuditAndTransactionalReadImmutability:
         c1 = _create_mock_candidate("00000000-0000-0000-0000-000000000001", "Immutable Candidate")
         res1 = await service.analyze_recruitment_targets(req, candidates_override=[c1])
 
-        # Retrieve cached decision
-        cached_decision = service.get_decision(res1.decision.decision_id)
-        assert cached_decision.decision_id == res1.decision.decision_id
-        assert cached_decision.evidence_hash == res1.decision.evidence_hash
-        assert cached_decision.as_of == t_fixed
-
-        # Retrieve evidence graph
-        ev_graph = service.get_decision_evidence(res1.decision.decision_id)
-        assert ev_graph.evidence_hash == res1.decision.evidence_hash
+        # Same as_of and evidence -> same decision id and evidence hash. Snapshots
+        # are persisted per organization (ops_decision_analyses), never kept in a
+        # process-wide cache: without a store nothing can be read back.
+        res2 = await service.analyze_recruitment_targets(req, candidates_override=[c1])
+        assert res2.decision.decision_id == res1.decision.decision_id
+        assert res2.decision.evidence_hash == res1.decision.evidence_hash
+        assert res1.decision.as_of == t_fixed
+        with pytest.raises(DecisionNotFound):
+            await service.get_decision(res1.decision.decision_id)

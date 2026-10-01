@@ -14,7 +14,6 @@ Assigns explicit data statuses:
 """
 from __future__ import annotations
 
-from typing import Any
 from app.decisions.schemas import ConfidenceDecomposition
 
 

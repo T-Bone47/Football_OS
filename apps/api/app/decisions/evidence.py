@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 from app.decisions.schemas import (
     EvidenceGraphEdge,
@@ -29,7 +29,12 @@ def compute_evidence_hash(nodes: list[EvidenceGraphNode], edges: list[EvidenceGr
 
 
 class DecisionEvidenceGraphBuilder:
-    """Constructs auditable DAG representations of decision evidence."""
+    """Constructs auditable DAG representations of decision evidence.
+
+    Phase 18 (R23): a node exists only for evidence the assessment actually
+    holds. A missing dimension is a GAP node carrying its status, so the
+    graph never implies evidence that was not there.
+    """
 
     @classmethod
     def build_graph_for_candidate(
@@ -39,183 +44,66 @@ class DecisionEvidenceGraphBuilder:
         replaced_player_name: str | None = None,
         as_of: datetime | None = None,
     ) -> EvidenceGraphResponse:
-        """Constructs a fully traceable evidence subgraph for an evaluated candidate."""
         nodes: list[EvidenceGraphNode] = []
         edges: list[EvidenceGraphEdge] = []
-
         cid = str(candidate.candidate_id)
+        status = candidate.dimension_status
         p_node_id = f"player_{cid}"
+        dec_node_id = f"decision_{decision_id}"
+        nodes.append(EvidenceGraphNode(
+            id=p_node_id, node_type="PLAYER", label=f"Player: {candidate.player_name}",
+            value={"position": candidate.primary_position, "age": candidate.age,
+                   "minutes": candidate.minutes_played, "club": candidate.current_club_name,
+                   "age_status": status.get("age"), "minutes_status": status.get("minutes")},
+            provenance="canonical.players"))
 
-        # 1. Player Node
-        nodes.append(
-            EvidenceGraphNode(
-                id=p_node_id,
-                node_type="PLAYER",
-                label=f"Player: {candidate.player_name}",
-                value={
-                    "position": candidate.primary_position,
-                    "age": candidate.age,
-                    "minutes": candidate.minutes_played,
-                    "club": candidate.current_club_name,
-                },
-                provenance="canonical.players",
-            )
-        )
+        def add(dim: str, node_type: str, label: str | None, value: Any, provenance: str, rel: str = "SUPPORTS") -> None:
+            node_id = f"{dim}_{cid}"
+            if label is None:  # no evidence: record the gap, it supports nothing
+                nodes.append(EvidenceGraphNode(id=node_id, node_type="GAP", label=f"{dim}: {status.get(dim, 'NOT_ASSESSED')}",
+                                               value={"dimension": dim, "status": status.get(dim, "NOT_ASSESSED")},
+                                               confidence=0.0, provenance="app.decisions.candidate_evidence"))
+                edges.append(EvidenceGraphEdge(from_node=node_id, to_node=dec_node_id, relationship="QUALIFIES"))
+                return
+            nodes.append(EvidenceGraphNode(id=node_id, node_type=node_type, label=label,
+                                           value={**value, "status": status.get(dim)}, provenance=provenance))
+            edges.append(EvidenceGraphEdge(from_node=p_node_id, to_node=node_id, relationship="FEEDS_INTO"))
+            edges.append(EvidenceGraphEdge(from_node=node_id, to_node=dec_node_id, relationship=rel))
 
-        # 2. Contribution Node
-        contrib_node_id = f"contrib_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=contrib_node_id,
-                node_type="CONTRIBUTION",
-                label=f"Contribution Rating: {candidate.performance.contribution_rating:.1f}",
-                value={
-                    "rating": candidate.performance.contribution_rating,
-                    "percentile": candidate.performance.percentile_in_role,
-                    "trajectory": candidate.performance.trajectory,
-                },
-                provenance="app.contributions.service",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=p_node_id, to_node=contrib_node_id, relationship="FEEDS_INTO")
-        )
+        perf = candidate.performance
+        add("performance", "CONTRIBUTION", perf and f"Contribution Rating: {perf.contribution_rating:.1f}",
+            perf and {"rating": perf.contribution_rating, "percentile": perf.percentile_in_role,
+                      "sample_minutes": perf.sample_minutes, "sample_matches": perf.sample_matches},
+            "player_contribution_snapshots")
+        tac = candidate.tactical
+        add("tactical", "TACTICAL_FIT", tac and f"Tactical Fit: {tac.tactical_fit_score:.1f}/100",
+            tac and {"system": tac.system_name, "role": tac.target_role, "compatibility": tac.role_compatibility},
+            "player_tactical_fits")
+        sim = candidate.similarity
+        target = (sim and sim.comparison_target_name) or replaced_player_name
+        add("similarity", "SIMILARITY", sim and f"Similarity to {target}: {sim.overall_similarity * 100:.1f}%",
+            sim and {"overall": sim.overall_similarity, "statistical": sim.statistical_similarity,
+                     "role": sim.role_similarity}, "player_role_profiles")
+        mkt = candidate.market
+        add("market", "VALUATION", mkt and f"Valuation: €{mkt.estimated_value_eur:,.0f}",
+            mkt and {"valuation": mkt.estimated_value_eur, "range": [mkt.fee_range_low_eur, mkt.fee_range_high_eur],
+                     "affordability": mkt.affordability_status}, "caller_supplied")
+        risk = candidate.risk
+        add("risk", "RISK", risk and f"Risk Level: {risk.risk_level} ({risk.overall_risk_score:.2f})",
+            risk and {"overall_risk": risk.overall_risk_score, "performance_risk": risk.performance_risk,
+                      "adaptation_risk": risk.adaptation_risk, "financial_risk": risk.financial_risk,
+                      "availability_risk": risk.availability_risk}, "app.market.risk", rel="CONSTRAINS")
+        sq = candidate.squad_impact
+        add("squad_impact", "SQUAD", sq and f"Squad Impact: {sq.depth_status_before} → {sq.depth_status_after}",
+            sq and {"slot": sq.formation_slot, "net_upgrade": sq.net_squad_upgrade}, "caller_supplied")
 
-        # 3. Role Profile Node
-        role_node_id = f"role_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=role_node_id,
-                node_type="ROLE",
-                label=f"Role: {candidate.target_role}",
-                value={"role_name": candidate.target_role},
-                provenance="app.roles.service",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=contrib_node_id, to_node=role_node_id, relationship="FEEDS_INTO")
-        )
-
-        # 4. Tactical Fit Node
-        tactical_node_id = f"tactical_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=tactical_node_id,
-                node_type="TACTICAL_FIT",
-                label=f"Tactical Fit: {candidate.tactical.tactical_fit_score:.1f}/100",
-                value={
-                    "system": candidate.tactical.system_name,
-                    "compatibility": candidate.tactical.role_compatibility,
-                },
-                provenance="app.tactical.service",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=role_node_id, to_node=tactical_node_id, relationship="FEEDS_INTO")
-        )
-
-        # 5. Similarity Node (if applicable)
-        if candidate.similarity.comparison_target_name or replaced_player_name:
-            target_name = candidate.similarity.comparison_target_name or replaced_player_name
-            sim_node_id = f"sim_{cid}"
-            nodes.append(
-                EvidenceGraphNode(
-                    id=sim_node_id,
-                    node_type="SIMILARITY",
-                    label=f"Similarity to {target_name}: {candidate.similarity.overall_similarity * 100:.1f}%",
-                    value={
-                        "overall": candidate.similarity.overall_similarity,
-                        "statistical": candidate.similarity.statistical_similarity,
-                        "role": candidate.similarity.role_similarity,
-                    },
-                    provenance="app.roles.similarity",
-                )
-            )
-            edges.append(
-                EvidenceGraphEdge(from_node=p_node_id, to_node=sim_node_id, relationship="FEEDS_INTO")
-            )
-
-        # 6. Valuation Node
-        val_node_id = f"val_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=val_node_id,
-                node_type="VALUATION",
-                label=f"Estimated Valuation: €{candidate.market.estimated_value_eur:,.0f}",
-                value={
-                    "valuation": candidate.market.estimated_value_eur,
-                    "range": [candidate.market.fee_range_low_eur, candidate.market.fee_range_high_eur],
-                    "affordability": candidate.market.affordability_status,
-                },
-                provenance="app.market.valuation",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=p_node_id, to_node=val_node_id, relationship="FEEDS_INTO")
-        )
-
-        # 7. Transfer Risk Node
-        risk_node_id = f"risk_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=risk_node_id,
-                node_type="RISK",
-                label=f"Risk Level: {candidate.risk.risk_level} ({candidate.risk.overall_risk_score:.2f})",
-                value={
-                    "overall_risk": candidate.risk.overall_risk_score,
-                    "performance_risk": candidate.risk.performance_risk,
-                    "adaptation_risk": candidate.risk.adaptation_risk,
-                    "financial_risk": candidate.risk.financial_risk,
-                    "availability_risk": candidate.risk.availability_risk,
-                },
-                provenance="app.market.risk",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=val_node_id, to_node=risk_node_id, relationship="FEEDS_INTO")
-        )
-
-        # 8. Squad Impact Node
-        squad_node_id = f"squad_{cid}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=squad_node_id,
-                node_type="SQUAD",
-                label=f"Squad Impact: {candidate.squad_impact.depth_status_before} → {candidate.squad_impact.depth_status_after}",
-                value={
-                    "slot": candidate.squad_impact.formation_slot,
-                    "net_upgrade": candidate.squad_impact.net_squad_upgrade,
-                },
-                provenance="app.squad.service",
-            )
-        )
-        edges.append(
-            EvidenceGraphEdge(from_node=tactical_node_id, to_node=squad_node_id, relationship="FEEDS_INTO")
-        )
-
-        # 9. Top-Level Decision Assessment Node
-        dec_node_id = f"decision_{str(decision_id)}"
-        nodes.append(
-            EvidenceGraphNode(
-                id=dec_node_id,
-                node_type="DECISION",
-                label=f"Decision Assessment ({candidate.confidence.confidence_tier} Confidence)",
-                value={
-                    "status": candidate.confidence.data_status,
-                    "decision_confidence": candidate.confidence.decision_confidence,
-                },
-                provenance="app.decisions.service",
-            )
-        )
-
-        edges.append(EvidenceGraphEdge(from_node=squad_node_id, to_node=dec_node_id, relationship="SUPPORTS"))
-        edges.append(EvidenceGraphEdge(from_node=risk_node_id, to_node=dec_node_id, relationship="CONSTRAINS"))
-
-        ev_hash = compute_evidence_hash(nodes, edges)
-
-        return EvidenceGraphResponse(
-            decision_id=decision_id,
-            nodes=nodes,
-            edges=edges,
-            evidence_hash=ev_hash,
-        )
+        nodes.append(EvidenceGraphNode(
+            id=dec_node_id, node_type="DECISION",
+            label=f"Decision Assessment ({candidate.ranking_status}, {candidate.confidence.confidence_tier} confidence)",
+            value={"ranking_status": candidate.ranking_status, "ranking_score": candidate.ranking_score,
+                   "data_status": candidate.confidence.data_status,
+                   "decision_confidence": candidate.confidence.decision_confidence,
+                   "hard_constraints": candidate.hard_constraints.checks},
+            provenance="app.decisions.service"))
+        return EvidenceGraphResponse(decision_id=decision_id, nodes=nodes, edges=edges,
+                                     evidence_hash=compute_evidence_hash(nodes, edges))

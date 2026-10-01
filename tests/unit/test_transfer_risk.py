@@ -98,14 +98,15 @@ class TestAdaptationRisk:
         self.engine = TransferRiskEngine()
 
     def test_no_transfer_history(self):
-        """No prior transfers should increase adaptation uncertainty."""
+        """No prior transfers: the adaptation profile is unknown."""
 
         class MockContext:
             age_at_as_of = 25.0
 
         dim = self.engine.evaluate_adaptation_risk(MockContext(), [])
-        assert dim.score > 0.40
-        assert any("No prior transfer" in e for e in dim.evidence)
+        # Phase 18 (R23): no history is unknown, never scored as extra risk.
+        assert dim.risk_level == "INSUFFICIENT_DATA"
+        assert any("No verified transfer history" in e for e in dim.evidence)
 
     def test_moderate_transfer_history(self):
         """2-3 transfers should demonstrate some adaptability."""
@@ -154,7 +155,8 @@ class TestFinancialRisk:
             last_transfer_fee_eur = None
 
         dim = self.engine.evaluate_financial_risk(MockContext(), None)
-        assert any("unavailable" in e.lower() for e in dim.evidence)
+        assert dim.risk_level == "INSUFFICIENT_DATA"
+        assert any("no verified valuation" in e.lower() for e in dim.evidence)
 
 
 class TestAvailabilityRisk:

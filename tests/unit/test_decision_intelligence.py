@@ -232,7 +232,9 @@ class TestRecruitmentEngine:
         ]
 
     @pytest.mark.asyncio
-    async def test_recruitment_targeting_pipeline(self):
+    async def test_recruitment_never_invents_dimensions(self):
+        """Phase 18 (R23): observed facts alone pass the hard constraints but
+        are never ranked; no rating, fit, price or risk is invented."""
         req = RecruitmentTargetRequest(
             target_position="DM",
             target_role="Deep Distributor",
@@ -245,25 +247,49 @@ class TestRecruitmentEngine:
         )
         res = await self.engine.evaluate_recruitment(req, candidates_override=self.sample_candidates)
 
-        assert len(res.top_recommendations) > 0
         assert res.decision.total_candidates_analyzed == 4
-        assert res.decision.passed_candidates_count == 3  # Veteran striker excluded by position
-        assert res.decision.excluded_candidates_count == 1
+        assert res.decision.excluded_candidates_count == 1  # Veteran striker: position and age
+        assert res.top_recommendations == [] and res.status == "INSUFFICIENT_EVIDENCE"
+        assert len(res.insufficient_evidence) == 3
+        for cand in res.insufficient_evidence:
+            assert cand.performance is None and cand.tactical is None and cand.market is None and cand.risk is None
+            assert cand.dimension_status["performance"] == "INSUFFICIENT_DATA"
+            assert cand.dimension_status["market"] == "MODEL_UNVERIFIED"
+            assert cand.dimension_status["minutes"] == "OBSERVED"
+            assert cand.ranking_status == "INSUFFICIENT_EVIDENCE" and cand.ranking_score is None
+            assert cand.hard_constraints.checks["budget_ceiling"] is None  # unverifiable, not a pass
+        assert res.decision.confidence.data_status == "INSUFFICIENT_DATA"
 
-        top_cand = res.top_recommendations[0]
-        assert top_cand.primary_position == "DM"
-        assert top_cand.performance.contribution_rating > 50.0
-        assert top_cand.tactical.tactical_fit_score > 50.0
-        assert top_cand.market.estimated_value_eur > 0.0
-        assert top_cand.risk.risk_level in ("LOW", "MEDIUM", "HIGH")
-        assert len(top_cand.why_matches) > 0
+    @pytest.mark.asyncio
+    async def test_recruitment_ranks_only_on_supplied_evidence(self):
+        perf = {"contribution_rating": 71.0, "sample_minutes": 2500, "sample_matches": 28}
+        tac = {"tactical_fit_score": 80.0, "role_compatibility": 78.0, "system_name": "433", "target_role": "DM"}
+        cands = [dict(self.sample_candidates[0], performance=perf, tactical=tac),
+                 dict(self.sample_candidates[1], performance=dict(perf, contribution_rating=60.0), tactical=tac),
+                 self.sample_candidates[2]]
+        req = RecruitmentTargetRequest(target_position="DM", min_minutes=500, limit=5)
+        res = await self.engine.evaluate_recruitment(req, candidates_override=cands)
+        assert res.status == "RANKED"
+        assert [c.player_name for c in res.top_recommendations] == ["Declan Rice", "Rodri"]
+        assert res.top_recommendations[0].dimension_status["performance"] == "SUPPLIED"
+        assert res.top_recommendations[0].ranking_score == round((0.80 + 0.71) / 2, 4)
+        assert [c.player_name for c in res.insufficient_evidence] == ["Young Prospect"]
+
+    @pytest.mark.asyncio
+    async def test_unknown_values_fail_requested_constraints(self):
+        req = RecruitmentTargetRequest(target_position="DM", min_age=18.0, min_minutes=500)
+        res = await self.engine.evaluate_recruitment(req, candidates_override=[{"id": uuid.uuid4(), "name": "No Facts"}])
+        reasons = res.excluded_summaries[0]["exclusion_reasons"]
+        assert any("Position UNKNOWN" in r for r in reasons)
+        assert any("Age UNKNOWN" in r for r in reasons)
+        assert any("Minutes not reported" in r for r in reasons)
 
 
 # ============================================================
 # 4. REPLACEMENT INTELLIGENCE
 # ============================================================
 class TestReplacementEngine:
-    """Verifies replacement intelligence with explicit 'Why Matches' & 'Where Differs'."""
+    """Replacement similarity exists only where it is supplied or stored."""
 
     def setup_method(self):
         self.engine = ReplacementDecisionEngine()
@@ -272,152 +298,149 @@ class TestReplacementEngine:
             "name": "Martin Odegaard",
             "primary_position": "AM",
             "age": 25.0,
-            "club_name": "Arsenal",
-            "minutes_played": 2700,
-            "matches_played": 30,
         }
         self.candidates = [
-            {
-                "id": uuid.uuid4(),
-                "name": "Florian Wirtz",
-                "primary_position": "AM",
-                "age": 21.0,
-                "club_name": "Bayer Leverkusen",
-                "minutes_played": 2400,
-                "matches_played": 28,
-            },
-            {
-                "id": uuid.uuid4(),
-                "name": "Jamal Musiala",
-                "primary_position": "AM",
-                "age": 21.0,
-                "club_name": "Bayern Munich",
-                "minutes_played": 2200,
-                "matches_played": 26,
-            },
+            {"id": uuid.uuid4(), "name": "Florian Wirtz", "primary_position": "AM", "age": 21.0},
+            {"id": uuid.uuid4(), "name": "Jamal Musiala", "primary_position": "AM", "age": 21.0},
         ]
 
     @pytest.mark.asyncio
-    async def test_replacement_analysis(self):
-        req = ReplacementDecisionRequest(
-            player_id_to_replace=self.replaced_player["id"],
-            budget_eur=120_000_000.0,
-            target_role="Advanced Playmaker",
-            min_similarity=0.60,
-        )
-
+    async def test_replacement_without_profiles_is_not_ranked(self):
+        req = ReplacementDecisionRequest(player_id_to_replace=self.replaced_player["id"], min_similarity=0.60)
         res = await self.engine.evaluate_replacement(
-            req,
-            target_player_override=self.replaced_player,
-            candidates_override=self.candidates,
-        )
-
+            req, target_player_override=self.replaced_player, candidates_override=self.candidates)
         assert res.replaced_player_name == "Martin Odegaard"
-        assert len(res.top_replacements) == 2
-        for rep in res.top_replacements:
-            assert rep.similarity.overall_similarity >= 0.60
-            assert len(rep.why_matches) > 0
-            assert len(rep.where_differs) > 0
+        assert res.top_replacements == [] and res.status == "INSUFFICIENT_EVIDENCE"
+        assert {c.player_name for c in res.insufficient_evidence} == {"Florian Wirtz", "Jamal Musiala"}
+        assert all(c.similarity is None and c.dimension_status["similarity"] == "NOT_ASSESSED"
+                   for c in res.insufficient_evidence)
+
+    @pytest.mark.asyncio
+    async def test_replacement_ranks_by_similarity_and_applies_floor(self):
+        sim = {"overall_similarity": 0.82, "statistical_similarity": 0.8, "role_similarity": 0.84}
+        cands = [dict(self.candidates[0], similarity=sim),
+                 dict(self.candidates[1], similarity=dict(sim, overall_similarity=0.41))]
+        req = ReplacementDecisionRequest(player_id_to_replace=self.replaced_player["id"], min_similarity=0.60)
+        res = await self.engine.evaluate_replacement(
+            req, target_player_override=self.replaced_player, candidates_override=cands)
+        assert [c.player_name for c in res.top_replacements] == ["Florian Wirtz"]
+        assert res.top_replacements[0].ranking_score == 0.82
+        assert any("below the minimum" in r for e in res.excluded_summaries for r in e["exclusion_reasons"])
+        assert len(res.top_replacements[0].where_differs) > 0  # unestablished dimensions are listed
 
 
 # ============================================================
 # 5. EVIDENCE GRAPH TRACEABILITY
 # ============================================================
 class TestEvidenceGraph:
-    """Verifies that evidence DAG connects player intelligence to top-level decision."""
+    """The DAG holds nodes only for evidence the assessment has; gaps are GAP nodes."""
 
     def test_evidence_graph_has_traceable_path(self):
         cid = uuid.uuid4()
-        did = uuid.uuid4()
         req = RecruitmentTargetRequest(target_position="CB")
         engine = RecruitmentTargetEngine()
-
         sample = [{
-            "id": cid,
-            "name": "William Saliba",
-            "primary_position": "CB",
-            "age": 23.0,
-            "club_name": "Arsenal",
-            "minutes_played": 2600,
-            "matches_played": 29,
+            "id": cid, "name": "William Saliba", "primary_position": "CB", "age": 23.0, "minutes_played": 2600,
+            "performance": {"contribution_rating": 70.0},
+            "tactical": {"tactical_fit_score": 75.0, "role_compatibility": 70.0, "system_name": "433",
+                         "target_role": "CB"},
         }]
-
         import asyncio
         res = asyncio.run(engine.evaluate_recruitment(req, candidates_override=sample))
-        assert res.decision.evidence_graph is not None
-
         graph = res.decision.evidence_graph
-        node_types = {n.node_type for n in graph.nodes}
-        assert "PLAYER" in node_types
-        assert "CONTRIBUTION" in node_types
-        assert "ROLE" in node_types
-        assert "TACTICAL_FIT" in node_types
-        assert "VALUATION" in node_types
-        assert "RISK" in node_types
-        assert "SQUAD" in node_types
-        assert "DECISION" in node_types
-        assert len(graph.edges) >= 7
+        assert graph is not None and len(graph.evidence_hash) == 64
+        types = [n.node_type for n in graph.nodes]
+        assert {"PLAYER", "CONTRIBUTION", "TACTICAL_FIT", "DECISION"} <= set(types)
+        assert "VALUATION" not in types and "RISK" not in types  # nothing invented
+        gaps = {n.value["dimension"]: n.value["status"] for n in graph.nodes if n.node_type == "GAP"}
+        assert gaps == {"similarity": "NOT_ASSESSED", "market": "MODEL_UNVERIFIED", "risk": "INSUFFICIENT_DATA",
+                        "squad_impact": "NOT_ASSESSED"}
+        decision_id = f"decision_{res.decision.decision_id}"
+        assert {e.from_node for e in graph.edges if e.to_node == decision_id} >= {f"performance_{cid}", f"tactical_{cid}"}
 
 
 # ============================================================
 # 6. CANDIDATE COMPARISON
 # ============================================================
 class TestCandidateComparison:
-    """Verifies multi-candidate side-by-side comparison."""
+    """Exactly the requested candidates; leaders only where evidence exists."""
 
     def setup_method(self):
         self.service = UnifiedDecisionService()
         self.id_a = uuid.uuid4()
         self.id_b = uuid.uuid4()
         self.sample = [
-            {"id": self.id_a, "name": "Candidate A", "primary_position": "CM", "age": 23.0, "minutes_played": 1800},
+            {"id": self.id_a, "name": "Candidate A", "primary_position": "CM", "age": 23.0, "minutes_played": 1800,
+             "performance": {"contribution_rating": 66.0}},
             {"id": self.id_b, "name": "Candidate B", "primary_position": "CM", "age": 27.0, "minutes_played": 2200},
+            {"id": uuid.uuid4(), "name": "Not Requested", "primary_position": "CM"},
         ]
 
     @pytest.mark.asyncio
     async def test_compare_candidates(self):
-        req = CandidateComparisonRequest(
-            candidate_ids=[self.id_a, self.id_b],
-            target_role="Playmaker",
-        )
+        missing = uuid.uuid4()
+        req = CandidateComparisonRequest(candidate_ids=[self.id_a, self.id_b, missing], target_role="Playmaker")
         res = await self.service.compare_candidates(req, candidates_override=self.sample)
-
-        assert len(res.candidates) == 2
+        assert [c.player_name for c in res.candidates] == ["Candidate A", "Candidate B"]
+        assert res.not_found_candidate_ids == [missing]
         assert len(res.trade_off_analysis) == 2
-        assert "tactical" in res.dimension_leaders
-        assert "performance" in res.dimension_leaders
+        assert res.dimension_leaders == {"performance": "Candidate A"}  # no tactical evidence: no tactical leader
 
 
 # ============================================================
 # 7. TEMPORAL SAFETY & INVARIANCE
 # ============================================================
 class TestTemporalDecisionSafety:
-    """Ensures future data injections do not alter past recruitment decisions."""
+    """A point-in-time analysis is deterministic for the same as_of and evidence."""
 
     def test_future_candidate_injection_invariance(self):
         engine = RecruitmentTargetEngine()
         as_of = datetime(2026, 9, 1, 12, 0, tzinfo=timezone.utc)
-
-        base_candidates = [
-            {
-                "id": uuid.uuid4(),
-                "name": "Historical Candidate",
-                "primary_position": "ST",
-                "age": 24.0,
-                "minutes_played": 1500,
-            }
-        ]
-
-        req = RecruitmentTargetRequest(
-            target_position="ST",
-            as_of=as_of,
-        )
-
+        base = [{"id": uuid.UUID(int=1), "name": "Historical Candidate", "primary_position": "ST", "age": 24.0,
+                 "minutes_played": 1500, "performance": {"contribution_rating": 64.0},
+                 "tactical": {"tactical_fit_score": 70.0, "role_compatibility": 70.0, "system_name": "433",
+                              "target_role": "ST"}}]
+        req = RecruitmentTargetRequest(target_position="ST", as_of=as_of)
         import asyncio
-        res_before = asyncio.run(engine.evaluate_recruitment(req, candidates_override=base_candidates))
+        first = asyncio.run(engine.evaluate_recruitment(req, candidates_override=base))
+        second = asyncio.run(engine.evaluate_recruitment(req, candidates_override=base))
+        assert first.decision.decision_id == second.decision.decision_id
+        assert first.decision.evidence_hash == second.decision.evidence_hash
+        assert first.top_recommendations[0].ranking_score == second.top_recommendations[0].ranking_score
 
-        # Adding a future candidate appearing after cutoff should be filtered if database queried
-        # For the candidate themselves, feature snapshot values remain immutable
-        cand_before = res_before.top_recommendations[0]
-        assert cand_before.performance.contribution_rating > 0
-        assert cand_before.hard_constraints.passed is True
+
+# ============================================================
+# 8. TRANSFER SCENARIO (COUNTERFACTUAL)
+# ============================================================
+class TestTransferScenario:
+    """Fees are caller assumptions; a missing fee is unknown, never a default price."""
+
+    @pytest.mark.asyncio
+    async def test_missing_fee_is_unknown_and_output_is_counterfactual(self):
+        engine = DecisionTransferScenarioEngine()
+        req = TransferScenarioDecisionRequest(
+            club_id=uuid.uuid4(), budget_eur=30_000_000.0,
+            roster_changes=[ScenarioRosterChange(player_id=uuid.uuid4(), direction="IN", fee_eur=20_000_000.0),
+                            ScenarioRosterChange(player_id=uuid.uuid4(), direction="OUT")],
+        )
+        res = await engine.evaluate_scenario(req)
+        fin = res.financial_impact
+        assert fin["modality"] == "SCENARIO_ASSUMPTION"
+        assert fin["net_transfer_spend_eur"] is None and fin["financial_feasibility"] == "UNKNOWN"
+        assert fin["total_expenditure_eur"] == 20_000_000.0 and fin["total_income_eur"] is None
+        assert res.squad_impact_summary["status"] == "NOT_ASSESSED"
+        assert res.match_prediction_impact is None
+        assert res.decision.provenance["modality"] == "COUNTERFACTUAL"
+        assert res.decision.confidence.model_confidence == 0.0
+
+    @pytest.mark.asyncio
+    async def test_supplied_fees_give_feasibility(self):
+        engine = DecisionTransferScenarioEngine()
+        req = TransferScenarioDecisionRequest(
+            club_id=uuid.uuid4(), budget_eur=10_000_000.0,
+            roster_changes=[ScenarioRosterChange(player_id=uuid.uuid4(), direction="IN", fee_eur=25_000_000.0),
+                            ScenarioRosterChange(player_id=uuid.uuid4(), direction="OUT", fee_eur=5_000_000.0)],
+        )
+        fin = (await engine.evaluate_scenario(req)).financial_impact
+        assert fin["net_transfer_spend_eur"] == 20_000_000.0
+        assert fin["remaining_budget_eur"] == -10_000_000.0 and fin["financial_feasibility"] == "DEFICIT"

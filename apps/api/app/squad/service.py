@@ -4,26 +4,24 @@ identifies depth gaps, and computes squad aggregate health metrics.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
-import math
+from datetime import datetime, timezone
 import uuid
 from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.models.canonical import (
     Club,
+    Match,
+    MatchLineup,
     Player,
-    PlayerRoleProfile,
     PlayerSeasonStats,
-    Transfer,
-    ValuationPredictionRecord,
 )
 from app.market.risk import TransferRiskEngine
 from app.market.valuation import BaselineValuationEngine
-from app.roles.registry import PositionGroup, map_position_to_group
+from app.roles.registry import map_position_to_group
 from app.squad.schemas import (
     PositionCoverage,
     SquadAnalysisResponse,
@@ -130,100 +128,57 @@ class SquadService:
         club_id: uuid.UUID | None = None,
         player_ids: list[uuid.UUID] | None = None,
         limit: int = 30,
+        as_of: datetime | None = None,
     ) -> list[Player]:
-        """Loads canonical player entities with necessary relationships."""
-        stmt = (
-            select(Player)
-            .options(
-                selectinload(Player.role_profiles),
-                selectinload(Player.valuation_predictions),
-                selectinload(Player.season_stats),
-            )
-        )
-
+        """The club's roster from stored data only: players with season stats
+        for the club or lineup rows for it in matches at or before as_of.
+        Phase 18 (R24): no fallback to unrelated players when the club has none."""
+        self.last_squad_source: list[str] = []
+        stmt = select(Player).options(selectinload(Player.role_profiles))
         if player_ids:
+            self.last_squad_source = ["REQUESTED_PLAYER_IDS"]
             stmt = stmt.where(Player.id.in_(player_ids))
         elif club_id:
-            # Query players linked via season stats to this club
-            club_player_ids = select(PlayerSeasonStats.player_id).where(
-                PlayerSeasonStats.club_id == club_id
-            ).distinct()
-            stmt = stmt.where(Player.id.in_(club_player_ids))
+            cutoff = as_of or datetime.now(timezone.utc)
+            via_stats = select(PlayerSeasonStats.player_id).where(PlayerSeasonStats.club_id == club_id)
+            via_lineups = (select(MatchLineup.player_id).join(Match, Match.id == MatchLineup.match_id)
+                           .where(MatchLineup.club_id == club_id, Match.date <= cutoff))
+            self.last_squad_source = ["player_season_stats", "match_lineups"]
+            stmt = stmt.where(Player.id.in_(via_stats.union(via_lineups)))
         else:
-            # Fallback: top active players ordered by name
-            stmt = stmt.limit(limit)
-
-        res = await self.session.execute(stmt)
-        players = list(res.scalars().all())
-
-        # If club_id produced no season stats records, fallback to any available players
-        if not players and club_id:
-            fallback_res = await self.session.execute(
-                select(Player)
-                .options(
-                    selectinload(Player.role_profiles),
-                    selectinload(Player.valuation_predictions),
-                    selectinload(Player.season_stats),
-                )
-                .limit(limit)
-            )
-            players = list(fallback_res.scalars().all())
-
-        return players
+            return []
+        return list((await self.session.execute(stmt.order_by(Player.name))).scalars().all())
 
     def build_player_profile(
         self,
         player: Player,
         as_of: datetime,
     ) -> SquadPlayerProfile:
-        """Constructs a SquadPlayerProfile from the player model and cached attributes."""
-        # Age
-        age = None
-        if player.date_of_birth:
-            age = round((as_of.date() - player.date_of_birth).days / 365.25, 1)
-
-        # Position group
-        group = map_position_to_group(player.primary_position).value
-
-        # Latest Role Profile
-        primary_role = None
-        role_conf = None
-        if player.role_profiles:
-            # Get latest profile
-            sorted_roles = sorted(player.role_profiles, key=lambda r: r.as_of or r.created_at, reverse=True)
-            latest_role = sorted_roles[0]
-            primary_role = latest_role.primary_role
+        """Observed facts plus the latest QUALIFIED role profile at as_of.
+        Valuation and transfer risk are not filled in here (never estimated
+        from age or a baseline)."""
+        age = round((as_of.date() - player.date_of_birth).days / 365.25, 1) if player.date_of_birth else None
+        group = map_position_to_group(player.primary_position).value if player.primary_position else "UNKNOWN"
+        primary_role = role_conf = None
+        qualified = [r for r in (player.role_profiles or [])
+                     if r.role_status == "QUALIFIED" and r.as_of is not None and r.as_of <= as_of]
+        if qualified:
+            latest_role = max(qualified, key=lambda r: r.as_of)
+            primary_role = latest_role.primary_archetype
             role_conf = latest_role.archetype_confidence
-
-        # Estimated Value (from latest ML prediction or fallback)
-        estimated_val = None
-        if player.valuation_predictions:
-            sorted_val = sorted(player.valuation_predictions, key=lambda v: v.as_of, reverse=True)
-            estimated_val = sorted_val[0].predicted_transfer_fee_eur
-
-        # Transfer Risk (deterministic heuristic based on age, value, and stats)
-        risk_score = 0.20  # baseline low
-        if age:
-            if age > 30.0:
-                risk_score += 0.20
-            elif age < 20.0:
-                risk_score += 0.15
-
-        risk_level = self.risk_engine.classify_risk_level(risk_score)
-
         return SquadPlayerProfile(
             player_id=player.id,
             player_name=player.name,
             age=age,
             nationality=player.nationality,
-            primary_position=player.primary_position or "CM",
+            primary_position=player.primary_position,
             position_group=group,
             primary_role=primary_role,
             role_confidence=role_conf,
             tactical_fit_score=None,
-            estimated_value_eur=estimated_val,
-            transfer_risk_score=risk_score,
-            transfer_risk_level=risk_level,
+            estimated_value_eur=None,
+            transfer_risk_score=None,
+            transfer_risk_level=None,
             is_starter=False,
             slot_name=None,
         )
@@ -250,6 +205,7 @@ class SquadService:
         players = await self.get_squad_players(
             club_id=request.club_id,
             player_ids=request.player_ids,
+            as_of=eval_time,
         )
 
         profiles = [self.build_player_profile(p, eval_time) for p in players]
@@ -295,6 +251,7 @@ class SquadService:
         key_strengths: list[str] = []
 
         total_starter_quality = 0.0
+        quality_count = 0
         total_starter_tactical_fit = 0.0
         starters_count = len(assigned_starters)
 
@@ -343,8 +300,9 @@ class SquadService:
 
             if starter and starter.tactical_fit_score is not None:
                 total_starter_tactical_fit += starter.tactical_fit_score
-                starter_role_conf = starter.role_confidence or 0.65
-                total_starter_quality += 0.5 * starter.tactical_fit_score + 0.5 * starter_role_conf
+                if starter.role_confidence is not None:  # quality needs role evidence; never a default
+                    total_starter_quality += 0.5 * starter.tactical_fit_score + 0.5 * starter.role_confidence
+                    quality_count += 1
 
             positions.append(
                 PositionCoverage(
@@ -365,9 +323,7 @@ class SquadService:
         avg_starter_tactical_fit = (
             round(total_starter_tactical_fit / starters_count, 3) if starters_count > 0 else 0.0
         )
-        squad_quality_score = (
-            round(total_starter_quality / starters_count, 3) if starters_count > 0 else 0.0
-        )
+        squad_quality_score = round(total_starter_quality / quality_count, 3) if quality_count else None
 
         # Depth risk: penalized heavily if positions are empty, moderately if thin
         gap_penalty = sum(
@@ -387,15 +343,19 @@ class SquadService:
 
         # Demographics & Values
         ages = [p.age for p in profiles if p.age is not None]
-        avg_age = round(sum(ages) / len(ages), 1) if ages else 0.0
-
-        values = [p.estimated_value_eur for p in profiles if p.estimated_value_eur is not None]
-        total_value = round(sum(values), 2)
+        avg_age = round(sum(ages) / len(ages), 1) if ages else None
+        total_value = None  # valuation model UNVERIFIED: no value is served
 
         return SquadAnalysisResponse(
             club_id=request.club_id,
             club_name=club_name,
             formation=formation,
+            status="SQUAD_ANALYSED" if profiles else "NO_SQUAD_DATA",
+            squad_source=list(getattr(self, "last_squad_source", [])),
+            assumptions=[
+                "Slot fit is a declared rule: 60% position match + 40% role match; a missing role scores 0.5.",
+                "Coverage counts players by stored position group; it does not observe fitness or availability.",
+            ],
             total_players=len(profiles),
             starters_count=starters_count,
             backups_count=len(profiles) - starters_count,

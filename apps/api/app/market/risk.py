@@ -6,14 +6,12 @@ backend evidence is sufficient, never fabricated.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import math
 import uuid
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.db.models.canonical import (
     Player,
@@ -23,7 +21,6 @@ from app.db.models.canonical import (
 from app.market.context import build_player_market_context
 from app.market.valuation import BaselineValuationEngine
 from app.market.comparables import ComparableTransferEngine
-from app.roles.registry import map_position_to_group
 
 
 # ─── Schemas ──────────────────────────────────────────────────
@@ -68,6 +65,9 @@ class TransferRiskBatchResponse(BaseModel):
 
 # ─── Engine ──────────────────────────────────────────────────
 
+MIN_SCORED_DIMENSIONS = 2
+
+
 class TransferRiskEngine:
     """Evaluates multi-dimensional transfer risk with transparent evidence."""
 
@@ -97,13 +97,28 @@ class TransferRiskEngine:
         factors = {}
         score = 0.50  # Baseline moderate risk
 
-        # Sample size risk: fewer minutes = higher uncertainty
-        mins = ctx.sample_minutes if ctx else 0
-        matches = ctx.sample_matches if ctx else 0
+        # Sample size risk: fewer minutes = higher uncertainty. Phase 18 (R23):
+        # minutes come from the contribution snapshot, else provider-reported
+        # season minutes; with neither the sample is unknown, not zero.
+        mins = ctx.sample_minutes if ctx and ctx.sample_minutes else None
+        matches = ctx.sample_matches if ctx and ctx.sample_matches else None
+        if mins is None:
+            reported = [st for st in season_stats if st.minutes is not None]
+            if reported:
+                mins = sum(st.minutes for st in reported)
+                apps = [st.appearances for st in reported if st.appearances is not None]
+                matches = sum(apps) if apps else None
+        if mins is None:
+            return RiskDimension(
+                dimension="PERFORMANCE", risk_level="INSUFFICIENT_DATA", score=0.0,
+                evidence=["No contribution sample and no provider-reported minutes — performance risk unknown."],
+                factors={},
+            )
+        matches_txt = f"{matches} matches" if matches is not None else "unreported matches"
 
         if mins < 500:
             score += 0.25
-            evidence.append(f"Limited sample: {mins} minutes across {matches} matches — high regression risk.")
+            evidence.append(f"Limited sample: {mins} minutes across {matches_txt} — high regression risk.")
             factors["sample_minutes"] = mins
         elif mins < 1500:
             score += 0.10
@@ -162,13 +177,19 @@ class TransferRiskEngine:
         factors = {}
         score = 0.40  # Baseline
 
-        # Transfer history: more transfers might indicate adaptability (or instability)
-        total_transfers = len(transfers)
+        # Transfer history: more transfers might indicate adaptability (or instability).
+        # Phase 18 (R21/R23): only provider-verified transfers count, and no
+        # history means the adaptation profile is unknown, not "risky".
+        verified = [t for t in transfers if getattr(t, "provenance_status", "VERIFIED_SOURCE") == "VERIFIED_SOURCE"]
+        total_transfers = len(verified)
         factors["total_transfers"] = total_transfers
+        factors["unverified_transfers_ignored"] = len(transfers) - total_transfers
 
         if total_transfers == 0:
-            score += 0.15
-            evidence.append("No prior transfer history — unknown adaptation profile.")
+            return RiskDimension(
+                dimension="ADAPTATION", risk_level="INSUFFICIENT_DATA", score=0.0,
+                evidence=["No verified transfer history — adaptation profile unknown."], factors=factors,
+            )
         elif total_transfers == 1:
             score += 0.05
             evidence.append("Single prior move — limited adaptation evidence.")
@@ -234,8 +255,10 @@ class TransferRiskEngine:
                 factors["depreciation_risk"] = True
 
         else:
-            score += 0.15
-            evidence.append("Estimated value unavailable — financial risk unclear.")
+            return RiskDimension(
+                dimension="FINANCIAL", risk_level="INSUFFICIENT_DATA", score=0.0,
+                evidence=["No verified valuation — financial risk unknown."], factors=factors,
+            )
 
         # Last transfer fee context
         last_fee = ctx.last_transfer_fee_eur if ctx else None
@@ -265,7 +288,7 @@ class TransferRiskEngine:
         score = 0.35  # Baseline
 
         if not season_stats:
-            score = 0.50
+            score = 0.0
             evidence.append("No season statistics available — availability risk unknown.")
             return RiskDimension(
                 dimension="AVAILABILITY",
@@ -367,16 +390,10 @@ class TransferRiskEngine:
         )
         transfers = list((await session.execute(t_stmt)).scalars().all())
 
-        # Get estimated value
+        # Estimated value: only a registry-servable valuation model may supply
+        # one. While the valuation model is UNVERIFIED, financial risk is
+        # INSUFFICIENT_DATA rather than computed from an unverified price.
         estimated_value = None
-        try:
-            baseline = await self.valuation_engine.compute_valuation_baseline(
-                session, player_id, as_of=eval_time, min_sample_size=3
-            )
-            if baseline.valuation_status == "VALUATION_AVAILABLE":
-                estimated_value = baseline.estimated_value_eur
-        except Exception:
-            pass
 
         # Evaluate each dimension
         dimensions = [
@@ -399,13 +416,14 @@ class TransferRiskEngine:
             if d.risk_level != "INSUFFICIENT_DATA"
         )
         scored_dims = [d for d in dimensions if d.risk_level != "INSUFFICIENT_DATA"]
-        if scored_dims:
+        if len(scored_dims) >= MIN_SCORED_DIMENSIONS:
             weight_sum = sum(weights.get(d.dimension, 0.25) for d in scored_dims)
             overall_score = round(total_score / max(0.01, weight_sum), 3)
+            overall_level = self.classify_risk_level(overall_score)
         else:
-            overall_score = 0.50
-
-        overall_level = self.classify_risk_level(overall_score)
+            # Phase 18 (R23): one scored dimension is not an overall profile.
+            overall_score = 0.0
+            overall_level = "INSUFFICIENT_DATA"
 
         # Data quality assessment
         data_quality = "HIGH" if len(season_stats) >= 3 and len(transfers) >= 1 else (
@@ -414,12 +432,15 @@ class TransferRiskEngine:
 
         # Risk summary
         high_risk_dims = [d for d in dimensions if d.risk_level in ("HIGH", "CRITICAL")]
-        if high_risk_dims:
+        if overall_level == "INSUFFICIENT_DATA":
+            summary = (f"Insufficient evidence: {len(scored_dims)} of {len(dimensions)} risk dimensions have data "
+                       f"(at least {MIN_SCORED_DIMENSIONS} required).")
+        elif high_risk_dims:
             summary = f"Elevated risk in: {', '.join(d.dimension.lower() for d in high_risk_dims)}."
         elif overall_level == "LOW":
             summary = "Low overall transfer risk — strong evidence across all dimensions."
         else:
-            summary = f"Overall {overall_level.lower()} risk profile with {len(dimensions)} dimensions assessed."
+            summary = f"Overall {overall_level.lower()} risk profile with {len(scored_dims)} of {len(dimensions)} dimensions assessed."
 
         return TransferRiskProfile(
             player_id=player.id,

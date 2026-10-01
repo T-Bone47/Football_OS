@@ -1,5 +1,5 @@
 import json
-from fastapi import Depends, FastAPI, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -150,14 +150,18 @@ class CopilotQueryRequest(BaseModel):
 @app.post("/api/copilot/query")
 async def copilot_query(
     body: CopilotQueryRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
 ):
+    principal = getattr(request.state, "principal", None)
+
     async def sse_generator():
         try:
             async for chunk in orchestrate_copilot_decision(
                 query=body.query,
                 context_players=body.context_players,
                 session=session,
+                principal=principal,
             ):
                 yield f"data: {json.dumps({'delta': chunk})}\n\n"
         except Exception as e:

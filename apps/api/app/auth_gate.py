@@ -40,7 +40,10 @@ DEMO_ONLY: list[tuple[set[str] | None, re.Pattern[str], str]] = [
     ({"POST"}, re.compile(r"^/api/phase11/datasets$"), "dataset manifests (docs/PHASE_18_REPRODUCIBILITY.md)"),
     ({"POST"}, re.compile(r"^/api/phase11/models/[^/]+/shadow/inference$"), f"{OPS}/inference/match/{{id}}"),
     ({"POST"}, re.compile(r"^/api/phase12/(benchmarks|learning/promote)$"), f"{OPS}/models/{{id}}/promote"),
-    ({"POST"}, re.compile(r"^/api/v1/decision-lab/(finalize|follow-up|scenarios)$"), f"{OPS}/decisions"),
+    # Phase 13 Decision Lab: string club ids ("arsenal_fc"), seeded rosters and
+    # in-memory scenarios. Replaced by the canonical decision and squad APIs.
+    (None, re.compile(r"^/api/v1/decision-lab(/|$)"),
+     "/api/v1/decisions/*, /api/v1/squads/*, /api/v1/scenarios/transfer"),
     ({"POST"}, re.compile(r"^/api/v1/outcomes/(research|evaluate)$"), f"{OPS}/inference/{{id}}/outcome"),
     ({"POST"}, re.compile(r"^/api/v1/research/(experiments|validate)$"), f"{OPS}/research/dataset"),
     (None, re.compile(r"^/api/v1/(projects|watchlists)(/|$)"), f"{OPS}/projects, {OPS}/watchlists"),

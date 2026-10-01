@@ -1,22 +1,23 @@
-"""Unified Decision Intelligence Service (Phase 7).
+"""Unified Decision Intelligence Service (Phase 7, Phase 18 R12/R22).
 
-Orchestrates all decision-intelligence pipelines:
-- Recruitment Target Analysis
-- Replacement Intelligence
-- Multi-Player Transfer Scenarios
-- Candidate Comparison
-- Decision Evidence Graph retrieval
-- Point-in-time decision persistence & auditing
+Orchestrates recruitment, replacement, transfer scenarios and candidate
+comparison. Analyses are persisted per organization (ops_decision_analyses)
+when the caller is an authenticated principal; nothing lives in a
+process-wide cache.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import hashlib
+import json
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.decisions.evidence import DecisionEvidenceGraphBuilder
+from app.decisions.candidate_evidence import assess, from_supplied, load_candidates
 from app.decisions.recruitment import RecruitmentTargetEngine
 from app.decisions.replacement import ReplacementDecisionEngine
 from app.decisions.scenario import DecisionTransferScenarioEngine
@@ -33,30 +34,54 @@ from app.decisions.schemas import (
     TransferScenarioDecisionRequest,
     TransferScenarioDecisionResponse,
 )
+from app.tactical.contexts import get_standard_context
+
+
+class DecisionNotFound(LookupError):
+    pass
+
+
+def _leader(cands: list[MultiDimensionalCandidateAssessment], value, lowest: bool = False) -> str | None:
+    have = [(value(c), c.player_name) for c in cands if value(c) is not None]
+    if not have:
+        return None
+    return (min if lowest else max)(have, key=lambda t: (t[0], t[1]))[1]
 
 
 class UnifiedDecisionService:
-    """Unified service layer for football decision intelligence and recruitment."""
+    """Service layer for football decision intelligence and recruitment."""
 
-    # In-memory store for quick decision auditing across the session
-    _decision_cache: dict[uuid.UUID, DecisionAssessment] = {}
-
-    def __init__(self, session: AsyncSession | None = None) -> None:
+    def __init__(self, session: AsyncSession | None = None, principal: Any | None = None) -> None:
         self.session = session
+        self.principal = principal
         self.recruitment_engine = RecruitmentTargetEngine(session)
         self.replacement_engine = ReplacementDecisionEngine(session)
         self.scenario_engine = DecisionTransferScenarioEngine(session)
+
+    async def _persist(self, decision: DecisionAssessment, response: BaseModel) -> None:
+        if self.session is None or self.principal is None:
+            return
+        from app.db.models.operations import DecisionAnalysis
+
+        payload = response.model_dump(mode="json")
+        digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+        org = self.principal.organization_id
+        exists = (await self.session.execute(select(DecisionAnalysis.id).where(
+            DecisionAnalysis.organization_id == org, DecisionAnalysis.decision_id == decision.decision_id,
+            DecisionAnalysis.content_sha256 == digest))).first()
+        if exists is None:
+            self.session.add(DecisionAnalysis(organization_id=org, user_id=self.principal.id,
+                                              decision_id=decision.decision_id, decision_type=decision.decision_type,
+                                              as_of=decision.as_of, payload=payload, content_sha256=digest))
+            await self.session.commit()
 
     async def analyze_recruitment_targets(
         self,
         request: RecruitmentTargetRequest,
         candidates_override: list[Any] | None = None,
     ) -> RecruitmentTargetResponse:
-        """Executes recruitment targeting and caches the decision snapshot."""
-        resp = await self.recruitment_engine.evaluate_recruitment(
-            request, candidates_override=candidates_override
-        )
-        self._decision_cache[resp.decision.decision_id] = resp.decision
+        resp = await self.recruitment_engine.evaluate_recruitment(request, candidates_override=candidates_override)
+        await self._persist(resp.decision, resp)
         return resp
 
     async def analyze_replacement(
@@ -65,22 +90,17 @@ class UnifiedDecisionService:
         target_player_override: Any | None = None,
         candidates_override: list[Any] | None = None,
     ) -> ReplacementDecisionResponse:
-        """Executes player replacement analysis and caches the decision snapshot."""
         resp = await self.replacement_engine.evaluate_replacement(
-            request,
-            target_player_override=target_player_override,
-            candidates_override=candidates_override,
-        )
-        self._decision_cache[resp.decision.decision_id] = resp.decision
+            request, target_player_override=target_player_override, candidates_override=candidates_override)
+        await self._persist(resp.decision, resp)
         return resp
 
     async def simulate_transfer_scenario(
         self,
         request: TransferScenarioDecisionRequest,
     ) -> TransferScenarioDecisionResponse:
-        """Executes transfer scenario simulation and caches the decision snapshot."""
         resp = await self.scenario_engine.evaluate_scenario(request)
-        self._decision_cache[resp.decision.decision_id] = resp.decision
+        await self._persist(resp.decision, resp)
         return resp
 
     # Service aliases
@@ -93,69 +113,66 @@ class UnifiedDecisionService:
         request: CandidateComparisonRequest,
         candidates_override: list[Any] | None = None,
     ) -> CandidateComparisonResponse:
-        """Performs side-by-side comparison across all 6 analytical dimensions."""
-        # Use recruitment engine to evaluate candidate universe
-        rec_req = RecruitmentTargetRequest(
-            target_position="MF",
-            target_role=request.target_role or "Playmaker",
-            tactical_context_id=request.tactical_context_id,
-            limit=20,
-        )
-        rec_res = await self.recruitment_engine.evaluate_recruitment(
-            rec_req, candidates_override=candidates_override
-        )
+        """Exactly the requested candidates, side by side. A requested id with
+        no record is reported in not_found_candidate_ids, never substituted."""
+        as_of = request.as_of or datetime.now(timezone.utc)
+        wanted = list(dict.fromkeys(request.candidate_ids))
+        if candidates_override is not None:
+            pool = {c.candidate_id: c for c in map(from_supplied, candidates_override)}
+        elif self.session is not None:
+            pool = {c.candidate_id: c for c in await load_candidates(
+                self.session, as_of, request.tactical_context_id, player_ids=wanted)}
+        else:
+            pool = {}
+        ctx = get_standard_context(request.tactical_context_id) if request.tactical_context_id else None
+        system_name = ctx.context_id if ctx else (request.tactical_context_id or "UNSPECIFIED")
+        role = request.target_role or (ctx.target_role if ctx else None) or "UNSPECIFIED"
 
-        # Filter by candidate_ids if available, or take top N
-        selected_candidates: list[MultiDimensionalCandidateAssessment] = []
-        target_id_set = {str(cid) for cid in request.candidate_ids}
-
-        for c in rec_res.top_recommendations:
-            if str(c.candidate_id) in target_id_set or len(selected_candidates) < len(request.candidate_ids):
-                selected_candidates.append(c)
-                if len(selected_candidates) >= len(request.candidate_ids):
-                    break
-
-        # Compute dimension leaders
-        leaders: dict[str, str] = {}
-        if selected_candidates:
-            leaders["tactical"] = max(selected_candidates, key=lambda x: x.tactical.tactical_fit_score).player_name
-            leaders["performance"] = max(selected_candidates, key=lambda x: x.performance.contribution_rating).player_name
-            leaders["value_opportunity"] = max(selected_candidates, key=lambda x: x.market.value_opportunity_index).player_name
-            leaders["lowest_risk"] = min(selected_candidates, key=lambda x: x.risk.overall_risk_score).player_name
-
-        # Trade-off analysis
-        trade_offs = []
-        for c in selected_candidates:
-            trade_offs.append({
-                "candidate_id": str(c.candidate_id),
-                "player_name": c.player_name,
-                "primary_strength": c.tactical.strengths[0] if c.tactical.strengths else "Consistent profile",
-                "trade_off": c.risk.key_risk_drivers[0] if c.risk.key_risk_drivers else "Standard transfer exposure",
-                "overall_fit_tier": c.confidence.confidence_tier,
-            })
-
+        selected = [
+            assess(pool[cid], target_position=pool[cid].position or "UNKNOWN", target_role=role, system_name=system_name,
+                   min_age=None, max_age=None, min_minutes=None, budget_eur=None, risk_tolerance="ALL")
+            for cid in wanted if cid in pool
+        ]
+        leaders = {k: v for k, v in {
+            "tactical": _leader(selected, lambda c: c.tactical.tactical_fit_score if c.tactical else None),
+            "performance": _leader(selected, lambda c: c.performance.contribution_rating if c.performance else None),
+            "value_opportunity": _leader(selected, lambda c: c.market.value_opportunity_index if c.market else None),
+            "lowest_risk": _leader(selected, lambda c: c.risk.overall_risk_score if c.risk else None, lowest=True),
+        }.items() if v is not None}
+        trade_offs = [{
+            "candidate_id": str(c.candidate_id),
+            "player_name": c.player_name,
+            "primary_strength": c.tactical.strengths[0] if c.tactical and c.tactical.strengths else None,
+            "trade_off": c.risk.key_risk_drivers[0] if c.risk and c.risk.key_risk_drivers else None,
+            "dimension_status": c.dimension_status,
+            "overall_fit_tier": c.confidence.confidence_tier,
+        } for c in selected]
         return CandidateComparisonResponse(
-            candidates=selected_candidates,
+            candidates=selected,
+            not_found_candidate_ids=[cid for cid in wanted if cid not in pool],
             trade_off_analysis=trade_offs,
             dimension_leaders=leaders,
         )
 
-    def get_decision(self, decision_id: uuid.UUID) -> DecisionAssessment:
-        """Retrieves a previously evaluated decision assessment from cache."""
-        if decision_id not in self._decision_cache:
-            raise ValueError(f"Decision with ID {decision_id} not found.")
-        return self._decision_cache[decision_id]
+    async def get_decision(self, decision_id: uuid.UUID) -> dict[str, Any]:
+        """The analysis exactly as served, for the caller's organization only."""
+        if self.session is None or self.principal is None:
+            raise DecisionNotFound(f"Decision {decision_id} not found.")
+        from app.db.models.operations import DecisionAnalysis
 
-    def get_decision_evidence(self, decision_id: uuid.UUID) -> EvidenceGraphResponse:
-        """Retrieves the traceable evidence graph for a specific decision."""
-        dec = self.get_decision(decision_id)
-        if dec.evidence_graph is not None:
-            return dec.evidence_graph
+        row = (await self.session.execute(
+            select(DecisionAnalysis).where(DecisionAnalysis.decision_id == decision_id,
+                                           DecisionAnalysis.organization_id == self.principal.organization_id)
+            .order_by(DecisionAnalysis.created_at.desc()).limit(1))).scalar_one_or_none()
+        if row is None:
+            raise DecisionNotFound(f"Decision {decision_id} not found.")
+        return {"decision_id": str(row.decision_id), "decision_type": row.decision_type,
+                "as_of": row.as_of.isoformat(), "stored_at": row.created_at.isoformat(),
+                "content_sha256": row.content_sha256, "analysis": row.payload}
 
-        if dec.candidates:
-            return DecisionEvidenceGraphBuilder.build_graph_for_candidate(
-                decision_id=decision_id,
-                candidate=dec.candidates[0],
-            )
-
-        return EvidenceGraphResponse(decision_id=decision_id, nodes=[], edges=[])
+    async def get_decision_evidence(self, decision_id: uuid.UUID) -> EvidenceGraphResponse:
+        stored = await self.get_decision(decision_id)
+        graph = stored["analysis"].get("decision", {}).get("evidence_graph")
+        if graph is None:
+            return EvidenceGraphResponse(decision_id=decision_id, nodes=[], edges=[])
+        return EvidenceGraphResponse.model_validate(graph)

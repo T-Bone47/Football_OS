@@ -1,56 +1,49 @@
-"""Transfer Scenario Decision Engine & Match Prediction Integration (Phase 7.6 & 7.7).
+"""Transfer Scenario Decision Engine (Phase 7.6, rebuilt in Phase 18 for R22/R24).
 
-Extends squad simulation to evaluate:
-- Squad depth & role coverage before vs after
-- Financial expenditure vs budget headroom
-- Risk profile transition
-- Counterfactual match prediction impact (Baseline vs Scenario Prediction)
+A scenario is a COUNTERFACTUAL: it applies the requested roster changes to
+the club's stored roster (season stats and lineups at or before as_of) and
+reports what the declared squad rules say about depth and coverage.
 
-Adheres to Non-Negotiable Principle:
-- Clearly separates OBSERVED, ESTIMATED, MODELED, and SCENARIO ASSUMPTIONS.
-- Strictly non-causal counterfactual modeling.
+- Fees and budget are SCENARIO ASSUMPTIONS supplied by the caller. A missing
+  fee is unknown; it is never replaced with a default price.
+- Squad depth and coverage are MODELLED by a declared rule (app.squad), not
+  by a validated model.
+- Match prediction impact is NOT_MODELLED: the registered match model has
+  no player-level features, so a lineup change cannot move its output.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import uuid
-from typing import Any
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
-from app.db.models.canonical import Club, Match, Player
-from app.decisions.confidence import DecisionConfidenceEngine
+from app.db.models.canonical import Club
 from app.decisions.evidence import compute_evidence_hash
 from app.decisions.schemas import (
     ConfidenceDecomposition,
     DecisionAssessment,
-    DimensionPredictionImpact,
     EvidenceGraphEdge,
     EvidenceGraphNode,
     EvidenceGraphResponse,
     TransferScenarioDecisionRequest,
     TransferScenarioDecisionResponse,
 )
-from app.prediction.service import MatchPredictionService
 from app.squad.schemas import TransferSimulationRequest
 from app.squad.simulator import TransferSimulator
 
+PREDICTION_NOT_MODELLED = ("NOT_MODELLED: the registered match model uses team-level pre-match features only; "
+                           "a roster change cannot be propagated into its probabilities.")
+
 
 class DecisionTransferScenarioEngine:
-    """Evaluates multi-player roster change scenarios and project counterfactual squad and match impact."""
+    """Applies roster changes to the stored squad; every output carries its modality."""
 
     def __init__(self, session: AsyncSession | None = None) -> None:
         self.session = session
-        self.squad_simulator = TransferSimulator(session)
-        self.match_service = MatchPredictionService(session)
 
-    async def evaluate_scenario(
-        self,
-        request: TransferScenarioDecisionRequest,
-    ) -> TransferScenarioDecisionResponse:
-        """Simulates roster changes, computes squad delta, financial delta, and match projection."""
+    async def evaluate_scenario(self, request: TransferScenarioDecisionRequest) -> TransferScenarioDecisionResponse:
         as_of = request.as_of or datetime.now(timezone.utc)
         if request.as_of:
             changes_str = "_".join(f"{c.player_id}:{c.direction}:{c.fee_eur}" for c in request.roster_changes)
@@ -59,163 +52,114 @@ class DecisionTransferScenarioEngine:
         else:
             decision_id = uuid.uuid4()
 
-        # 1. Parse In/Out Transfers
-        in_transfers = [c for c in request.roster_changes if c.direction == "IN"]
-        out_transfers = [c for c in request.roster_changes if c.direction == "OUT"]
+        ins = [c for c in request.roster_changes if c.direction == "IN"]
+        outs = [c for c in request.roster_changes if c.direction == "OUT"]
 
-        # Calculate Finances
-        total_spent = sum(t.fee_eur or 15_000_000.0 for t in in_transfers)
-        total_received = sum(t.fee_eur or 10_000_000.0 for t in out_transfers)
-        net_spend = total_spent - total_received
-
-        budget = request.budget_eur or 50_000_000.0
-        remaining_budget = budget - net_spend
-
+        # Finances: caller-supplied assumptions only.
+        fees_known = all(c.fee_eur is not None for c in request.roster_changes)
+        spent = sum(c.fee_eur for c in ins if c.fee_eur is not None)
+        received = sum(c.fee_eur for c in outs if c.fee_eur is not None)
+        net = round(spent - received, 2) if fees_known else None
+        remaining = round(request.budget_eur - net, 2) if net is not None and request.budget_eur is not None else None
         financial_impact = {
-            "total_expenditure_eur": total_spent,
-            "total_income_eur": total_received,
-            "net_transfer_spend_eur": net_spend,
-            "initial_budget_eur": budget,
-            "remaining_budget_eur": remaining_budget,
-            "financial_feasibility": "FEASIBLE" if remaining_budget >= 0 else "DEFICIT",
+            "modality": "SCENARIO_ASSUMPTION",
+            "fees_supplied_for": [str(c.player_id) for c in request.roster_changes if c.fee_eur is not None],
+            "fees_missing_for": [str(c.player_id) for c in request.roster_changes if c.fee_eur is None],
+            "total_expenditure_eur": spent if all(c.fee_eur is not None for c in ins) else None,
+            "total_income_eur": received if all(c.fee_eur is not None for c in outs) else None,
+            "net_transfer_spend_eur": net,
+            "initial_budget_eur": request.budget_eur,
+            "remaining_budget_eur": remaining,
+            "financial_feasibility": ("UNKNOWN" if remaining is None else ("FEASIBLE" if remaining >= 0 else "DEFICIT")),
         }
 
-        # 2. Run Squad Simulator
+        # Squad: the stored roster with the changes applied.
+        squad_summary: dict = {"modality": "SCENARIO", "formation": request.formation,
+                               "players_in_count": len(ins), "players_out_count": len(outs)}
+        risk_before = risk_after = "NOT_ASSESSED"
+        club_name = None
         if self.session is not None:
-            sim_req = TransferSimulationRequest(
-                club_id=request.club_id,
-                formation=request.formation,
-                transfers_in=[t.player_id for t in in_transfers],
-                transfers_out=[t.player_id for t in out_transfers],
+            club = (await self.session.execute(select(Club).where(Club.id == request.club_id))).scalar_one_or_none()
+            if club is None:
+                raise ValueError(f"Club with ID {request.club_id} not found.")
+            club_name = club.name
+            sim = await TransferSimulator(self.session).simulate_transfer(
+                TransferSimulationRequest(club_id=request.club_id, formation=request.formation,
+                                          incoming_player_ids=[c.player_id for c in ins],
+                                          outgoing_player_ids=[c.player_id for c in outs]),
+                as_of=as_of,
             )
-            sim_res = await self.squad_simulator.simulate_transfer(sim_req)
-            depth_before = sim_res.baseline_squad.overall_health.depth_health
-            depth_after = sim_res.scenario_squad.overall_health.depth_health
-            cov_before = sim_res.baseline_squad.overall_health.role_coverage_pct
-            cov_after = sim_res.scenario_squad.overall_health.role_coverage_pct
+            before, after = sim.before, sim.after
+            found_in = {p.player_id for p in sim.incoming_players}
+            squad_summary.update({
+                "status": before.status,
+                "squad_source": before.squad_source,
+                "roster_size_before": before.total_players,
+                "roster_size_after": after.total_players,
+                "outgoing_not_in_roster": [str(c.player_id) for c in outs
+                                           if c.player_id not in {p.player_id for p in sim.outgoing_players}],
+                "incoming_not_found": [str(c.player_id) for c in ins if c.player_id not in found_in],
+                "depth_status_before": before.depth_risk_level if before.total_players else "NO_SQUAD_DATA",
+                "depth_status_after": after.depth_risk_level if after.total_players else "NO_SQUAD_DATA",
+                "role_coverage_before": before.role_coverage_score,
+                "role_coverage_after": after.role_coverage_score,
+                "role_coverage_delta": round(after.role_coverage_score - before.role_coverage_score, 3),
+                "key_gaps_after": after.key_gaps,
+                "assumptions": before.assumptions,
+            })
+            if before.total_players:
+                risk_before, risk_after = before.depth_risk_level, after.depth_risk_level
         else:
-            depth_before = "ADEQUATE"
-            depth_after = "HEALTHY" if len(in_transfers) >= len(out_transfers) else "THIN"
-            cov_before = 75.0
-            cov_after = 82.5 if len(in_transfers) >= len(out_transfers) else 70.0
+            squad_summary["status"] = "NOT_ASSESSED"
 
-        squad_summary = {
-            "formation": request.formation,
-            "players_in_count": len(in_transfers),
-            "players_out_count": len(out_transfers),
-            "depth_status_before": depth_before,
-            "depth_status_after": depth_after,
-            "role_coverage_before": cov_before,
-            "role_coverage_after": cov_after,
-            "role_coverage_delta": round(cov_after - cov_before, 1),
-        }
-
-        # 3. Risk Profile Transition
-        risk_before = "MEDIUM"
-        # If incoming players have high expenditure or out transfers hollow out positions, adjust risk
-        risk_after = "LOW" if squad_summary["role_coverage_delta"] > 0 and remaining_budget >= 0 else (
-            "HIGH" if remaining_budget < 0 else "MEDIUM"
-        )
-
-        # 4. Match Prediction Integration (Phase 7.7)
-        prediction_impact = None
-        if request.target_match_id is not None:
-            try:
-                base_pred = await self.match_service.predict_match(match_id=request.target_match_id)
-                # Counterfactual scenario estimation
-                # Quality lift from role coverage improvement (e.g. +3% win probability per 10% coverage increase)
-                lift = (squad_summary["role_coverage_delta"] / 100.0) * 0.15
-                base_win = base_pred.probabilities.home_win if base_pred.home_club_id == request.club_id else base_pred.probabilities.away_win
-                scen_win = round(max(0.05, min(0.95, base_win + lift)), 3)
-
-                base_xg = base_pred.expected_goals.home if base_pred.home_club_id == request.club_id else base_pred.expected_goals.away
-                scen_xg = round(max(0.2, base_xg + (lift * 0.8)), 2)
-
-                prediction_impact = DimensionPredictionImpact(
-                    match_id=request.target_match_id,
-                    baseline_win_prob=round(base_win, 3),
-                    scenario_win_prob=scen_win,
-                    win_prob_delta=round(scen_win - base_win, 3),
-                    baseline_xg=base_xg,
-                    scenario_xg=scen_xg,
-                    counterfactual_note=(
-                        "Model scenario projection under hypothetical lineup integration; "
-                        "not an observed empirical match result."
-                    ),
-                )
-            except Exception:
-                # If target match not found, omit prediction impact cleanly
-                prediction_impact = None
-
-        # 5. Build Decision Assessment
+        observed = [fees_known, request.budget_eur is not None, squad_summary.get("roster_size_before", 0) > 0]
+        data_conf = round(sum(observed) / len(observed), 2)
+        drivers = ["Squad depth and coverage come from a declared rule, not a validated model.",
+                   PREDICTION_NOT_MODELLED]
+        if not fees_known:
+            drivers.append("One or more fees were not supplied; spend and feasibility are UNKNOWN.")
+        if not squad_summary.get("roster_size_before"):
+            drivers.append("No stored roster for this club at as_of.")
         conf = ConfidenceDecomposition(
-            data_confidence=0.85,
-            model_confidence=0.80,
-            decision_confidence=0.82,
-            confidence_tier="HIGH",
-            data_status="DECISION_AVAILABLE",
-            sufficiency_factors=[
-                f"Full squad roster modeled across {request.formation} formation.",
-                f"{len(in_transfers)} incoming and {len(out_transfers)} outgoing transfer(s) verified against financial boundaries.",
-            ],
-            uncertainty_drivers=[
-                "Scenario assumptions reflect estimated transfer fees and hypothetical role integration."
-            ],
+            data_confidence=data_conf, model_confidence=0.0, decision_confidence=0.0,
+            confidence_tier="VERY_LOW", data_status="SCENARIO_ASSUMPTIONS",
+            sufficiency_factors=[f"{len(ins)} incoming and {len(outs)} outgoing change(s) applied to the stored roster."],
+            uncertainty_drivers=drivers,
         )
 
-        # Build Evidence Graph for Scenario
-        ev_node_squad = EvidenceGraphNode(
-            id=f"squad_{str(request.club_id)}",
-            node_type="SQUAD",
-            label="Squad Context",
-            value={"formation": request.formation, "role_coverage": squad_summary["role_coverage_after"]},
-            created_at=as_of,
-        )
-        ev_node_dec = EvidenceGraphNode(
-            id=f"decision_{str(decision_id)}",
-            node_type="DECISION",
-            label="Transfer Scenario Assessment",
-            value={"net_spend": net_spend, "feasibility": financial_impact["financial_feasibility"]},
-            created_at=as_of,
-        )
-        ev_edge = EvidenceGraphEdge(from_node=ev_node_squad.id, to_node=ev_node_dec.id, relationship="FEEDS_INTO")
-        ev_graph = EvidenceGraphResponse(
-            decision_id=decision_id,
-            nodes=[ev_node_squad, ev_node_dec],
-            edges=[ev_edge],
-            evidence_hash=compute_evidence_hash([ev_node_squad, ev_node_dec], [ev_edge]),
-        )
+        squad_node = EvidenceGraphNode(id=f"squad_{request.club_id}", node_type="SQUAD", label="Stored roster (scenario)",
+                                       value={k: squad_summary.get(k) for k in ("status", "roster_size_before",
+                                                                                "role_coverage_after")},
+                                       provenance="app.squad.service", created_at=as_of)
+        fin_node = EvidenceGraphNode(id=f"finance_{decision_id}", node_type="SCENARIO", label="Caller-supplied fees",
+                                     value={"net_spend": net, "feasibility": financial_impact["financial_feasibility"]},
+                                     provenance="request", created_at=as_of)
+        dec_node = EvidenceGraphNode(id=f"decision_{decision_id}", node_type="DECISION",
+                                     label="Transfer Scenario Assessment (COUNTERFACTUAL)",
+                                     value={"net_spend": net, "feasibility": financial_impact["financial_feasibility"]},
+                                     created_at=as_of)
+        edges = [EvidenceGraphEdge(from_node=squad_node.id, to_node=dec_node.id, relationship="COUNTERFACTUAL"),
+                 EvidenceGraphEdge(from_node=fin_node.id, to_node=dec_node.id, relationship="COUNTERFACTUAL")]
+        nodes = [squad_node, fin_node, dec_node]
+        graph = EvidenceGraphResponse(decision_id=decision_id, nodes=nodes, edges=edges,
+                                      evidence_hash=compute_evidence_hash(nodes, edges))
 
+        spend_txt = f"€{net:,.0f}" if net is not None else "UNKNOWN (fees not supplied)"
+        cov_txt = (f"Role coverage {squad_summary['role_coverage_before']:.2f} → {squad_summary['role_coverage_after']:.2f}."
+                   if "role_coverage_before" in squad_summary else "Squad impact NOT_ASSESSED.")
         decision = DecisionAssessment(
-            decision_id=decision_id,
-            decision_type="TRANSFER_SCENARIO",
-            subject_type="SQUAD",
-            subject_id=request.club_id,
-            as_of=as_of,
-            summary=(
-                f"Transfer scenario models {len(in_transfers)} in / {len(out_transfers)} out. "
-                f"Net spend: €{net_spend:,.0f} ({financial_impact['financial_feasibility']}). "
-                f"Role coverage shifts from {squad_summary['role_coverage_before']:.1f}% to {squad_summary['role_coverage_after']:.1f}%."
-            ),
+            decision_id=decision_id, decision_type="TRANSFER_SCENARIO", subject_type="SQUAD",
+            subject_id=request.club_id, as_of=as_of,
+            summary=(f"COUNTERFACTUAL: {len(ins)} in / {len(outs)} out for {club_name or request.club_id}. "
+                     f"Net spend: {spend_txt} ({financial_impact['financial_feasibility']}). {cov_txt}"),
             total_candidates_analyzed=len(request.roster_changes),
-            passed_candidates_count=len(request.roster_changes),
-            excluded_candidates_count=0,
-            candidates=[],
-            confidence=conf,
-            evidence_graph=ev_graph,
-            evidence_hash=ev_graph.evidence_hash,
-            provenance={
-                "club_id": str(request.club_id),
-                "formation": request.formation,
-                "target_match_id": str(request.target_match_id) if request.target_match_id else None,
-            },
+            passed_candidates_count=0, excluded_candidates_count=0, candidates=[],
+            confidence=conf, evidence_graph=graph, evidence_hash=graph.evidence_hash,
+            provenance={"club_id": str(request.club_id), "formation": request.formation, "modality": "COUNTERFACTUAL",
+                        "target_match_id": str(request.target_match_id) if request.target_match_id else None,
+                        "match_prediction_impact": PREDICTION_NOT_MODELLED},
         )
-
         return TransferScenarioDecisionResponse(
-            decision=decision,
-            financial_impact=financial_impact,
-            squad_impact_summary=squad_summary,
-            risk_profile_before=risk_before,
-            risk_profile_after=risk_after,
-            match_prediction_impact=prediction_impact,
+            decision=decision, financial_impact=financial_impact, squad_impact_summary=squad_summary,
+            risk_profile_before=risk_before, risk_profile_after=risk_after, match_prediction_impact=None,
         )
