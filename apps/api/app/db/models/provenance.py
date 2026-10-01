@@ -6,7 +6,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -42,6 +42,7 @@ class DataSource(Base):
 
 class IngestionRun(Base):
     __tablename__ = "ingestion_runs"
+    __table_args__ = (Index("ix_ingestion_runs_data_source_status", "data_source_id", "status"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     data_source_id: Mapped[int] = mapped_column(ForeignKey("data_sources.id"), nullable=False)

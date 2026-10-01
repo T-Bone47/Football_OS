@@ -14,7 +14,7 @@ from app.db.models.canonical import MatchEvent, PlayerMatchStats
 NORMALIZATION_VERSION = "1.0"
 
 
-def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
+def normalize_match_event(event: MatchEvent, provider: str = "UNKNOWN_SOURCE") -> list[CanonicalAction]:
     """Transforms a discrete MatchEvent timeline record into canonical actions.
     Preserves exact event minute, participants, and outcome without coordinate fabrication.
     """
@@ -52,7 +52,7 @@ def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
                 end_y=None,
                 recipient_player_id=None,
                 related_player_id=event.assist_player_id,
-                provider="api-football",
+                provider=provider,
                 provider_event_id=event.provider_event_id,
                 source_snapshot_id=event.snapshot_id,
                 normalization_version=NORMALIZATION_VERSION,
@@ -79,7 +79,7 @@ def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
                     end_y=None,
                     recipient_player_id=event.player_id,
                     related_player_id=None,
-                    provider="api-football",
+                    provider=provider,
                     provider_event_id=event.provider_event_id,
                     source_snapshot_id=event.snapshot_id,
                     normalization_version=NORMALIZATION_VERSION,
@@ -108,7 +108,7 @@ def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
                 end_y=None,
                 recipient_player_id=None,
                 related_player_id=None,
-                provider="api-football",
+                provider=provider,
                 provider_event_id=event.provider_event_id,
                 source_snapshot_id=event.snapshot_id,
                 normalization_version=NORMALIZATION_VERSION,
@@ -136,7 +136,7 @@ def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
                 end_y=None,
                 recipient_player_id=event.assist_player_id,
                 related_player_id=None,
-                provider="api-football",
+                provider=provider,
                 provider_event_id=event.provider_event_id,
                 source_snapshot_id=event.snapshot_id,
                 normalization_version=NORMALIZATION_VERSION,
@@ -163,7 +163,7 @@ def normalize_match_event(event: MatchEvent) -> list[CanonicalAction]:
                     end_y=None,
                     recipient_player_id=None,
                     related_player_id=event.player_id,
-                    provider="api-football",
+                    provider=provider,
                     provider_event_id=event.provider_event_id,
                     source_snapshot_id=event.snapshot_id,
                     normalization_version=NORMALIZATION_VERSION,
@@ -211,7 +211,7 @@ def normalize_player_match_stats(stats: PlayerMatchStats) -> list[CanonicalActio
                     end_y=None,
                     recipient_player_id=None,
                     related_player_id=None,
-                    provider="api-football",
+                    provider=stats.provider,
                     provider_event_id=None,
                     source_snapshot_id=stats.snapshot_id,
                     normalization_version=NORMALIZATION_VERSION,

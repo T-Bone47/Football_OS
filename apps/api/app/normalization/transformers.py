@@ -189,19 +189,21 @@ def transform_api_football_players(
             team_id = team.get("id")
             str_team_id = str(team_id) if team_id is not None else None
 
+            # A figure the provider left null stays None (not reported);
+            # only a reported 0 is stored as 0.
             player_stat = NormalizedPlayerStats(
                 provider_player_id=str_player_id,
                 provider_club_id=str_team_id,
                 provider_league_id=str(league_id),
                 season_year=season_year,
-                appearances=_parse_int_clean(games.get("appearences")) or 0,
-                lineups=_parse_int_clean(games.get("lineups")) or 0,
-                minutes=_parse_int_clean(games.get("minutes")) or 0,
+                appearances=_parse_int_clean(games.get("appearences")),
+                lineups=_parse_int_clean(games.get("lineups")),
+                minutes=_parse_int_clean(games.get("minutes")),
                 position=pos,
                 rating=_parse_float_clean(games.get("rating")),
-                goals=_parse_int_clean(goals.get("total")) or 0,
-                assists=_parse_int_clean(goals.get("assists")) or 0,
-                conceded=_parse_int_clean(goals.get("conceded")) or 0,
+                goals=_parse_int_clean(goals.get("total")),
+                assists=_parse_int_clean(goals.get("assists")),
+                conceded=_parse_int_clean(goals.get("conceded")),
                 raw_stats={
                     "passes": passes,
                     "tackles": tackles,

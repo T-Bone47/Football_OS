@@ -275,11 +275,25 @@ class TransferRiskEngine:
                 factors=factors,
             )
 
-        # Calculate availability rate across seasons
-        total_apps = sum(s.appearances for s in season_stats)
-        total_lineups = sum(s.lineups for s in season_stats)
-        total_minutes = sum(s.minutes for s in season_stats)
-        seasons_count = len(season_stats)
+        # Availability uses only seasons whose provider reported appearances;
+        # an unreported season is not counted as zero appearances.
+        reported = [s for s in season_stats if s.appearances is not None]
+        factors["seasons_unreported"] = len(season_stats) - len(reported)
+        if not reported:
+            evidence.append("Season rows exist but no provider reported appearances — availability risk unknown.")
+            return RiskDimension(
+                dimension="AVAILABILITY",
+                risk_level="INSUFFICIENT_DATA",
+                score=round(score, 3),
+                evidence=evidence,
+                factors=factors,
+            )
+        total_apps = sum(s.appearances for s in reported)
+        lineup_rows = [s.lineups for s in reported if s.lineups is not None]
+        total_lineups = sum(lineup_rows) if lineup_rows else None
+        minute_rows = [s.minutes for s in reported if s.minutes is not None]
+        total_minutes = sum(minute_rows) if minute_rows else None
+        seasons_count = len(reported)
 
         factors["total_appearances"] = total_apps
         factors["total_minutes"] = total_minutes
@@ -287,7 +301,6 @@ class TransferRiskEngine:
 
         if seasons_count > 0:
             avg_apps = total_apps / seasons_count
-            avg_mins = total_minutes / seasons_count
 
             if avg_apps < 15:
                 score += 0.25
@@ -300,7 +313,7 @@ class TransferRiskEngine:
                 evidence.append(f"Strong availability ({avg_apps:.0f} appearances/season).")
 
             # Starter consistency
-            if total_apps > 0:
+            if total_apps > 0 and total_lineups is not None:
                 lineup_rate = total_lineups / total_apps
                 if lineup_rate < 0.50:
                     score += 0.10

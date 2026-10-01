@@ -35,9 +35,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: pip install -r requirements.txt ruff pip-audit
+      - name: Install the locked dependency set
+        run: pip install -r requirements-dev.txt -c requirements.lock
       - name: Lint (Phase 17 code)
-        run: ruff check --select E9,F apps/api/app/phase17 apps/api/app/api/routes_phase17.py tools/phase17 tests/unit/test_phase17_*.py tests/integration/test_phase17_*.py tests/integration/phase17_support.py tests/integration/conftest.py
+        run: ruff check --select E9,F apps/api/app/phase17 apps/api/app/api/routes_phase17.py tools/phase17 tests/unit/test_phase17_*.py tests/integration/test_phase17_*.py tests/integration/test_phase18_*.py tests/integration/phase17_support.py tests/integration/conftest.py
       - name: Typing
         run: echo "NOT_CONFIGURED - no type checker is configured for this repository"
       - name: Migrations (upgrade, downgrade, re-upgrade)
@@ -47,6 +48,10 @@ jobs:
           alembic upgrade head
           alembic downgrade 0013
           alembic upgrade head
+      - name: Schema parity (ORM vs migrations, zero drift)
+        env:
+          DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
+        run: alembic check
       - name: Unit tests (includes API contract tests)
         run: pytest tests/unit -q
       - name: Integration, replay and adversarial tests (real PostgreSQL)
@@ -54,7 +59,7 @@ jobs:
         run: pytest tests/integration -q
       - name: Dependency audit
         if: ${{ !cancelled() }}
-        run: pip-audit -r requirements.txt --progress-spinner off
+        run: pip-audit -r requirements.lock --progress-spinner off
       - name: Secret scan
         if: ${{ !cancelled() }}
         run: python tools/phase17/secret_scan.py && python -c "import json,sys; d=json.load(open('docs/evidence/phase17/secret_scan.json')); sys.exit(1 if d['total_findings'] else 0)"

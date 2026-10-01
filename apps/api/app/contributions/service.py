@@ -22,6 +22,21 @@ CALCULATION_VERSION = "1.0"
 FEATURE_SET_VERSION = "contribution_v1"
 
 
+
+async def _provider_for_snapshot(session, snapshot_id) -> str:
+    """Name of the data source behind a snapshot, or UNKNOWN_SOURCE when the
+    event has no snapshot (its origin cannot be shown)."""
+    if snapshot_id is None:
+        return "UNKNOWN_SOURCE"
+    from app.db.models.provenance import DataSnapshot, DataSource, IngestionRun
+    row = await session.execute(
+        select(DataSource.name)
+        .join(IngestionRun, IngestionRun.data_source_id == DataSource.id)
+        .join(DataSnapshot, DataSnapshot.ingestion_run_id == IngestionRun.id)
+        .where(DataSnapshot.id == snapshot_id)
+    )
+    return row.scalar_one_or_none() or "UNKNOWN_SOURCE"
+
 class ContributionService:
     def __init__(self, session: AsyncSession):
         self.session = session
@@ -166,8 +181,13 @@ class ContributionService:
                     (MatchEvent.player_id == player_id) | (MatchEvent.assist_player_id == player_id)
                 )
             )
+            provider_by_snapshot: dict = {}
             for ev in ev_res.scalars().all():
-                normalized_ev = normalize_match_event(ev)
+                # The action carries the provider that actually produced the
+                # event (snapshot -> ingestion run -> data source).
+                if ev.snapshot_id not in provider_by_snapshot:
+                    provider_by_snapshot[ev.snapshot_id] = await _provider_for_snapshot(self.session, ev.snapshot_id)
+                normalized_ev = normalize_match_event(ev, provider=provider_by_snapshot[ev.snapshot_id])
                 for act in normalized_ev:
                     if act.player_id == player_id:
                         self.session.add(act)

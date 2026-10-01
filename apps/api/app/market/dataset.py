@@ -53,7 +53,7 @@ class ValuationTrainingRow(BaseModel):
     age_curve_factor: float = 1.0
     position_group: str | None = None
     role_archetype: str | None = None
-    observed_minutes_as_of: int = 0
+    observed_minutes_as_of: int | None = None  # None = not observed as of the transfer
     performance_rating_avg: float | None = None
     contribution_scores: dict[str, float] = Field(default_factory=dict)
     intelligence_score: float | None = None
@@ -204,14 +204,16 @@ class ValuationDatasetBuilder:
                     age_at_transfer=age,
                     age_curve_factor=age_factor,
                     position_group=pos,
-                    role_archetype="CORE_REGULAR",
-                    observed_minutes_as_of=1500,
-                    performance_rating_avg=7.2,
-                    contribution_scores={"offensive": 65.0, "defensive": 50.0},
-                    intelligence_score=75.0,
-                    source_provider=getattr(t, "primary_source", None) or getattr(t, "source_provider", "api-football"),
+                    # The record-based path has no player context: these stay
+                    # unknown instead of carrying invented placeholder values.
+                    role_archetype=None,
+                    observed_minutes_as_of=None,
+                    performance_rating_avg=None,
+                    contribution_scores={},
+                    intelligence_score=None,
+                    source_provider=getattr(t, "primary_source", None) or getattr(t, "source_provider", None) or "UNKNOWN_SOURCE",
                     source_record_id=str(can_key),
-                    data_quality_status=getattr(t, "data_quality_status", "MEDIUM"),
+                    data_quality_status=getattr(t, "data_quality_status", None) or "UNASSESSED",
                     feature_as_of=t_date,
                     as_of=transfer_cutoff_dt,
                 )
@@ -324,7 +326,8 @@ class ValuationDatasetBuilder:
                 .where(PlayerSeasonStats.player_id == t.player_id)
             )
             stats = list((await session.execute(stats_stmt)).scalars().all())
-            obs_minutes = sum(s.minutes for s in stats)
+            reported_minutes = [s.minutes for s in stats if s.minutes is not None]
+            obs_minutes = sum(reported_minutes) if reported_minutes else None  # None = never reported
             ratings = [s.rating for s in stats if s.rating is not None]
             avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else None
 

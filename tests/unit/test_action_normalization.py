@@ -84,6 +84,7 @@ def test_normalize_card_event():
 
 def test_normalize_player_match_stats():
     pms = PlayerMatchStats(
+        provider="test-fixture",
         id=uuid.uuid4(),
         match_id=uuid.uuid4(),
         club_id=uuid.uuid4(),

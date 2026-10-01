@@ -65,6 +65,7 @@ async def int_client(postgres_url):
             status="FINISHED",
         )
         pms1 = PlayerMatchStats(
+            provider="test-fixture",
             id=uuid.uuid4(),
             match_id=match_id,
             player_id=player_id,
@@ -80,6 +81,7 @@ async def int_client(postgres_url):
             assists=1,
         )
         pms2 = PlayerMatchStats(
+            provider="test-fixture",
             id=uuid.uuid4(),
             match_id=match_id,
             player_id=p2_id,

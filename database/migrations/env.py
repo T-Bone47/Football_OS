@@ -36,7 +36,8 @@ def run_migrations_online() -> None:
     configuration["sqlalchemy.url"] = _sync_url()
     connectable = engine_from_config(configuration, prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        # compare_type: column type changes count as drift too (R19).
+        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
         with context.begin_transaction():
             context.run_migrations()
 

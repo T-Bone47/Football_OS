@@ -85,6 +85,7 @@ async def app_client(postgres_url):
             goals_against=2,
         )
         pms_prior = PlayerMatchStats(
+            provider="test-fixture",
             match_id=m_prior.id,
             club_id=club_a.id,
             player_id=player.id,

@@ -200,14 +200,15 @@ class PlayerSeasonStats(Base):
         ForeignKey("data_snapshots.id", ondelete="SET NULL")
     )
 
-    appearances: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    lineups: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    minutes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    # NULL = the provider did not report the figure. 0 = an observed zero.
+    appearances: Mapped[int | None] = mapped_column(Integer)
+    lineups: Mapped[int | None] = mapped_column(Integer)
+    minutes: Mapped[int | None] = mapped_column(Integer)
     position: Mapped[str | None] = mapped_column(String(32))
     rating: Mapped[float | None] = mapped_column(Float)
-    goals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    assists: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    conceded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    goals: Mapped[int | None] = mapped_column(Integer)
+    assists: Mapped[int | None] = mapped_column(Integer)
+    conceded: Mapped[int | None] = mapped_column(Integer)
     raw_stats: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -238,7 +239,7 @@ class Match(Base):
         ForeignKey("clubs.id", ondelete="CASCADE"), nullable=False, index=True
     )
     date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="SCHEDULED", index=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     status_detail: Mapped[str | None] = mapped_column(String(64))
     round: Mapped[str | None] = mapped_column(String(128))
     stage: Mapped[str | None] = mapped_column(String(64))
@@ -320,6 +321,7 @@ class MatchEvent(Base):
     __tablename__ = "match_events"
     __table_args__ = (
         UniqueConstraint("match_id", "event_key", name="uq_match_event_match_key"),
+        Index("ix_match_events_match_minute", "match_id", "minute"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -337,7 +339,7 @@ class MatchEvent(Base):
     )
     event_type: Mapped[str] = mapped_column(String(32), nullable=False)  # GOAL, CARD, SUBSTITUTION, VAR, OTHER
     event_detail: Mapped[str | None] = mapped_column(String(64))
-    minute: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    minute: Mapped[int] = mapped_column(Integer, nullable=False)
     extra_minute: Mapped[int | None] = mapped_column(Integer)
     comments: Mapped[str | None] = mapped_column(String(255))
     event_key: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -372,7 +374,7 @@ class MatchLineup(Base):
     player_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    is_starter: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_starter: Mapped[bool] = mapped_column(Boolean, nullable=False)
     jersey_number: Mapped[int | None] = mapped_column(Integer)
     position: Mapped[str | None] = mapped_column(String(16))  # G, D, M, F
     formation_position: Mapped[str | None] = mapped_column(String(16))  # e.g. "1:1"
@@ -440,6 +442,8 @@ class PlayerMatchStats(Base):
     __tablename__ = "player_match_stats"
     __table_args__ = (
         UniqueConstraint("match_id", "club_id", "player_id", name="uq_player_match_stats"),
+        Index("ix_player_match_stats_match_club", "match_id", "club_id"),
+        Index("ix_player_match_stats_match_player", "match_id", "player_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -453,9 +457,7 @@ class PlayerMatchStats(Base):
         ForeignKey("players.id", ondelete="CASCADE"), nullable=False, index=True
     )
 
-    provider: Mapped[str] = mapped_column(
-        String(64), nullable=False, default="api-football", server_default="api-football"
-    )
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
     provider_player_id: Mapped[str | None] = mapped_column(String(128), index=True)
     provider_fixture_id: Mapped[str | None] = mapped_column(String(128), index=True)
     provider_club_id: Mapped[str | None] = mapped_column(String(128), index=True)
@@ -594,7 +596,7 @@ class PlayerRoleProfile(Base):
     )
     as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     feature_set_version: Mapped[str] = mapped_column(String(64), nullable=False, default="role_feature_set_v1")
-    role_status: Mapped[str] = mapped_column(String(32), nullable=False, default="QUALIFIED")  # 'QUALIFIED', 'INSUFFICIENT_SAMPLE'
+    role_status: Mapped[str] = mapped_column(String(32), nullable=False)  # 'QUALIFIED', 'INSUFFICIENT_SAMPLE'
     sample_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     sample_matches: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     position_group: Mapped[str] = mapped_column(String(16), nullable=False)  # 'GK', 'DEF', 'MID', 'ATT'
@@ -722,7 +724,7 @@ class CanonicalAction(Base):
         ForeignKey("players.id", ondelete="SET NULL"), index=True
     )
 
-    provider: Mapped[str] = mapped_column(String(64), nullable=False, default="api-football")
+    provider: Mapped[str] = mapped_column(String(64), nullable=False)
     provider_event_id: Mapped[str | None] = mapped_column(String(128), index=True)
     source_snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("data_snapshots.id", ondelete="SET NULL"), index=True
@@ -877,7 +879,7 @@ class Transfer(Base):
         ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True
     )
     competition_context: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    transfer_type: Mapped[str] = mapped_column(String(32), nullable=False, default="PERMANENT")
+    transfer_type: Mapped[str] = mapped_column(String(32), nullable=False)
 
     # Financial / fee fields
     fee_value: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -888,15 +890,15 @@ class Transfer(Base):
     fee_max: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Deal structure
-    is_loan: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    is_permanent: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    option_type: Mapped[str] = mapped_column(String(32), nullable=False, default="NONE")
+    is_loan: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    is_permanent: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    option_type: Mapped[str] = mapped_column(String(32), nullable=False)
 
     # Provenance
     source_id: Mapped[int | None] = mapped_column(
         ForeignKey("data_sources.id", ondelete="SET NULL"), nullable=True
     )
-    source_provider: Mapped[str] = mapped_column(String(64), nullable=False, default="api-football")
+    source_provider: Mapped[str] = mapped_column(String(64), nullable=False)
     source_record_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     source_snapshot_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("data_snapshots.id", ondelete="SET NULL"), nullable=True
@@ -907,7 +909,7 @@ class Transfer(Base):
     normalization_version: Mapped[str] = mapped_column(String(32), nullable=False, default="1.0.0")
 
     # Data Quality
-    data_quality_status: Mapped[str] = mapped_column(String(32), nullable=False, default="HIGH")
+    data_quality_status: Mapped[str] = mapped_column(String(32), nullable=False)
     quality_reasons: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     raw_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
 
@@ -948,7 +950,7 @@ class ValuationModelRecord(Base):
     metrics: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     release_checklist: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
 
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default="MODEL_VALIDATED")
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     artifact_path: Mapped[str] = mapped_column(String(256), nullable=False)
 
@@ -976,9 +978,9 @@ class ValuationPredictionRecord(Base):
     lower_bound_eur: Mapped[float] = mapped_column(Float, nullable=False)
     upper_bound_eur: Mapped[float] = mapped_column(Float, nullable=False)
     uncertainty_eur: Mapped[float] = mapped_column(Float, nullable=False)
-    coverage_level: Mapped[float] = mapped_column(Float, nullable=False, default=0.80)
+    coverage_level: Mapped[float] = mapped_column(Float, nullable=False)
 
-    data_status: Mapped[str] = mapped_column(String(32), nullable=False, default="VALUATION_AVAILABLE")
+    data_status: Mapped[str] = mapped_column(String(32), nullable=False)
     feature_version: Mapped[str] = mapped_column(String(32), nullable=False)
     top_features: Mapped[list] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     gate_decision: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")

@@ -62,14 +62,14 @@ class NormalizedPlayerStats(BaseModel):
     provider_club_id: str | None = None
     provider_league_id: str
     season_year: int
-    appearances: int = 0
-    lineups: int = 0
-    minutes: int = 0
+    appearances: int | None = None  # None = not reported by the provider
+    lineups: int | None = None  # None = not reported by the provider
+    minutes: int | None = None  # None = not reported by the provider
     position: str | None = None
     rating: float | None = None
-    goals: int = 0
-    assists: int = 0
-    conceded: int = 0
+    goals: int | None = None  # None = not reported by the provider
+    assists: int | None = None  # None = not reported by the provider
+    conceded: int | None = None  # None = not reported by the provider
     raw_stats: dict[str, Any] = {}
 
 

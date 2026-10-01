@@ -115,6 +115,7 @@ async def test_definitive_temporal_leakage_invariance(db_session):
         )
         mins, goals, shots = player_hist_data[i]
         pms = PlayerMatchStats(
+            provider="test-fixture",
             match_id=m.id,
             club_id=club_a.id,
             player_id=player.id,
@@ -194,6 +195,7 @@ async def test_definitive_temporal_leakage_invariance(db_session):
         goals_against=0,
     )
     pms_6 = PlayerMatchStats(
+        provider="test-fixture",
         match_id=match_6.id,
         club_id=club_a.id,
         player_id=player.id,

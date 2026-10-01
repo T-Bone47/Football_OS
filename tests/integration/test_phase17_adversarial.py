@@ -349,7 +349,11 @@ async def test_adv_19_fake_operational_status(p17_session, tmp_path):
                                     Settings(_env_file=None, snapshot_storage_path=str(blocker / "sub")))
     assert bad_store["components"]["object_storage"]["status"] == "UNAVAILABLE" and bad_store["status"] != "HEALTHY"
     assert isinstance(good["components"]["database"]["latency_ms"], float)
-    assert good["components"]["database"]["migration_head"] == "0014"  # read from the database, not declared
+    # Read from the database, and equal to the head of the migration scripts.
+    from alembic.config import Config
+    from alembic.script import ScriptDirectory
+    script_head = ScriptDirectory.from_config(Config(str(ROOT / "alembic.ini"))).get_current_head()
+    assert good["components"]["database"]["migration_head"] == script_head
 
 
 # 20 ------------------------------------------------------------------------

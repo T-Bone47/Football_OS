@@ -88,6 +88,7 @@ async def test_feature_snapshot_persistence_and_idempotency(db_session):
         goals_against=3,
     )
     pms1 = PlayerMatchStats(
+        provider="test-fixture",
         match_id=m1.id,
         club_id=club_a.id,
         player_id=player.id,
