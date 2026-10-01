@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import DecisionOutcomeAlignment
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -60,7 +61,8 @@ class PostDecisionFeedbackEngine:
 
     def __init__(self) -> None:
         self._feedbacks: dict[str, PostDecisionFeedbackRecord] = {}
-        self._seed_default_feedback()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_feedback()
 
     def _seed_default_feedback(self) -> None:
         seed = PostDecisionFeedbackRecord(

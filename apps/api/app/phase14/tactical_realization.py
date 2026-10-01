@@ -26,6 +26,7 @@ from app.phase14 import (
     ScenarioRealizationStatus,
     TacticalRealizationState,
 )
+from app.dev_fixtures import dev_seed_enabled
 from app.phase14.outcome_ledger import OutcomeLedger, outcome_ledger
 
 
@@ -119,7 +120,8 @@ class TacticalRealizationEngine:
         self._ledger = ledger or outcome_ledger
         self._tactical_reports: dict[str, TacticalRealizationReport] = {}
         self._scenario_realizations: dict[str, ScenarioRealizationRecord] = {}
-        self._seed_default_reports()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_reports()
 
     def evaluate_tactical_realization(
         self,

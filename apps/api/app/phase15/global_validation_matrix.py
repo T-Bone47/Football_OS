@@ -23,6 +23,7 @@ Validation statuses:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import DataSufficiencyStatus, ValidationMatrixStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ValidationMatrixCell(BaseModel):
@@ -143,62 +144,63 @@ def get_global_validation_matrix() -> GlobalValidationMatrix:
     global _GLOBAL_VALIDATION_MATRIX
     if _GLOBAL_VALIDATION_MATRIX is None:
         _GLOBAL_VALIDATION_MATRIX = GlobalValidationMatrix()
-        # Seed key matrix cells across engines and leagues
-        _GLOBAL_VALIDATION_MATRIX.register_cell(
-            engine="ValuationEngine",
-            competition="EPL",
-            season="2023/2024",
-            position="MF",
-            role="Central Midfielder",
-            age_band="21-24",
-            confidence_tier="HIGH",
-            ood_status="IN_DOMAIN",
-            data_status=DataSufficiencyStatus.DATA_AVAILABLE,
-            sample_size=84,
-            primary_metric_name="MAE_ratio",
-            metric_value=0.118,
-        )
-        _GLOBAL_VALIDATION_MATRIX.register_cell(
-            engine="ValuationEngine",
-            competition="Bundesliga",
-            season="2023/2024",
-            position="MF",
-            role="Central Midfielder",
-            age_band="21-24",
-            confidence_tier="MEDIUM",
-            ood_status="IN_DOMAIN",
-            data_status=DataSufficiencyStatus.DATA_AVAILABLE,
-            sample_size=62,
-            primary_metric_name="MAE_ratio",
-            metric_value=0.134,
-        )
-        _GLOBAL_VALIDATION_MATRIX.register_cell(
-            engine="TacticalFit",
-            competition="Serie_A",
-            season="2023/2024",
-            position="DF",
-            role="Wide Centre-Back",
-            age_band="25-29",
-            confidence_tier="HIGH",
-            ood_status="IN_DOMAIN",
-            data_status=DataSufficiencyStatus.DATA_AVAILABLE,
-            sample_size=45,
-            primary_metric_name="Alignment_F1",
-            metric_value=0.88,
-        )
-        _GLOBAL_VALIDATION_MATRIX.register_cell(
-            engine="MatchPrediction",
-            competition="Ligue_1",
-            season="2023/2024",
-            position="ALL",
-            role="ALL",
-            age_band="ALL",
-            confidence_tier="LOW",
-            ood_status="OOD",
-            data_status=DataSufficiencyStatus.LOW_SAMPLE,
-            sample_size=12,
-            primary_metric_name="Brier_Score",
-            metric_value=0.285,
-            notes=["High feature divergence in newly promoted teams"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed key matrix cells across engines and leagues
+            _GLOBAL_VALIDATION_MATRIX.register_cell(
+                engine="ValuationEngine",
+                competition="EPL",
+                season="2023/2024",
+                position="MF",
+                role="Central Midfielder",
+                age_band="21-24",
+                confidence_tier="HIGH",
+                ood_status="IN_DOMAIN",
+                data_status=DataSufficiencyStatus.DATA_AVAILABLE,
+                sample_size=84,
+                primary_metric_name="MAE_ratio",
+                metric_value=0.118,
+            )
+            _GLOBAL_VALIDATION_MATRIX.register_cell(
+                engine="ValuationEngine",
+                competition="Bundesliga",
+                season="2023/2024",
+                position="MF",
+                role="Central Midfielder",
+                age_band="21-24",
+                confidence_tier="MEDIUM",
+                ood_status="IN_DOMAIN",
+                data_status=DataSufficiencyStatus.DATA_AVAILABLE,
+                sample_size=62,
+                primary_metric_name="MAE_ratio",
+                metric_value=0.134,
+            )
+            _GLOBAL_VALIDATION_MATRIX.register_cell(
+                engine="TacticalFit",
+                competition="Serie_A",
+                season="2023/2024",
+                position="DF",
+                role="Wide Centre-Back",
+                age_band="25-29",
+                confidence_tier="HIGH",
+                ood_status="IN_DOMAIN",
+                data_status=DataSufficiencyStatus.DATA_AVAILABLE,
+                sample_size=45,
+                primary_metric_name="Alignment_F1",
+                metric_value=0.88,
+            )
+            _GLOBAL_VALIDATION_MATRIX.register_cell(
+                engine="MatchPrediction",
+                competition="Ligue_1",
+                season="2023/2024",
+                position="ALL",
+                role="ALL",
+                age_band="ALL",
+                confidence_tier="LOW",
+                ood_status="OOD",
+                data_status=DataSufficiencyStatus.LOW_SAMPLE,
+                sample_size=12,
+                primary_metric_name="Brier_Score",
+                metric_value=0.285,
+                notes=["High feature divergence in newly promoted teams"],
+            )
     return _GLOBAL_VALIDATION_MATRIX

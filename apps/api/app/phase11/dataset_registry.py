@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import hashlib
 import json
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,8 @@ class DatasetRegistry:
 
     def __init__(self) -> None:
         self._registry: dict[str, DatasetIdentity] = {}
-        self._seed_default_datasets()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_datasets()
 
     def _seed_default_datasets(self) -> None:
         # 1. EPL 2022-2024 Match Dataset

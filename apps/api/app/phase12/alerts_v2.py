@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 class AlertCategoryV2(str, Enum):
@@ -60,7 +61,8 @@ class OperationalAlertsManagerV2:
 
     def __init__(self) -> None:
         self._alerts: dict[str, OperationalAlertV2] = {}
-        self._seed_default_alerts()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_alerts()
 
     def _seed_default_alerts(self) -> None:
         # Alert 1: Emerging Player

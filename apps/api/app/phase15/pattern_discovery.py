@@ -22,6 +22,7 @@ from app.phase15 import (
     GeneralizationDomain,
     PatternFamily,
 )
+from app.dev_fixtures import dev_seed_enabled
 from app.phase15.causality_guardrail import CausalityGuardrail
 from app.phase15.research_models import PatternCandidate
 
@@ -110,42 +111,43 @@ def get_pattern_discovery_engine() -> PatternDiscoveryEngine:
     global _GLOBAL_PATTERN_ENGINE
     if _GLOBAL_PATTERN_ENGINE is None:
         _GLOBAL_PATTERN_ENGINE = PatternDiscoveryEngine()
-        # Seed representative candidate patterns across diverse families
-        _GLOBAL_PATTERN_ENGINE.discover_pattern(
-            pattern_id="pat_trajectory_u21_epl_breakout",
-            family=PatternFamily.PLAYER_TRAJECTORY,
-            title="Accelerated progression trajectory in U21 EPL wingers",
-            description="U21 wingers with >1200 minutes exhibit sharp upward slope in progressive carries per 90.",
-            sample_size=18,
-            temporal_scope={"start": "2022-08-01", "end": "2024-05-30"},
-            competition_scope=["EPL"],
-            effect_estimate=0.42,
-            uncertainty="Medium (95% CI: [+0.18, +0.66])",
-            subgroup_breakdown={"top_half_clubs": {"N": 10, "slope": 0.49}, "bottom_half_clubs": {"N": 8, "slope": 0.33}},
-        )
-        _GLOBAL_PATTERN_ENGINE.discover_pattern(
-            pattern_id="pat_transfer_fee_residual_bundesliga_to_epl",
-            family=PatternFamily.TRANSFER_MARKET,
-            title="Systematic positive valuation premium for Bundesliga -> EPL transfers",
-            description="Transfers from Bundesliga to EPL show an empirical realized fee 15-25% above baseline modelled market valuation.",
-            sample_size=24,
-            temporal_scope={"start": "2021-07-01", "end": "2024-08-31"},
-            competition_scope=["Bundesliga", "EPL"],
-            effect_estimate=0.195,
-            uncertainty="Low-to-Medium (N=24)",
-            subgroup_breakdown={"attackers": {"N": 12, "residual": 0.23}, "midfielders": {"N": 8, "residual": 0.17}, "defenders": {"N": 4, "residual": 0.12}},
-            confounder_warnings=["Premier League revenue disparity", "Contract length disparity"],
-        )
-        _GLOBAL_PATTERN_ENGINE.discover_pattern(
-            pattern_id="pat_tactical_hybrid_back3_adaptation",
-            family=PatternFamily.TACTICAL_STRUCTURE,
-            title="Fullback to wide-CB transition in possession-heavy back-3",
-            description="Athletic fullbacks transitioning to wide-CB in asymmetric back-3 maintain ball progression metrics while conceding fewer transitions.",
-            sample_size=14,
-            temporal_scope={"start": "2023-01-01", "end": "2024-05-30"},
-            competition_scope=["Serie_A", "EPL", "La_Liga"],
-            effect_estimate=0.28,
-            uncertainty="Moderate sample uncertainty (N=14)",
-            confounder_warnings=["Tactical manager bias", "Opposition defensive structure"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed representative candidate patterns across diverse families
+            _GLOBAL_PATTERN_ENGINE.discover_pattern(
+                pattern_id="pat_trajectory_u21_epl_breakout",
+                family=PatternFamily.PLAYER_TRAJECTORY,
+                title="Accelerated progression trajectory in U21 EPL wingers",
+                description="U21 wingers with >1200 minutes exhibit sharp upward slope in progressive carries per 90.",
+                sample_size=18,
+                temporal_scope={"start": "2022-08-01", "end": "2024-05-30"},
+                competition_scope=["EPL"],
+                effect_estimate=0.42,
+                uncertainty="Medium (95% CI: [+0.18, +0.66])",
+                subgroup_breakdown={"top_half_clubs": {"N": 10, "slope": 0.49}, "bottom_half_clubs": {"N": 8, "slope": 0.33}},
+            )
+            _GLOBAL_PATTERN_ENGINE.discover_pattern(
+                pattern_id="pat_transfer_fee_residual_bundesliga_to_epl",
+                family=PatternFamily.TRANSFER_MARKET,
+                title="Systematic positive valuation premium for Bundesliga -> EPL transfers",
+                description="Transfers from Bundesliga to EPL show an empirical realized fee 15-25% above baseline modelled market valuation.",
+                sample_size=24,
+                temporal_scope={"start": "2021-07-01", "end": "2024-08-31"},
+                competition_scope=["Bundesliga", "EPL"],
+                effect_estimate=0.195,
+                uncertainty="Low-to-Medium (N=24)",
+                subgroup_breakdown={"attackers": {"N": 12, "residual": 0.23}, "midfielders": {"N": 8, "residual": 0.17}, "defenders": {"N": 4, "residual": 0.12}},
+                confounder_warnings=["Premier League revenue disparity", "Contract length disparity"],
+            )
+            _GLOBAL_PATTERN_ENGINE.discover_pattern(
+                pattern_id="pat_tactical_hybrid_back3_adaptation",
+                family=PatternFamily.TACTICAL_STRUCTURE,
+                title="Fullback to wide-CB transition in possession-heavy back-3",
+                description="Athletic fullbacks transitioning to wide-CB in asymmetric back-3 maintain ball progression metrics while conceding fewer transitions.",
+                sample_size=14,
+                temporal_scope={"start": "2023-01-01", "end": "2024-05-30"},
+                competition_scope=["Serie_A", "EPL", "La_Liga"],
+                effect_estimate=0.28,
+                uncertainty="Moderate sample uncertainty (N=14)",
+                confounder_warnings=["Tactical manager bias", "Opposition defensive structure"],
+            )
     return _GLOBAL_PATTERN_ENGINE

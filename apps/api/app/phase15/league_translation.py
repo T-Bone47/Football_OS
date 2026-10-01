@@ -18,6 +18,7 @@ Rule:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15.causality_guardrail import CausalityGuardrail
+from app.dev_fixtures import dev_seed_enabled
 
 
 class DimensionTranslation(BaseModel):
@@ -158,23 +159,24 @@ def get_league_translation_engine() -> LeagueTranslationEngine:
     global _GLOBAL_LEAGUE_TRANSLATION_ENGINE
     if _GLOBAL_LEAGUE_TRANSLATION_ENGINE is None:
         _GLOBAL_LEAGUE_TRANSLATION_ENGINE = LeagueTranslationEngine()
-        # Seed realistic Bundesliga -> EPL transition cohort
-        sample_transitions = [
-            {"contribution_src": 0.58, "contribution_tgt": 0.51, "minutes_src": 2400, "minutes_tgt": 1950, "valuation_src": 35.0, "valuation_tgt": 42.0},
-            {"contribution_src": 0.62, "contribution_tgt": 0.59, "minutes_src": 2600, "minutes_tgt": 2200, "valuation_src": 45.0, "valuation_tgt": 55.0},
-            {"contribution_src": 0.44, "contribution_tgt": 0.38, "minutes_src": 1800, "minutes_tgt": 1300, "valuation_src": 20.0, "valuation_tgt": 22.0},
-            {"contribution_src": 0.70, "contribution_tgt": 0.66, "minutes_src": 2800, "minutes_tgt": 2500, "valuation_src": 60.0, "valuation_tgt": 75.0},
-            {"contribution_src": 0.52, "contribution_tgt": 0.48, "minutes_src": 2100, "minutes_tgt": 1800, "valuation_src": 28.0, "valuation_tgt": 32.0},
-            {"contribution_src": 0.55, "contribution_tgt": 0.54, "minutes_src": 2300, "minutes_tgt": 2050, "valuation_src": 32.0, "valuation_tgt": 38.0},
-            {"contribution_src": 0.49, "contribution_tgt": 0.42, "minutes_src": 1900, "minutes_tgt": 1400, "valuation_src": 24.0, "valuation_tgt": 26.0},
-            {"contribution_src": 0.65, "contribution_tgt": 0.61, "minutes_src": 2700, "minutes_tgt": 2400, "valuation_src": 50.0, "valuation_tgt": 62.0},
-            {"contribution_src": 0.40, "contribution_tgt": 0.35, "minutes_src": 1700, "minutes_tgt": 1100, "valuation_src": 18.0, "valuation_tgt": 19.0},
-            {"contribution_src": 0.59, "contribution_tgt": 0.56, "minutes_src": 2450, "minutes_tgt": 2150, "valuation_src": 38.0, "valuation_tgt": 46.0},
-            {"contribution_src": 0.68, "contribution_tgt": 0.63, "minutes_src": 2750, "minutes_tgt": 2350, "valuation_src": 55.0, "valuation_tgt": 68.0},
-        ]
-        _GLOBAL_LEAGUE_TRANSLATION_ENGINE.analyze_translation(
-            source_competition="Bundesliga",
-            target_competition="EPL",
-            transitions_data=sample_transitions,
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic Bundesliga -> EPL transition cohort
+            sample_transitions = [
+                {"contribution_src": 0.58, "contribution_tgt": 0.51, "minutes_src": 2400, "minutes_tgt": 1950, "valuation_src": 35.0, "valuation_tgt": 42.0},
+                {"contribution_src": 0.62, "contribution_tgt": 0.59, "minutes_src": 2600, "minutes_tgt": 2200, "valuation_src": 45.0, "valuation_tgt": 55.0},
+                {"contribution_src": 0.44, "contribution_tgt": 0.38, "minutes_src": 1800, "minutes_tgt": 1300, "valuation_src": 20.0, "valuation_tgt": 22.0},
+                {"contribution_src": 0.70, "contribution_tgt": 0.66, "minutes_src": 2800, "minutes_tgt": 2500, "valuation_src": 60.0, "valuation_tgt": 75.0},
+                {"contribution_src": 0.52, "contribution_tgt": 0.48, "minutes_src": 2100, "minutes_tgt": 1800, "valuation_src": 28.0, "valuation_tgt": 32.0},
+                {"contribution_src": 0.55, "contribution_tgt": 0.54, "minutes_src": 2300, "minutes_tgt": 2050, "valuation_src": 32.0, "valuation_tgt": 38.0},
+                {"contribution_src": 0.49, "contribution_tgt": 0.42, "minutes_src": 1900, "minutes_tgt": 1400, "valuation_src": 24.0, "valuation_tgt": 26.0},
+                {"contribution_src": 0.65, "contribution_tgt": 0.61, "minutes_src": 2700, "minutes_tgt": 2400, "valuation_src": 50.0, "valuation_tgt": 62.0},
+                {"contribution_src": 0.40, "contribution_tgt": 0.35, "minutes_src": 1700, "minutes_tgt": 1100, "valuation_src": 18.0, "valuation_tgt": 19.0},
+                {"contribution_src": 0.59, "contribution_tgt": 0.56, "minutes_src": 2450, "minutes_tgt": 2150, "valuation_src": 38.0, "valuation_tgt": 46.0},
+                {"contribution_src": 0.68, "contribution_tgt": 0.63, "minutes_src": 2750, "minutes_tgt": 2350, "valuation_src": 55.0, "valuation_tgt": 68.0},
+            ]
+            _GLOBAL_LEAGUE_TRANSLATION_ENGINE.analyze_translation(
+                source_competition="Bundesliga",
+                target_competition="EPL",
+                transitions_data=sample_transitions,
+            )
     return _GLOBAL_LEAGUE_TRANSLATION_ENGINE

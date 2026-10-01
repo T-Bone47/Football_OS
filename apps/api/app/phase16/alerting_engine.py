@@ -24,6 +24,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import AlertSeverity
+from app.dev_fixtures import dev_seed_enabled
 
 
 class OperationalAlert(BaseModel):
@@ -121,21 +122,22 @@ def get_alerting_engine() -> AlertingEngine:
     global _GLOBAL_ALERTING_ENGINE
     if _GLOBAL_ALERTING_ENGINE is None:
         _GLOBAL_ALERTING_ENGINE = AlertingEngine()
-        # Seed realistic alerts
-        _GLOBAL_ALERTING_ENGINE.emit_alert(
-            category="DECISION_STALE",
-            severity=AlertSeverity.HIGH,
-            source="freshness_engine",
-            title="Recruitment Decision Staleness Detected",
-            description="Decision 'dec_rec_timber_2023' requires review: market valuation aged and player role shifted.",
-            evidence=["Market valuation delta: +12%", "Primary role usage changed to Inverted FB"],
-        )
-        _GLOBAL_ALERTING_ENGINE.emit_alert(
-            category="MODEL_DRIFT",
-            severity=AlertSeverity.MEDIUM,
-            source="drift_monitoring",
-            title="Moderate Feature Drift in Ligue 1",
-            description="Population Stability Index (PSI = 0.185) elevated in Ligue 1 winger progressive carries.",
-            evidence=["PSI: 0.185 > 0.10 baseline warning threshold"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic alerts
+            _GLOBAL_ALERTING_ENGINE.emit_alert(
+                category="DECISION_STALE",
+                severity=AlertSeverity.HIGH,
+                source="freshness_engine",
+                title="Recruitment Decision Staleness Detected",
+                description="Decision 'dec_rec_timber_2023' requires review: market valuation aged and player role shifted.",
+                evidence=["Market valuation delta: +12%", "Primary role usage changed to Inverted FB"],
+            )
+            _GLOBAL_ALERTING_ENGINE.emit_alert(
+                category="MODEL_DRIFT",
+                severity=AlertSeverity.MEDIUM,
+                source="drift_monitoring",
+                title="Moderate Feature Drift in Ligue 1",
+                description="Population Stability Index (PSI = 0.185) elevated in Ligue 1 winger progressive carries.",
+                evidence=["PSI: 0.185 > 0.10 baseline warning threshold"],
+            )
     return _GLOBAL_ALERTING_ENGINE

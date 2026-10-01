@@ -22,6 +22,7 @@ from app.phase13.decision_record_v2 import DecisionRecordV2, decision_record_sto
 from app.phase14.decision_realization import decision_realization_evaluator
 from app.phase14.learning_loop import decision_learning_loop_engine
 from app.phase14.outcome_ledger import outcome_ledger
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -77,7 +78,8 @@ class DecisionRecordStoreV3:
 
     def __init__(self) -> None:
         self._records: dict[str, DecisionRecordV3] = {}
-        self._seed_default_v3_records()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_v3_records()
 
     def get_record(self, decision_id: str) -> DecisionRecordV3 | None:
         return self._records.get(decision_id)

@@ -50,13 +50,13 @@ async def int_client(postgres_url):
 
     unique_suffix = uuid.uuid4().hex[:8]
     async with Session() as session:
-        comp = Competition(id=comp_id, name=f"Premier League {unique_suffix}", country="England", code=f"EPL{unique_suffix[:4]}")
+        comp = Competition(type="LEAGUE", id=comp_id, name=f"Premier League {unique_suffix}", country="England", code=f"EPL{unique_suffix[:4]}")
         season = Season(id=season_id, name=f"2024-2025-{unique_suffix}", start_year=2024, end_year=2025)
         cs = CompetitionSeason(id=cs_id, competition_id=comp_id, season_id=season_id)
         club = Club(id=club_id, name=f"Arsenal FC {unique_suffix}", country="England")
         p1 = Player(id=player_id, name=f"M. Odegaard {unique_suffix}", primary_position="Midfielder")
         p2 = Player(id=p2_id, name=f"B. Saka {unique_suffix}", primary_position="Attacker")
-        m = Match(
+        m = Match(provider="test-fixture", 
             id=match_id,
             competition_season_id=cs_id,
             home_club_id=club_id,

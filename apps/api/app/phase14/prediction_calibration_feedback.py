@@ -23,6 +23,7 @@ from typing import Any, Sequence
 import numpy as np
 
 from app.phase14 import DataSufficiencyStatus, EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass(frozen=True)
@@ -89,7 +90,8 @@ class PredictionCalibrationFeedbackEngine:
     def __init__(self) -> None:
         self._predictions: list[PredictionRealizationRecord] = []
         self._reports: dict[str, WindowCalibrationReport] = {}
-        self._seed_realized_predictions()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_realized_predictions()
 
     def record_prediction_realization(
         self,

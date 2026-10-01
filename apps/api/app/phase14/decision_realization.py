@@ -20,6 +20,7 @@ from app.phase14 import (
     DataSufficiencyStatus,
     EpistemicModality,
 )
+from app.dev_fixtures import dev_seed_enabled
 from app.phase14.outcome_ledger import OutcomeLedger, outcome_ledger
 
 
@@ -84,7 +85,8 @@ class DecisionRealizationEvaluator:
     def __init__(self, ledger: OutcomeLedger | None = None) -> None:
         self._ledger = ledger or outcome_ledger
         self._evaluations: dict[str, DecisionRealizationEvaluation] = {}
-        self._seed_default_evaluations()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_evaluations()
 
     def evaluate_decision(
         self,

@@ -36,7 +36,7 @@ FORBIDDEN_DEFAULTS = {
     ("transfers", "is_permanent"), ("canonical_actions", "provider"), ("valuation_models", "status"),
     ("valuation_predictions", "coverage_level"), ("valuation_predictions", "data_status"),
     ("match_lineups", "is_starter"), ("matches", "status"), ("player_role_profiles", "role_status"),
-    ("player_match_stats", "provider"),
+    ("player_match_stats", "provider"), ("matches", "provider"), ("competitions", "type"),
     ("player_season_stats", "minutes"), ("player_season_stats", "appearances"), ("player_season_stats", "goals"),
 }
 

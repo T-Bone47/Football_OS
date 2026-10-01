@@ -34,7 +34,7 @@ class Competition(Base):
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     country: Mapped[str] = mapped_column(String(64), nullable=False)
     code: Mapped[str | None] = mapped_column(String(32))
-    type: Mapped[str] = mapped_column(String(32), nullable=False, default="LEAGUE")
+    type: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -226,7 +226,7 @@ class Match(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     provider: Mapped[str] = mapped_column(
-        String(64), nullable=False, default="api-football", server_default="api-football"
+        String(64), nullable=False
     )
     provider_fixture_id: Mapped[str | None] = mapped_column(String(128), index=True)
     competition_season_id: Mapped[uuid.UUID] = mapped_column(

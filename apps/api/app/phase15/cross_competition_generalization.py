@@ -14,6 +14,7 @@ Rules:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import GeneralizationDomain, ValidationMatrixStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class CrossCompetitionEvaluationSlice(BaseModel):
@@ -117,35 +118,36 @@ def get_generalization_engine() -> CrossCompetitionGeneralizationEngine:
     global _GLOBAL_GENERALIZATION_ENGINE
     if _GLOBAL_GENERALIZATION_ENGINE is None:
         _GLOBAL_GENERALIZATION_ENGINE = CrossCompetitionGeneralizationEngine()
-        # Seed key pairwise and held-out cross-competition slices
-        _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
-            engine_name="ValuationEngine",
-            train_competitions=["EPL"],
-            test_competition="EPL",
-            sample_size_train=450,
-            sample_size_test=120,
-            in_domain_metric=0.142,  # MAE / Value
-            cross_domain_metric=0.142,
-            distribution_drift_psi=0.02,
-        )
-        _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
-            engine_name="ValuationEngine",
-            train_competitions=["EPL"],
-            test_competition="Bundesliga",
-            sample_size_train=450,
-            sample_size_test=85,
-            in_domain_metric=0.142,
-            cross_domain_metric=0.178,
-            distribution_drift_psi=0.08,
-        )
-        _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
-            engine_name="ValuationEngine",
-            train_competitions=["EPL", "Bundesliga", "La_Liga", "Serie_A"],
-            test_competition="Ligue_1",
-            sample_size_train=1200,
-            sample_size_test=90,
-            in_domain_metric=0.138,
-            cross_domain_metric=0.155,
-            distribution_drift_psi=0.06,
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed key pairwise and held-out cross-competition slices
+            _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
+                engine_name="ValuationEngine",
+                train_competitions=["EPL"],
+                test_competition="EPL",
+                sample_size_train=450,
+                sample_size_test=120,
+                in_domain_metric=0.142,  # MAE / Value
+                cross_domain_metric=0.142,
+                distribution_drift_psi=0.02,
+            )
+            _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
+                engine_name="ValuationEngine",
+                train_competitions=["EPL"],
+                test_competition="Bundesliga",
+                sample_size_train=450,
+                sample_size_test=85,
+                in_domain_metric=0.142,
+                cross_domain_metric=0.178,
+                distribution_drift_psi=0.08,
+            )
+            _GLOBAL_GENERALIZATION_ENGINE.evaluate_generalization(
+                engine_name="ValuationEngine",
+                train_competitions=["EPL", "Bundesliga", "La_Liga", "Serie_A"],
+                test_competition="Ligue_1",
+                sample_size_train=1200,
+                sample_size_test=90,
+                in_domain_metric=0.138,
+                cross_domain_metric=0.155,
+                distribution_drift_psi=0.06,
+            )
     return _GLOBAL_GENERALIZATION_ENGINE

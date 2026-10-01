@@ -58,7 +58,7 @@ async def test_tactical_fit_temporal_leakage_invariance(db_session):
     service = TacticalFitService(db_session)
 
     # 1. Base entities
-    comp = Competition(name="Premier League", country="England")
+    comp = Competition(type="LEAGUE", name="Premier League", country="England")
     season = Season(name="2025/2026", start_year=2025, end_year=2026)
     db_session.add_all([comp, season])
     await db_session.flush()

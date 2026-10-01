@@ -32,6 +32,7 @@ depends_on = None
 FACT_DEFAULTS = [
     ("canonical_actions", "provider", "'api-football'"),
     ("player_match_stats", "provider", "'api-football'"),
+    ("matches", "provider", "'api-football'"),
     ("canonical_actions", "action_quantity", "1"),
     ("competitions", "type", "'LEAGUE'"),
     ("matches", "status", "'SCHEDULED'"),

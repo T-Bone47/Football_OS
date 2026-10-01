@@ -13,6 +13,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -95,7 +96,8 @@ class PlayerTrajectoryEngineV2:
 
     def __init__(self) -> None:
         self._profiles: dict[str, PlayerTrajectoryProfileV2] = {}
-        self._seed_default_trajectories()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_trajectories()
 
     def _seed_default_trajectories(self) -> None:
         # Seed 1: Gonçalo Inácio (Emerging Breakout)

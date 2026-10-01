@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ProjectStatus(str, Enum):
@@ -96,7 +97,8 @@ class RecruitmentProjectManager:
 
     def __init__(self) -> None:
         self._projects: dict[str, RecruitmentProject] = {}
-        self._seed_default_projects()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_projects()
 
     def _seed_default_projects(self) -> None:
         """Seed demo recruitment project matching Phase 10 spec."""

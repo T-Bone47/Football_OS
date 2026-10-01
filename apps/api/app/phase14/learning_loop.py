@@ -24,6 +24,7 @@ from app.phase14 import (
     ErrorCategory,
     LearningActionState,
 )
+from app.dev_fixtures import dev_seed_enabled
 from app.phase14.decision_realization import decision_realization_evaluator
 from app.phase14.process_quality import process_quality_engine
 
@@ -96,7 +97,8 @@ class DecisionLearningLoopEngine:
         self._signals: dict[str, LearningSignalRecord] = {}
         self._patterns: dict[str, DecisionPatternReport] = {}
         self._challenger_evals: dict[str, GovernedChallengerComparison] = {}
-        self._seed_default_learning()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_learning()
 
     def generate_learning_signal(
         self,

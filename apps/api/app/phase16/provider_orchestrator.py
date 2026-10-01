@@ -16,6 +16,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import ProviderCapabilityStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ProviderCapabilityProfile(BaseModel):
@@ -59,7 +60,8 @@ class ProviderOrchestrator:
     def __init__(self) -> None:
         self._profiles: dict[tuple[str, str], ProviderCapabilityProfile] = {}
         self._rate_limits: dict[str, dict[str, Any]] = {}
-        self._seed_default_capabilities()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_capabilities()
 
     def _seed_default_capabilities(self) -> None:
         # Phase 17 (reconnaissance R11): these seeds used to be AVAILABLE with

@@ -4,6 +4,7 @@ Manages top-level research inquiries that frame hypotheses, experiments, and val
 """
 
 from app.phase15.research_models import ResearchQuestion
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ResearchQuestionRegistry:
@@ -47,16 +48,17 @@ def get_question_registry() -> ResearchQuestionRegistry:
     global _GLOBAL_QUESTION_REGISTRY
     if _GLOBAL_QUESTION_REGISTRY is None:
         _GLOBAL_QUESTION_REGISTRY = ResearchQuestionRegistry()
-        _GLOBAL_QUESTION_REGISTRY.create_question(
-            question_id="rq_001_league_adaptation",
-            title="What factors characterize successful cross-league adaptation from Bundesliga to EPL?",
-            description="Empirical investigation into contribution translation, minutes sustainability, and physical adaptation profiles.",
-            tags=["recruitment", "league_translation", "bundesliga", "epl"],
-        )
-        _GLOBAL_QUESTION_REGISTRY.create_question(
-            question_id="rq_002_role_transition_retention",
-            title="How reliably do inverted fullbacks retain ball progression capacity in tier-1 transitions?",
-            description="Analysis of positional shifts into midfield pivots across symmetric and asymmetric structures.",
-            tags=["tactical", "role_transition", "ball_progression"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            _GLOBAL_QUESTION_REGISTRY.create_question(
+                question_id="rq_001_league_adaptation",
+                title="What factors characterize successful cross-league adaptation from Bundesliga to EPL?",
+                description="Empirical investigation into contribution translation, minutes sustainability, and physical adaptation profiles.",
+                tags=["recruitment", "league_translation", "bundesliga", "epl"],
+            )
+            _GLOBAL_QUESTION_REGISTRY.create_question(
+                question_id="rq_002_role_transition_retention",
+                title="How reliably do inverted fullbacks retain ball progression capacity in tier-1 transitions?",
+                description="Analysis of positional shifts into midfield pivots across symmetric and asymmetric structures.",
+                tags=["tactical", "role_transition", "ball_progression"],
+            )
     return _GLOBAL_QUESTION_REGISTRY

@@ -29,6 +29,7 @@ from app.phase14 import (
     DecisionProcessState,
     ErrorCategory,
 )
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -93,7 +94,8 @@ class ProcessQualityEngine:
     def __init__(self) -> None:
         self._audits: dict[str, ProcessQualityAudit] = {}
         self._diagnostics: dict[str, DivergenceDiagnostic] = {}
-        self._seed_default_audits()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_audits()
 
     def audit_decision_process(
         self,

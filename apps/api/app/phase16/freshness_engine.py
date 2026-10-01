@@ -16,6 +16,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import FreshnessState
+from app.dev_fixtures import dev_seed_enabled
 
 
 class EntityFreshnessSnapshot(BaseModel):
@@ -277,20 +278,21 @@ def get_freshness_engine() -> FreshnessEngine:
     global _GLOBAL_FRESHNESS_ENGINE
     if _GLOBAL_FRESHNESS_ENGINE is None:
         _GLOBAL_FRESHNESS_ENGINE = FreshnessEngine()
-        # Seed initial operational freshness records
-        now_str = datetime.now(timezone.utc).isoformat()
-        _GLOBAL_FRESHNESS_ENGINE.record_freshness(
-            entity_id="raw_epl_fixtures_2024",
-            entity_type="RAW",
-            last_observed_at=now_str,
-            last_ingested_at=now_str,
-            last_validated_at=now_str,
-        )
-        _GLOBAL_FRESHNESS_ENGINE.record_freshness(
-            entity_id="canon_player_rice_2024",
-            entity_type="CANONICAL",
-            last_observed_at=now_str,
-            last_ingested_at=now_str,
-            last_validated_at=now_str,
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed initial operational freshness records
+            now_str = datetime.now(timezone.utc).isoformat()
+            _GLOBAL_FRESHNESS_ENGINE.record_freshness(
+                entity_id="raw_epl_fixtures_2024",
+                entity_type="RAW",
+                last_observed_at=now_str,
+                last_ingested_at=now_str,
+                last_validated_at=now_str,
+            )
+            _GLOBAL_FRESHNESS_ENGINE.record_freshness(
+                entity_id="canon_player_rice_2024",
+                entity_type="CANONICAL",
+                last_observed_at=now_str,
+                last_ingested_at=now_str,
+                last_validated_at=now_str,
+            )
     return _GLOBAL_FRESHNESS_ENGINE

@@ -6,6 +6,7 @@ Tracks candidate features identified in empirical experiments:
 """
 
 from app.phase15.research_models import FeatureCandidate
+from app.dev_fixtures import dev_seed_enabled
 
 
 class FeatureDiscoveryEngine:
@@ -60,28 +61,29 @@ def get_feature_discovery_engine() -> FeatureDiscoveryEngine:
     global _GLOBAL_FEATURE_ENGINE
     if _GLOBAL_FEATURE_ENGINE is None:
         _GLOBAL_FEATURE_ENGINE = FeatureDiscoveryEngine()
-        _GLOBAL_FEATURE_ENGINE.register_candidate(
-            candidate_id="feat_oppo_box_entry_slope",
-            feature_name="box_entry_retention_ratio",
-            target_metric="goal_contribution_p90",
-            rationale="Measures proportion of box entries resulting in shot or second-phase retention, consistently outperforming raw box touches.",
-            discovered_in_experiments=["exp_u23_retention_study"],
-            effect_magnitude=0.312,
-            stability_score=0.88,
-            leakage_audited=True,
-            ood_sensitivity="LOW",
-            competition_coverage=["EPL", "La_Liga", "Bundesliga", "Serie_A"],
-        )
-        _GLOBAL_FEATURE_ENGINE.register_candidate(
-            candidate_id="feat_counter_press_recovery_distance",
-            feature_name="recovery_distance_from_possession_loss",
-            target_metric="defensive_transition_score",
-            rationale="Average meters traveled toward ball within 5 seconds of turnover.",
-            discovered_in_experiments=["exp_u23_retention_study"],
-            effect_magnitude=0.225,
-            stability_score=0.79,
-            leakage_audited=True,
-            ood_sensitivity="MEDIUM",
-            competition_coverage=["EPL", "Bundesliga"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            _GLOBAL_FEATURE_ENGINE.register_candidate(
+                candidate_id="feat_oppo_box_entry_slope",
+                feature_name="box_entry_retention_ratio",
+                target_metric="goal_contribution_p90",
+                rationale="Measures proportion of box entries resulting in shot or second-phase retention, consistently outperforming raw box touches.",
+                discovered_in_experiments=["exp_u23_retention_study"],
+                effect_magnitude=0.312,
+                stability_score=0.88,
+                leakage_audited=True,
+                ood_sensitivity="LOW",
+                competition_coverage=["EPL", "La_Liga", "Bundesliga", "Serie_A"],
+            )
+            _GLOBAL_FEATURE_ENGINE.register_candidate(
+                candidate_id="feat_counter_press_recovery_distance",
+                feature_name="recovery_distance_from_possession_loss",
+                target_metric="defensive_transition_score",
+                rationale="Average meters traveled toward ball within 5 seconds of turnover.",
+                discovered_in_experiments=["exp_u23_retention_study"],
+                effect_magnitude=0.225,
+                stability_score=0.79,
+                leakage_audited=True,
+                ood_sensitivity="MEDIUM",
+                competition_coverage=["EPL", "Bundesliga"],
+            )
     return _GLOBAL_FEATURE_ENGINE

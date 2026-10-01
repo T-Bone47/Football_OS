@@ -16,6 +16,7 @@ from app.phase15 import (
     HypothesisValidationResult,
     ResearchLifecycleState,
 )
+from app.dev_fixtures import dev_seed_enabled
 from app.phase15.causality_guardrail import CausalityGuardrail
 from app.phase15.research_models import ResearchHypothesis, ResearchValidation
 
@@ -148,24 +149,25 @@ def get_hypothesis_engine() -> HypothesisGovernanceEngine:
     global _GLOBAL_HYPOTHESIS_ENGINE
     if _GLOBAL_HYPOTHESIS_ENGINE is None:
         _GLOBAL_HYPOTHESIS_ENGINE = HypothesisGovernanceEngine()
-        # Seed realistic hypotheses
-        h1 = _GLOBAL_HYPOTHESIS_ENGINE.create_hypothesis(
-            hypothesis_id="hypo_inverted_fb_retention",
-            statement="Players transitioning from traditional FB to Inverted Midfield roles show consistent ball retention under high pressure.",
-            source_patterns=["pat_tactical_hybrid_back3_adaptation"],
-            supporting_observations=[{"player": "John Stones", "metric": "retention", "val": 0.91}],
-            sample_size=18,
-            affected_competitions=["EPL", "La_Liga"],
-            affected_seasons=["2022/2023", "2023/2024"],
-        )
-        # Validate h1
-        _GLOBAL_HYPOTHESIS_ENGINE.validate_hypothesis(
-            hypothesis_id="hypo_inverted_fb_retention",
-            validation_id="val_h1_temporal_holdout",
-            methodology="TEMPORAL_HOLDOUT",
-            holdout_sample_size=24,
-            holdout_window={"start": "2024-01-01", "end": "2024-05-30"},
-            metrics={"effect_size": 0.26, "p_value": 0.02},
-            leakage_detected=False,
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic hypotheses
+            h1 = _GLOBAL_HYPOTHESIS_ENGINE.create_hypothesis(
+                hypothesis_id="hypo_inverted_fb_retention",
+                statement="Players transitioning from traditional FB to Inverted Midfield roles show consistent ball retention under high pressure.",
+                source_patterns=["pat_tactical_hybrid_back3_adaptation"],
+                supporting_observations=[{"player": "John Stones", "metric": "retention", "val": 0.91}],
+                sample_size=18,
+                affected_competitions=["EPL", "La_Liga"],
+                affected_seasons=["2022/2023", "2023/2024"],
+            )
+            # Validate h1
+            _GLOBAL_HYPOTHESIS_ENGINE.validate_hypothesis(
+                hypothesis_id="hypo_inverted_fb_retention",
+                validation_id="val_h1_temporal_holdout",
+                methodology="TEMPORAL_HOLDOUT",
+                holdout_sample_size=24,
+                holdout_window={"start": "2024-01-01", "end": "2024-05-30"},
+                metrics={"effect_size": 0.26, "p_value": 0.02},
+                leakage_detected=False,
+            )
     return _GLOBAL_HYPOTHESIS_ENGINE

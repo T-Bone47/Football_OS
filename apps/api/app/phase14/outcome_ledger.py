@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase14 import DataSufficiencyStatus, EpistemicModality, OutcomeType
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass(frozen=True)
@@ -80,7 +81,8 @@ class OutcomeLedger:
 
     def __init__(self) -> None:
         self._records: dict[str, OutcomeRecord] = {}
-        self._seed_verified_outcomes()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_verified_outcomes()
 
     def append_outcome(
         self,

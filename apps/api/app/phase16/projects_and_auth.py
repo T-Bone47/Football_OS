@@ -15,6 +15,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import UserRole
+from app.dev_fixtures import dev_seed_enabled
 
 
 class UserProfile(BaseModel):
@@ -105,7 +106,8 @@ class ProjectAndAuthManager:
         # development and tests. The singleton never seeds them in staging or
         # production; real identities live in ops_users (app.phase17.auth).
         if seed_demo:
-            self._seed_default_users_and_projects()
+            if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+                self._seed_default_users_and_projects()
 
     def _seed_default_users_and_projects(self) -> None:
         # Default Admin & Scout

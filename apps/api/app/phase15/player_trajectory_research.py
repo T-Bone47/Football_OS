@@ -20,6 +20,7 @@ Classifies:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import TrajectoryClass
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ObservedPoint(BaseModel):
@@ -191,15 +192,16 @@ def get_trajectory_research_engine() -> PlayerTrajectoryResearchEngine:
     global _GLOBAL_TRAJECTORY_ENGINE
     if _GLOBAL_TRAJECTORY_ENGINE is None:
         _GLOBAL_TRAJECTORY_ENGINE = PlayerTrajectoryResearchEngine()
-        # Seed realistic breakout trajectory
-        _GLOBAL_TRAJECTORY_ENGINE.analyze_player_trajectory(
-            player_id="ply_bukayo_saka",
-            metric_name="progressive_actions_p90",
-            past_observed=[
-                {"season": "2021/2022", "competition": "EPL", "minutes": 2980, "value": 6.8},
-                {"season": "2022/2023", "competition": "EPL", "minutes": 3150, "value": 7.6},
-                {"season": "2023/2024", "competition": "EPL", "minutes": 2930, "value": 8.4},
-            ],
-            current_observed={"season": "2024/2025", "competition": "EPL", "minutes": 1820, "value": 8.7},
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic breakout trajectory
+            _GLOBAL_TRAJECTORY_ENGINE.analyze_player_trajectory(
+                player_id="ply_bukayo_saka",
+                metric_name="progressive_actions_p90",
+                past_observed=[
+                    {"season": "2021/2022", "competition": "EPL", "minutes": 2980, "value": 6.8},
+                    {"season": "2022/2023", "competition": "EPL", "minutes": 3150, "value": 7.6},
+                    {"season": "2023/2024", "competition": "EPL", "minutes": 2930, "value": 8.4},
+                ],
+                current_observed={"season": "2024/2025", "competition": "EPL", "minutes": 1820, "value": 8.7},
+            )
     return _GLOBAL_TRAJECTORY_ENGINE

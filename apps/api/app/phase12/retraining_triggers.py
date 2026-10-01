@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import RetrainRecommendation
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -47,7 +48,8 @@ class RetrainingTriggerEngine:
 
     def __init__(self) -> None:
         self._recommendations: dict[str, ModelRetrainingRecommendation] = {}
-        self._seed_default_recommendation()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_recommendation()
 
     def _seed_default_recommendation(self) -> None:
         seed = ModelRetrainingRecommendation(

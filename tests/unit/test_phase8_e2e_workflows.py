@@ -245,12 +245,11 @@ class TestWorkflowDMatchIntelligence:
     """WORKFLOW D: Match Prediction, Calibration, Scorelines & Model Governance."""
 
     def test_match_intelligence_workflow_end_to_end(self):
-        # 1. Verify Model Governance Active
-        model = governance_registry.verify_inference_eligibility(
-            "match_prediction_engine", "BivariatePoisson_v1"
-        )
-        assert model.status == "MODEL_VALIDATED"
-        assert "log_loss" in model.metrics
+        # 1. Phase 18: no match model is registered with backing evidence, so
+        #    governance must refuse it rather than vouch for a literal record.
+        from app.observability.model_governance import UnknownModelVersionError
+        with pytest.raises(UnknownModelVersionError):
+            governance_registry.verify_inference_eligibility("match_prediction_engine", "BivariatePoisson_v1")
 
         # 2. Compute Expected Goals from Dixon-Coles/Poisson engine
         goal_engine = GoalPredictionEngine()

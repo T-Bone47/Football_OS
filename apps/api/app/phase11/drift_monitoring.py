@@ -16,6 +16,7 @@ from enum import Enum
 import math
 from typing import Any, Sequence
 import numpy as np
+from app.dev_fixtures import dev_seed_enabled
 
 
 class DriftStatus(str, Enum):
@@ -120,7 +121,8 @@ class ContinuousDriftMonitor:
     def __init__(self) -> None:
         self._snapshots: list[CompetitionDriftSnapshot] = []
         self._alerts: list[OperationalAlert] = []
-        self._seed_default_drift()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_drift()
 
     def _seed_default_drift(self) -> None:
         # EPL baseline snapshot (healthy)

@@ -36,6 +36,7 @@ from enum import Enum
 from typing import Any
 
 from app.phase13 import EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 class RecruitmentStageV2(str, Enum):
@@ -220,7 +221,8 @@ class DecisionRecordStoreV2:
     def __init__(self) -> None:
         self._records: dict[str, DecisionRecordV2] = {}
         self._follow_ups: dict[str, list[DecisionFollowUpEvaluation]] = {}
-        self._seed_default_decisions()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_decisions()
 
     def _seed_default_decisions(self) -> None:
         """Seeds canonical initial verified decision record."""

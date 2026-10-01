@@ -46,7 +46,7 @@ async def test_feature_snapshot_persistence_and_idempotency(db_session):
     service = FeatureService(db_session)
 
     # 1. Setup entities
-    comp = Competition(name="La Liga", country="Spain")
+    comp = Competition(type="LEAGUE", name="La Liga", country="Spain")
     season = Season(name="2025/2026", start_year=2025, end_year=2026)
     db_session.add_all([comp, season])
     await db_session.flush()
@@ -59,7 +59,7 @@ async def test_feature_snapshot_persistence_and_idempotency(db_session):
     await db_session.flush()
 
     m1_date = datetime(2026, 2, 1, 15, 0, 0, tzinfo=timezone.utc)
-    m1 = Match(
+    m1 = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=m1_date,
         status="FINISHED",
@@ -104,7 +104,7 @@ async def test_feature_snapshot_persistence_and_idempotency(db_session):
 
     # Target Match 2
     m2_date = datetime(2026, 2, 8, 15, 0, 0, tzinfo=timezone.utc)
-    m2 = Match(
+    m2 = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=m2_date,
         status="SCHEDULED",
@@ -152,7 +152,7 @@ async def test_feature_snapshot_persistence_and_idempotency(db_session):
 async def test_compute_match_features_and_rest_days(db_session):
     service = FeatureService(db_session)
 
-    comp = Competition(name="Serie A", country="Italy")
+    comp = Competition(type="LEAGUE", name="Serie A", country="Italy")
     season = Season(name="2025/2026", start_year=2025, end_year=2026)
     db_session.add_all([comp, season])
     await db_session.flush()
@@ -164,7 +164,7 @@ async def test_compute_match_features_and_rest_days(db_session):
     await db_session.flush()
 
     # Previous match for Juventus 4 days earlier
-    m_prev_h = Match(
+    m_prev_h = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=datetime(2026, 2, 11, 15, 0, 0, tzinfo=timezone.utc),
         status="FINISHED",
@@ -196,7 +196,7 @@ async def test_compute_match_features_and_rest_days(db_session):
     await db_session.flush()
 
     # Target Match on Feb 15
-    m_target = Match(
+    m_target = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=datetime(2026, 2, 15, 15, 0, 0, tzinfo=timezone.utc),
         status="SCHEDULED",
@@ -240,7 +240,7 @@ async def test_compute_match_features_and_rest_days(db_session):
 async def test_build_model_ready_dataset(db_session):
     service = FeatureService(db_session)
 
-    comp = Competition(name="Bundesliga", country="Germany")
+    comp = Competition(type="LEAGUE", name="Bundesliga", country="Germany")
     season = Season(name="2025/2026", start_year=2025, end_year=2026)
     db_session.add_all([comp, season])
     await db_session.flush()

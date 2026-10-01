@@ -95,6 +95,11 @@ def audit_environment(settings: Settings) -> EnvironmentAudit:
     if hardened and any("localhost" in o or "127.0.0.1" in o for o in origins):
         audit.violations.append("CORS_ALLOWED_ORIGINS contains a localhost origin")
 
+    if getattr(settings, "dev_seed", False):
+        (audit.violations if hardened else audit.warnings).append(
+            "DEV_SEED=true: legacy engines serve demo fixtures, not observed data"
+        )
+
     if hardened:
         if settings.snapshot_storage_backend != "s3":
             audit.violations.append(

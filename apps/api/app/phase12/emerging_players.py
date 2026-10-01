@@ -17,6 +17,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -55,7 +56,8 @@ class EmergingPlayerEngine:
 
     def __init__(self) -> None:
         self._opportunities: dict[str, EmergingPlayerOpportunity] = {}
-        self._seed_default_opportunities()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_opportunities()
 
     def _seed_default_opportunities(self) -> None:
         # Seed 1: Gonçalo Inácio (Sporting CP)

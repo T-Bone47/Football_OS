@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase14 import BenchmarkScope, FreshnessState
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -74,7 +75,8 @@ class DecisionFreshnessV2Engine:
     def __init__(self) -> None:
         self._benchmarks: dict[str, list[VersionedBenchmarkMetric]] = {}
         self._assessments: dict[str, DecisionFreshnessAssessment] = {}
-        self._seed_default_benchmarks_and_freshness()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_benchmarks_and_freshness()
 
     def register_benchmark(
         self,

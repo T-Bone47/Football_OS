@@ -1,9 +1,8 @@
 import json
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.routes_canonical import router as canonical_router
@@ -22,6 +21,9 @@ from app.db.session import engine, get_session
 from app.decisions.copilot import orchestrate_copilot_decision
 
 from app.observability.correlation import CorrelationIdMiddleware
+from app.dev_fixtures import dev_seed_enabled
+from app.phase17.auth import require
+from app.db.models.operations import OpsUser
 from app.phase17.environments import enforce_startup_policy
 from app.phase17.telemetry import LatencyTelemetryMiddleware
 from app.observability.system_health import (
@@ -65,39 +67,46 @@ app.include_router(phase17_router)
 
 
 @app.get("/health")
-async def health() -> dict:
-    """APPLICATION HEALTH: Process uptime, memory footprint, and event loop responsiveness."""
+@app.get("/health/live")
+async def health_live() -> dict:
+    """Liveness: this process is running. Says nothing about data or models."""
     res = await check_application_health()
     res["environment"] = settings.environment
+    # Visible to every client so a demo-fixture build can never pass as real data.
+    res["demo_fixtures_enabled"] = dev_seed_enabled()
     return res
 
 
-@app.get("/readiness")
-async def readiness(session: AsyncSession = Depends(get_session)) -> dict:
-    """INFRASTRUCTURE READINESS: Verifies database and external dependency connectivity."""
-    return await check_readiness(session)
-
-
 @app.get("/health/ready")
-async def health_ready() -> dict:
-    """Legacy alias for backward compatibility with Docker compose healthchecks."""
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text("select 1"))
-    except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=503, detail=f"database not ready: {exc}") from exc
-    return {"status": "ready"}
+@app.get("/readiness")
+async def health_ready(response: Response, session: AsyncSession = Depends(get_session)) -> dict:
+    """Readiness: the database answers and is migrated to this code's head.
+    Answers 503 when not ready, so orchestrators stop routing traffic here."""
+    res = await check_readiness(session)
+    if res["status"] != "READY":
+        response.status_code = 503
+    return res
+
+
+@app.get("/health/deep")
+async def health_deep(_: OpsUser = Depends(require("ops:read")), session: AsyncSession = Depends(get_session)) -> dict:
+    """Deep health: every component probed now (database, Redis, storage,
+    providers, model artifact, worker). Authenticated: it calls external
+    providers and must not be a free amplifier for anonymous traffic."""
+    from app.phase17.system_health import system_status
+
+    return await system_status(session, engine, settings)
 
 
 @app.get("/model-status")
-async def model_status() -> dict:
-    """MODEL HEALTH: Validated model registries, calibration status, and active engine states."""
-    return await check_model_health()
+async def model_status(session: AsyncSession = Depends(get_session)) -> dict:
+    """Model state read from the authoritative registry (ops_model_registry)."""
+    return await check_model_health(session)
 
 
 @app.get("/data-status")
 async def data_status(session: AsyncSession = Depends(get_session)) -> dict:
-    """DATA HEALTH: Freshness, missingness, schema version, and zero-fabrication guarantees."""
+    """Data state measured from PostgreSQL: counts, provenance coverage, snapshot age."""
     return await check_data_health(session)
 
 

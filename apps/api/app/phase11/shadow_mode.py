@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from enum import Enum
 import time
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ModelLifecycleStage(str, Enum):
@@ -70,7 +71,8 @@ class ShadowModeExecutor:
     def __init__(self) -> None:
         self._history: list[ShadowExecutionRecord] = []
         self._registered_shadow_pairs: dict[str, str] = {}  # prod_id -> shadow_id
-        self._seed_default_shadows()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_shadows()
 
     def _seed_default_shadows(self) -> None:
         # Default shadow setup: Production EPL model vs Candidate La Liga Calibrated Model

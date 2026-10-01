@@ -16,6 +16,7 @@ import hashlib
 import json
 from typing import Any
 from app.phase15.research_models import ResearchCohort
+from app.dev_fixtures import dev_seed_enabled
 
 
 class CohortEngine:
@@ -125,23 +126,24 @@ def get_cohort_engine() -> CohortEngine:
     global _GLOBAL_COHORT_ENGINE
     if _GLOBAL_COHORT_ENGINE is None:
         _GLOBAL_COHORT_ENGINE = CohortEngine()
-        # Seed standard research cohorts for tier-1 analysis
-        _GLOBAL_COHORT_ENGINE.create_cohort(
-            cohort_id="cohort_u23_midfielders_epl",
-            cohort_type="PLAYER",
-            name="U23 Central Midfielders in EPL (>=900 mins)",
-            filter_criteria={"age_max": 23, "position": "CM", "competition": "EPL", "min_minutes": 900},
-            entity_ids=["p_epl_01", "p_epl_02", "p_epl_03", "p_epl_04", "p_epl_05"],
-            competition_scope=["EPL"],
-            temporal_scope={"start": "2023-08-01", "end": "2024-05-30"},
-        )
-        _GLOBAL_COHORT_ENGINE.create_cohort(
-            cohort_id="cohort_cross_league_transfers_u25",
-            cohort_type="TRANSFER",
-            name="Cross-League Transfers U25 (Source != Target, Fee > 10M)",
-            filter_criteria={"age_max": 25, "is_cross_competition": True, "min_fee_eur": 10000000},
-            entity_ids=["tr_01", "tr_02", "tr_03", "tr_04", "tr_05", "tr_06"],
-            competition_scope=["EPL", "La_Liga", "Bundesliga", "Serie_A", "Ligue_1"],
-            temporal_scope={"start": "2022-07-01", "end": "2024-09-01"},
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed standard research cohorts for tier-1 analysis
+            _GLOBAL_COHORT_ENGINE.create_cohort(
+                cohort_id="cohort_u23_midfielders_epl",
+                cohort_type="PLAYER",
+                name="U23 Central Midfielders in EPL (>=900 mins)",
+                filter_criteria={"age_max": 23, "position": "CM", "competition": "EPL", "min_minutes": 900},
+                entity_ids=["p_epl_01", "p_epl_02", "p_epl_03", "p_epl_04", "p_epl_05"],
+                competition_scope=["EPL"],
+                temporal_scope={"start": "2023-08-01", "end": "2024-05-30"},
+            )
+            _GLOBAL_COHORT_ENGINE.create_cohort(
+                cohort_id="cohort_cross_league_transfers_u25",
+                cohort_type="TRANSFER",
+                name="Cross-League Transfers U25 (Source != Target, Fee > 10M)",
+                filter_criteria={"age_max": 25, "is_cross_competition": True, "min_fee_eur": 10000000},
+                entity_ids=["tr_01", "tr_02", "tr_03", "tr_04", "tr_05", "tr_06"],
+                competition_scope=["EPL", "La_Liga", "Bundesliga", "Serie_A", "Ligue_1"],
+                temporal_scope={"start": "2022-07-01", "end": "2024-09-01"},
+            )
     return _GLOBAL_COHORT_ENGINE

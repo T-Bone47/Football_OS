@@ -22,6 +22,7 @@ from enum import Enum
 from typing import Any
 
 from app.phase14 import EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 class NodeTypeV3(str, Enum):
@@ -168,7 +169,8 @@ class EvidenceGraphV3Builder:
 
     def __init__(self) -> None:
         self._graphs: dict[str, EvidenceGraphV3] = {}
-        self._seed_default_graph()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_graph()
 
     def build_decision_graph(
         self,

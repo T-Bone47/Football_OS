@@ -13,8 +13,7 @@ Enforces zero-silent-fallback: No inference may use an unverified/unknown model 
 from __future__ import annotations
 
 import hashlib
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
@@ -58,108 +57,11 @@ class ModelGovernanceRegistry:
 
     def __init__(self) -> None:
         self._registry: dict[tuple[str, str], ModelGovernanceRecord] = {}
-        self._bootstrap_authoritative_models()
 
-    def _bootstrap_authoritative_models(self) -> None:
-        # 1. Valuation Model (GBR_ValuationEngine_v1.0 / VALUATION_ML_V1)
-        val_rec = ModelGovernanceRecord(
-            name="valuation_model",
-            version="GBR_ValuationEngine_v1.0",
-            feature_set="fset_v2",
-            training_cutoff="2022-06-23",
-            validation_period="2022-06-30 to 2022-09-01",
-            metrics={"mae": 16547896.21, "rmse": 22943202.27, "med_ae": 13971026.79, "log_mae": 0.487, "r2": 0.3362},
-            calibration={"method": "CONFORMAL_RESIDUAL", "empirical_coverage": 0.812},
-            artifact_hash=_compute_spec_hash("GBR_ValuationEngine_v1.0:fset_v2:2022-06-23"),
-            status="MODEL_VALIDATED",
-            provenance="data/models/valuation/val_lightgbm_20260920.joblib",
-            description="Gradient Boosting Regressor with log1p target, Duan smearing and conformal uncertainty bands.",
-            created_at="2026-09-20T20:18:21Z",
-        )
-        self.register(val_rec)
-        # Register alias for schema compatibility
-        self.register(ModelGovernanceRecord(
-            name="valuation_model",
-            version="VALUATION_ML_V1",
-            feature_set="1.0.0",
-            training_cutoff="2022-06-23",
-            validation_period="2022-06-30 to 2022-09-01",
-            metrics=val_rec.metrics,
-            calibration=val_rec.calibration,
-            artifact_hash=val_rec.artifact_hash,
-            status="MODEL_VALIDATED",
-            provenance=val_rec.provenance,
-            description=val_rec.description,
-            created_at=val_rec.created_at,
-        ))
-
-        # 2. Match Prediction Model (BivariatePoisson_v1)
-        match_rec = ModelGovernanceRecord(
-            name="match_prediction_engine",
-            version="BivariatePoisson_v1",
-            feature_set="match_features_v1",
-            training_cutoff="2026-08-31",
-            validation_period="2026-09-01 to 2026-09-10",
-            metrics={"log_loss": 0.9984, "brier_score": 0.5742, "accuracy": 0.495, "ece": 0.042},
-            calibration={"method": "TEMPERATURE_SCALING", "temperature": 1.12},
-            artifact_hash=_compute_spec_hash("BivariatePoisson_v1:match_features_v1:2026-08-31"),
-            status="MODEL_VALIDATED",
-            provenance="app.prediction.goals.GoalPredictionEngine",
-            description="Pre-match Expected Goals bivariate Poisson distribution with Dixon-Coles dependency adjustment.",
-            created_at="2026-09-20T12:00:00Z",
-        )
-        self.register(match_rec)
-
-        # 3. Tactical Fit Engine (TacticalFitCalculator_v1.0)
-        tactical_rec = ModelGovernanceRecord(
-            name="tactical_fit_engine",
-            version="TacticalFitCalculator_v1.0",
-            feature_set="tactical_contexts_v1",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"system_alignment_acc": 0.915, "role_fit_r2": 0.884},
-            calibration={"method": "NON_LINEAR_POWER_PENALTY", "gamma": 1.4},
-            artifact_hash=_compute_spec_hash("TacticalFitCalculator_v1.0:tactical_contexts_v1"),
-            status="MODEL_VALIDATED",
-            provenance="app.tactical.service.TacticalFitCalculator",
-            description="Role and style compatibility scoring with system-specific threshold penalties.",
-            created_at="2026-09-18T10:00:00Z",
-        )
-        self.register(tactical_rec)
-
-        # 4. Transfer Risk Engine (TransferRiskEngine_v2)
-        risk_rec = ModelGovernanceRecord(
-            name="risk_engine",
-            version="TransferRiskEngine_v2",
-            feature_set="risk_features_v2",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"brier_score": 0.182, "roc_auc": 0.841},
-            calibration={"method": "LOGISTIC_SCALING", "risk_tiers": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]},
-            artifact_hash=_compute_spec_hash("TransferRiskEngine_v2:risk_features_v2"),
-            status="MODEL_VALIDATED",
-            provenance="app.market.risk.TransferRiskEngine",
-            description="Four-pillar transfer risk decomposition: performance, adaptation, financial, and availability.",
-            created_at="2026-09-19T14:30:00Z",
-        )
-        self.register(risk_rec)
-
-        # 5. Role Similarity Engine (RoleSimilarity_v2)
-        sim_rec = ModelGovernanceRecord(
-            name="similarity_engine",
-            version="RoleSimilarity_v2",
-            feature_set="similarity_features_v2",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"top5_role_concordance": 0.942},
-            calibration={"method": "WEIGHTED_COSINE_MINKOWSKI", "weights": "position_aligned"},
-            artifact_hash=_compute_spec_hash("RoleSimilarity_v2:similarity_features_v2"),
-            status="MODEL_VALIDATED",
-            provenance="app.roles.similarity.PlayerSimilarityEngine",
-            description="Weighted cosine similarity across positional sub-profiles and physical characteristics.",
-            created_at="2026-09-18T16:00:00Z",
-        )
-        self.register(sim_rec)
+    # Phase 18 (N2): this registry used to bootstrap six models as
+    # MODEL_VALIDATED with literal metrics and no artifacts behind them. It now
+    # starts empty. The authoritative registry is ops_model_registry
+    # (PostgreSQL); see docs/PHASE_18_MODEL_SERVING.md.
 
     def register(self, record: ModelGovernanceRecord) -> None:
         """Registers a model governance record."""

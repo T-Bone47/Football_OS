@@ -23,6 +23,7 @@ from enum import Enum
 from typing import Any
 
 from app.prediction.registry import PredictionModelRegistry
+from app.dev_fixtures import dev_seed_enabled
 
 
 class DataModality(str, Enum):
@@ -91,7 +92,8 @@ class ScenarioEngine:
     def __init__(self) -> None:
         self._scenarios: dict[str, PersistentScenario] = {}
         self._prediction_registry = PredictionModelRegistry()
-        self._seed_default_scenarios()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_scenarios()
 
     def _seed_default_scenarios(self) -> None:
         s1 = PersistentScenario(

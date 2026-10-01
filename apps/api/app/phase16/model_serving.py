@@ -15,6 +15,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import DeploymentState
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ModelServingProfile(BaseModel):
@@ -59,7 +60,8 @@ class ModelServingEngine:
         self._shadow_challengers: dict[str, str] = {}
         self._predictors: dict[str, Callable[[dict[str, Any]], float]] = {}
         if seed_demo_models:
-            self._seed_demo_models()
+            if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+                self._seed_demo_models()
 
     def register_predictor(self, model_key: str, predictor: Callable[[dict[str, Any]], float]) -> None:
         """Attach the callable that actually scores inputs for a registered

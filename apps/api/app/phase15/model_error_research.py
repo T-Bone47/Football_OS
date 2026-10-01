@@ -18,6 +18,7 @@ Rule:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import DataSufficiencyStatus, ValidationMatrixStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ContextualErrorSlice(BaseModel):
@@ -187,24 +188,25 @@ def get_model_error_engine() -> ModelErrorResearchEngine:
     global _GLOBAL_MODEL_ERROR_ENGINE
     if _GLOBAL_MODEL_ERROR_ENGINE is None:
         _GLOBAL_MODEL_ERROR_ENGINE = ModelErrorResearchEngine()
-        # Seed comprehensive error report across 8 contextual slices
-        sample_slices = [
-            {"slice_type": "GLOBAL", "slice_key": "ALL", "sample_size": 1500, "mae": 0.125, "brier": 0.165, "log_loss": 0.440, "ece": 0.038},
-            {"slice_type": "COMPETITION", "slice_key": "EPL", "sample_size": 520, "mae": 0.118, "brier": 0.155, "log_loss": 0.410, "ece": 0.032},
-            {"slice_type": "COMPETITION", "slice_key": "Bundesliga", "sample_size": 380, "mae": 0.132, "brier": 0.175, "log_loss": 0.460, "ece": 0.045},
-            {"slice_type": "COMPETITION", "slice_key": "Ligue_1", "sample_size": 280, "mae": 0.155, "brier": 0.210, "log_loss": 0.525, "ece": 0.075},
-            {"slice_type": "POSITION", "slice_key": "Central_Defender", "sample_size": 390, "mae": 0.112, "brier": 0.148, "log_loss": 0.395, "ece": 0.029},
-            {"slice_type": "POSITION", "slice_key": "Winger", "sample_size": 340, "mae": 0.172, "brier": 0.235, "log_loss": 0.590, "ece": 0.088},
-            {"slice_type": "AGE", "slice_key": "U21", "sample_size": 220, "mae": 0.185, "brier": 0.248, "log_loss": 0.615, "ece": 0.112},
-            {"slice_type": "AGE", "slice_key": "Prime_24_29", "sample_size": 890, "mae": 0.110, "brier": 0.142, "log_loss": 0.380, "ece": 0.025},
-            {"slice_type": "OOD", "slice_key": "OOD_HIGH", "sample_size": 65, "mae": 0.240, "brier": 0.320, "log_loss": 0.780, "ece": 0.145},
-            {"slice_type": "CONFIDENCE", "slice_key": "High_Confidence", "sample_size": 950, "mae": 0.095, "brier": 0.125, "log_loss": 0.340, "ece": 0.021},
-            {"slice_type": "CONFIDENCE", "slice_key": "Low_Confidence", "sample_size": 180, "mae": 0.215, "brier": 0.290, "log_loss": 0.710, "ece": 0.128},
-        ]
-        _GLOBAL_MODEL_ERROR_ENGINE.analyze_model_errors(
-            model_id="match_prediction_xg_v3",
-            model_version="3.2.0",
-            evaluation_window={"start": "2023-08-01", "end": "2024-05-30"},
-            prediction_slices=sample_slices,
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed comprehensive error report across 8 contextual slices
+            sample_slices = [
+                {"slice_type": "GLOBAL", "slice_key": "ALL", "sample_size": 1500, "mae": 0.125, "brier": 0.165, "log_loss": 0.440, "ece": 0.038},
+                {"slice_type": "COMPETITION", "slice_key": "EPL", "sample_size": 520, "mae": 0.118, "brier": 0.155, "log_loss": 0.410, "ece": 0.032},
+                {"slice_type": "COMPETITION", "slice_key": "Bundesliga", "sample_size": 380, "mae": 0.132, "brier": 0.175, "log_loss": 0.460, "ece": 0.045},
+                {"slice_type": "COMPETITION", "slice_key": "Ligue_1", "sample_size": 280, "mae": 0.155, "brier": 0.210, "log_loss": 0.525, "ece": 0.075},
+                {"slice_type": "POSITION", "slice_key": "Central_Defender", "sample_size": 390, "mae": 0.112, "brier": 0.148, "log_loss": 0.395, "ece": 0.029},
+                {"slice_type": "POSITION", "slice_key": "Winger", "sample_size": 340, "mae": 0.172, "brier": 0.235, "log_loss": 0.590, "ece": 0.088},
+                {"slice_type": "AGE", "slice_key": "U21", "sample_size": 220, "mae": 0.185, "brier": 0.248, "log_loss": 0.615, "ece": 0.112},
+                {"slice_type": "AGE", "slice_key": "Prime_24_29", "sample_size": 890, "mae": 0.110, "brier": 0.142, "log_loss": 0.380, "ece": 0.025},
+                {"slice_type": "OOD", "slice_key": "OOD_HIGH", "sample_size": 65, "mae": 0.240, "brier": 0.320, "log_loss": 0.780, "ece": 0.145},
+                {"slice_type": "CONFIDENCE", "slice_key": "High_Confidence", "sample_size": 950, "mae": 0.095, "brier": 0.125, "log_loss": 0.340, "ece": 0.021},
+                {"slice_type": "CONFIDENCE", "slice_key": "Low_Confidence", "sample_size": 180, "mae": 0.215, "brier": 0.290, "log_loss": 0.710, "ece": 0.128},
+            ]
+            _GLOBAL_MODEL_ERROR_ENGINE.analyze_model_errors(
+                model_id="match_prediction_xg_v3",
+                model_version="3.2.0",
+                evaluation_window={"start": "2023-08-01", "end": "2024-05-30"},
+                prediction_slices=sample_slices,
+            )
     return _GLOBAL_MODEL_ERROR_ENGINE

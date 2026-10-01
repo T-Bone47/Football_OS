@@ -93,22 +93,13 @@ class TestCorrelationAndLogging:
 
 
 class TestModelGovernance:
-    def test_authoritative_models_bootstrapped(self):
+    def test_registry_claims_no_model_it_cannot_back(self):
+        # Phase 18 (N2): the registry used to bootstrap six MODEL_VALIDATED
+        # models with literal metrics and no artifacts. It now starts empty.
         registry = ModelGovernanceRegistry()
-        models = registry.list_all_models()
-        assert len(models) >= 5
-
-        # Check required analytical models exist
-        val_model = registry.get_model("valuation_model", "GBR_ValuationEngine_v1.0")
-        assert val_model.status == "MODEL_VALIDATED"
-        assert val_model.feature_set == "fset_v2"
-        assert "mae" in val_model.metrics
-
-        match_model = registry.get_model("match_prediction_engine", "BivariatePoisson_v1")
-        assert match_model.status == "MODEL_VALIDATED"
-
-        tactical_model = registry.get_model("tactical_fit_engine", "TacticalFitCalculator_v1.0")
-        assert tactical_model.status == "MODEL_VALIDATED"
+        assert registry.list_all_models() == []
+        with pytest.raises(UnknownModelVersionError):
+            registry.verify_inference_eligibility("valuation_model", "GBR_ValuationEngine_v1.0")
 
     def test_unknown_model_version_rejected(self):
         registry = ModelGovernanceRegistry()
@@ -234,25 +225,26 @@ class TestModelMonitoringPrimitives:
 @pytest.mark.asyncio
 class TestSystemHealthEndpoints:
     async def test_application_health(self):
+        # Liveness reports measured process facts; it claims nothing about data.
         res = await check_application_health()
-        assert res["status"] == "HEALTHY"
-        assert "pid" in res
-        assert "memory_rss_mb" in res
-        assert "service" in res
+        assert res["status"] == "ALIVE"
+        assert res["pid"] > 0
+        assert isinstance(res["memory_rss_mb"], float) and res["memory_rss_mb"] > 0
+        assert res["uptime_s"] >= 0
 
-    async def test_readiness_no_session(self):
+    async def test_readiness_without_database_is_not_ready(self):
+        # Phase 18: an unmeasured database used to count as READY.
         res = await check_readiness(None)
-        assert res["status"] == "READY"
-        assert res["database"]["status"] == "UNKNOWN"
+        assert res["status"] == "NOT_READY"
+        assert res["database"]["status"] == "NOT_MEASURED"
+        assert "no database session" in res["reasons"]
 
-    async def test_model_health(self):
-        res = await check_model_health()
-        assert res["status"] == "HEALTHY"
-        assert res["total_models_registered"] >= 5
-        assert "valuation" in res["active_engines"]
-        assert "match_prediction" in res["active_engines"]
+    async def test_model_health_without_registry_is_not_measured(self):
+        res = await check_model_health(None)
+        assert res["status"] == "NOT_MEASURED"
+        assert res["models"] == []
 
-    async def test_data_health(self):
+    async def test_data_health_without_database_is_not_measured(self):
         res = await check_data_health(None)
-        assert res["status"] == "HEALTHY"
-        assert res["zero_fabrication_policy"] == "ENFORCED"
+        assert res["status"] == "NOT_MEASURED"
+        assert "provenance_coverage" not in res  # nothing is asserted without a measurement

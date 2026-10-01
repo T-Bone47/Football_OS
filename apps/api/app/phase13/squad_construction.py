@@ -26,6 +26,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -98,7 +99,8 @@ class SquadConstructionEngineV2:
 
     def __init__(self) -> None:
         self._alternatives: dict[str, list[ParetoSquadAlternative]] = {}
-        self._seed_default_alternatives()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_alternatives()
 
     def _seed_default_alternatives(self) -> None:
         # Seed Pareto Frontier for Arsenal Summer 2027 CB Project

@@ -21,6 +21,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import JobStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ProductionJob(BaseModel):
@@ -117,12 +118,13 @@ def get_job_manager() -> BackgroundJobManager:
     global _GLOBAL_JOB_MANAGER
     if _GLOBAL_JOB_MANAGER is None:
         _GLOBAL_JOB_MANAGER = BackgroundJobManager()
-        # Seed realistic jobs
-        j = _GLOBAL_JOB_MANAGER.enqueue_job(
-            job_id="job_sync_epl_matchday_28",
-            job_type="INGESTION_SYNC",
-            parameters={"competition": "EPL", "season": "2023/24"},
-        )
-        _GLOBAL_JOB_MANAGER.start_job(j.job_id)
-        _GLOBAL_JOB_MANAGER.complete_job(j.job_id, result_reference="snapshot_epl_md28_digest")
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic jobs
+            j = _GLOBAL_JOB_MANAGER.enqueue_job(
+                job_id="job_sync_epl_matchday_28",
+                job_type="INGESTION_SYNC",
+                parameters={"competition": "EPL", "season": "2023/24"},
+            )
+            _GLOBAL_JOB_MANAGER.start_job(j.job_id)
+            _GLOBAL_JOB_MANAGER.complete_job(j.job_id, result_reference="snapshot_epl_md28_digest")
     return _GLOBAL_JOB_MANAGER

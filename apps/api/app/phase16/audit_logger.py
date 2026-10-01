@@ -24,6 +24,7 @@ import json
 import re
 from typing import Any
 from pydantic import BaseModel, Field
+from app.dev_fixtures import dev_seed_enabled
 
 SECRET_PATTERNS = [
     re.compile(r"api[-_]?key", re.IGNORECASE),
@@ -153,11 +154,12 @@ def get_audit_logger() -> AuditLogger:
     global _GLOBAL_AUDIT_LOGGER
     if _GLOBAL_AUDIT_LOGGER is None:
         _GLOBAL_AUDIT_LOGGER = AuditLogger()
-        _GLOBAL_AUDIT_LOGGER.record_event(
-            event_type="SYSTEM_INITIALIZATION",
-            user_id="system",
-            organization_id="system_platform",
-            resource_id="kernel_v16.0",
-            details={"status": "INITIALIZED", "certified_state": "ADAPTIVE_INTELLIGENCE_VALIDATED"},
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            _GLOBAL_AUDIT_LOGGER.record_event(
+                event_type="SYSTEM_INITIALIZATION",
+                user_id="system",
+                organization_id="system_platform",
+                resource_id="kernel_v16.0",
+                details={"status": "INITIALIZED", "certified_state": "ADAPTIVE_INTELLIGENCE_VALIDATED"},
+            )
     return _GLOBAL_AUDIT_LOGGER

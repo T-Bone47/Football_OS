@@ -14,6 +14,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -75,7 +76,8 @@ class BenchmarkProfileRegistry:
 
     def __init__(self) -> None:
         self._profiles: dict[str, BenchmarkProfile] = {}
-        self._seed_default_benchmarks()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_benchmarks()
 
     def _seed_default_benchmarks(self) -> None:
         seed = BenchmarkProfile(

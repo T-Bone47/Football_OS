@@ -43,7 +43,7 @@ async def app_client(postgres_url):
     app.dependency_overrides[get_session] = override_get_session
 
     async with Session() as session:
-        comp = Competition(name="Premier League", country="England")
+        comp = Competition(type="LEAGUE", name="Premier League", country="England")
         season = Season(name="2025/2026", start_year=2025, end_year=2026)
         session.add_all([comp, season])
         await session.flush()
@@ -56,7 +56,7 @@ async def app_client(postgres_url):
         await session.flush()
 
         # Prior match on March 1
-        m_prior = Match(
+        m_prior = Match(provider="test-fixture", 
             competition_season_id=comp_season.id,
             date=datetime(2026, 3, 1, 15, 0, 0, tzinfo=timezone.utc),
             status="FINISHED",
@@ -100,7 +100,7 @@ async def app_client(postgres_url):
         await session.flush()
 
         # Target match on March 8
-        m_target = Match(
+        m_target = Match(provider="test-fixture", 
             competition_season_id=comp_season.id,
             date=datetime(2026, 3, 8, 15, 0, 0, tzinfo=timezone.utc),
             status="SCHEDULED",

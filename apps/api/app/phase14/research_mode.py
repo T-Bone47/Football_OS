@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase14 import EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -79,7 +80,8 @@ class ResearchWorkspaceEngine:
 
     def __init__(self) -> None:
         self._dossiers: dict[str, ResearchDossier] = {}
-        self._seed_default_dossiers()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_dossiers()
 
     def create_research_dossier(
         self,

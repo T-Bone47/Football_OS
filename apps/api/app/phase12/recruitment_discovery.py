@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import CandidateDiscoveryMode
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -62,7 +63,8 @@ class AdvancedRecruitmentDiscoveryEngine:
 
     def __init__(self) -> None:
         self._candidates: dict[str, DiscoveredCandidate] = {}
-        self._seed_default_candidates()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_candidates()
 
     def _seed_default_candidates(self) -> None:
         # Candidate 1: Gonçalo Inácio (Emerging + Market Gap)

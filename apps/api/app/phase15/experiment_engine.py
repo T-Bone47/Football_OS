@@ -18,6 +18,7 @@ import json
 from typing import Any
 from app.phase15.causality_guardrail import CausalityGuardrail
 from app.phase15.research_models import ResearchExperiment, ResearchResult, ResearchValidation
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ExperimentEngine:
@@ -126,25 +127,26 @@ def get_experiment_engine() -> ExperimentEngine:
     global _GLOBAL_EXPERIMENT_ENGINE
     if _GLOBAL_EXPERIMENT_ENGINE is None:
         _GLOBAL_EXPERIMENT_ENGINE = ExperimentEngine()
-        # Seed realistic completed experiment
-        exp1 = _GLOBAL_EXPERIMENT_ENGINE.create_experiment(
-            experiment_id="exp_u23_retention_study",
-            hypothesis_id="hypo_inverted_fb_retention",
-            cohort_id="cohort_u23_midfielders_epl",
-            dataset_id="ds_silver_canonical_2024",
-            features_used=["press_resistance_index", "turnover_rate_p90", "progressive_pass_completion"],
-            methodology="PROPENSITY_WEIGHTED_OBSERVATIONAL_COHORT",
-            evaluation_window={"start": "2023-08-01", "end": "2024-05-30"},
-            validation_strategy="TEMPORAL_HOLDOUT_Q4",
-            sample_size=32,
-            competition_scope=["EPL"],
-        )
-        _GLOBAL_EXPERIMENT_ENGINE.complete_experiment(
-            experiment_id="exp_u23_retention_study",
-            effect_estimate=0.245,
-            confidence_interval=(0.112, 0.378),
-            p_value=0.018,
-            subgroup_breakdown={"top_6_clubs": {"N": 18, "effect": 0.28}, "rest_of_league": {"N": 14, "effect": 0.20}},
-            summary_findings=["Higher ball retention observed among inverted fullback profiles when playing under pressure."],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed realistic completed experiment
+            exp1 = _GLOBAL_EXPERIMENT_ENGINE.create_experiment(
+                experiment_id="exp_u23_retention_study",
+                hypothesis_id="hypo_inverted_fb_retention",
+                cohort_id="cohort_u23_midfielders_epl",
+                dataset_id="ds_silver_canonical_2024",
+                features_used=["press_resistance_index", "turnover_rate_p90", "progressive_pass_completion"],
+                methodology="PROPENSITY_WEIGHTED_OBSERVATIONAL_COHORT",
+                evaluation_window={"start": "2023-08-01", "end": "2024-05-30"},
+                validation_strategy="TEMPORAL_HOLDOUT_Q4",
+                sample_size=32,
+                competition_scope=["EPL"],
+            )
+            _GLOBAL_EXPERIMENT_ENGINE.complete_experiment(
+                experiment_id="exp_u23_retention_study",
+                effect_estimate=0.245,
+                confidence_interval=(0.112, 0.378),
+                p_value=0.018,
+                subgroup_breakdown={"top_6_clubs": {"N": 18, "effect": 0.28}, "rest_of_league": {"N": 14, "effect": 0.20}},
+                summary_findings=["Higher ball retention observed among inverted fullback profiles when playing under pressure."],
+            )
     return _GLOBAL_EXPERIMENT_ENGINE

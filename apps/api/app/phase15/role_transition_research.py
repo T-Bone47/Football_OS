@@ -17,6 +17,7 @@ Rules:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import RoleTransitionStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class RoleTransitionEvaluation(BaseModel):
@@ -103,26 +104,27 @@ def get_role_transition_engine() -> RoleTransitionResearchEngine:
     global _GLOBAL_ROLE_TRANSITION_ENGINE
     if _GLOBAL_ROLE_TRANSITION_ENGINE is None:
         _GLOBAL_ROLE_TRANSITION_ENGINE = RoleTransitionResearchEngine()
-        # Seed confirmed transition: FB -> Inverted CM / Wide CB
-        _GLOBAL_ROLE_TRANSITION_ENGINE.evaluate_transition(
-            player_id="ply_john_stones",
-            source_role="Centre-Back",
-            target_role="Inverted Defensive Midfielder",
-            target_role_minutes=1120,
-            target_role_appearances=14,
-            competition="EPL",
-            temporal_span={"start": "2023-01-01", "end": "2024-05-30"},
-            adaptation_indicators={"retention_under_pressure": 0.91, "progression_rate": 0.84},
-        )
-        # Seed emerging transition: Winger -> Central Forward
-        _GLOBAL_ROLE_TRANSITION_ENGINE.evaluate_transition(
-            player_id="ply_emerging_winger",
-            source_role="Right Winger",
-            target_role="Central Striker",
-            target_role_minutes=260,
-            target_role_appearances=3,
-            competition="La_Liga",
-            temporal_span={"start": "2024-01-15", "end": "2024-03-30"},
-            adaptation_indicators={"box_touches_p90": 5.8},
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed confirmed transition: FB -> Inverted CM / Wide CB
+            _GLOBAL_ROLE_TRANSITION_ENGINE.evaluate_transition(
+                player_id="ply_john_stones",
+                source_role="Centre-Back",
+                target_role="Inverted Defensive Midfielder",
+                target_role_minutes=1120,
+                target_role_appearances=14,
+                competition="EPL",
+                temporal_span={"start": "2023-01-01", "end": "2024-05-30"},
+                adaptation_indicators={"retention_under_pressure": 0.91, "progression_rate": 0.84},
+            )
+            # Seed emerging transition: Winger -> Central Forward
+            _GLOBAL_ROLE_TRANSITION_ENGINE.evaluate_transition(
+                player_id="ply_emerging_winger",
+                source_role="Right Winger",
+                target_role="Central Striker",
+                target_role_minutes=260,
+                target_role_appearances=3,
+                competition="La_Liga",
+                temporal_span={"start": "2024-01-15", "end": "2024-03-30"},
+                adaptation_indicators={"box_touches_p90": 5.8},
+            )
     return _GLOBAL_ROLE_TRANSITION_ENGINE

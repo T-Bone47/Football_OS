@@ -25,6 +25,7 @@ CRITICAL RULE:
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15 import FeeTaxonomy
+from app.dev_fixtures import dev_seed_enabled
 
 
 class TransferMarketRecord(BaseModel):
@@ -169,47 +170,48 @@ def get_transfer_market_engine() -> TransferMarketResearchEngine:
     global _GLOBAL_TRANSFER_ENGINE
     if _GLOBAL_TRANSFER_ENGINE is None:
         _GLOBAL_TRANSFER_ENGINE = TransferMarketResearchEngine()
-        # Seed diverse transfers respecting fee taxonomy
-        _GLOBAL_TRANSFER_ENGINE.record_transfer(
-            transfer_id="tr_2023_001",
-            player_id="ply_declan_rice",
-            selling_club="West Ham",
-            buying_club="Arsenal",
-            source_competition="EPL",
-            destination_competition="EPL",
-            transfer_date="2023-07-15",
-            fee_type=FeeTaxonomy.KNOWN_FEE,
-            realized_fee_eur=116000000.0,
-            modelled_valuation_eur=98000000.0,
-            age_at_transfer=24,
-            position="DM",
-        )
-        _GLOBAL_TRANSFER_ENGINE.record_transfer(
-            transfer_id="tr_2023_002",
-            player_id="ply_free_agent",
-            selling_club="Paris Saint-Germain",
-            buying_club="Real Madrid",
-            source_competition="Ligue_1",
-            destination_competition="La_Liga",
-            transfer_date="2024-07-01",
-            fee_type=FeeTaxonomy.FREE_TRANSFER,
-            realized_fee_eur=0.0,
-            modelled_valuation_eur=180000000.0,
-            age_at_transfer=25,
-            position="FW",
-        )
-        _GLOBAL_TRANSFER_ENGINE.record_transfer(
-            transfer_id="tr_2023_003",
-            player_id="ply_undisclosed_talent",
-            selling_club="Sporting CP",
-            buying_club="Chelsea",
-            source_competition="Liga_Portugal",
-            destination_competition="EPL",
-            transfer_date="2023-08-20",
-            fee_type=FeeTaxonomy.UNDISCLOSED,
-            realized_fee_eur=None,  # NEVER 0.0
-            modelled_valuation_eur=22000000.0,
-            age_at_transfer=20,
-            position="CM",
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed diverse transfers respecting fee taxonomy
+            _GLOBAL_TRANSFER_ENGINE.record_transfer(
+                transfer_id="tr_2023_001",
+                player_id="ply_declan_rice",
+                selling_club="West Ham",
+                buying_club="Arsenal",
+                source_competition="EPL",
+                destination_competition="EPL",
+                transfer_date="2023-07-15",
+                fee_type=FeeTaxonomy.KNOWN_FEE,
+                realized_fee_eur=116000000.0,
+                modelled_valuation_eur=98000000.0,
+                age_at_transfer=24,
+                position="DM",
+            )
+            _GLOBAL_TRANSFER_ENGINE.record_transfer(
+                transfer_id="tr_2023_002",
+                player_id="ply_free_agent",
+                selling_club="Paris Saint-Germain",
+                buying_club="Real Madrid",
+                source_competition="Ligue_1",
+                destination_competition="La_Liga",
+                transfer_date="2024-07-01",
+                fee_type=FeeTaxonomy.FREE_TRANSFER,
+                realized_fee_eur=0.0,
+                modelled_valuation_eur=180000000.0,
+                age_at_transfer=25,
+                position="FW",
+            )
+            _GLOBAL_TRANSFER_ENGINE.record_transfer(
+                transfer_id="tr_2023_003",
+                player_id="ply_undisclosed_talent",
+                selling_club="Sporting CP",
+                buying_club="Chelsea",
+                source_competition="Liga_Portugal",
+                destination_competition="EPL",
+                transfer_date="2023-08-20",
+                fee_type=FeeTaxonomy.UNDISCLOSED,
+                realized_fee_eur=None,  # NEVER 0.0
+                modelled_valuation_eur=22000000.0,
+                age_at_transfer=20,
+                position="CM",
+            )
     return _GLOBAL_TRANSFER_ENGINE

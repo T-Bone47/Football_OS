@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # app.phase17.environments). Comma-separated; never "*" outside
     # development/test because credentials are allowed.
     cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
+    # Demo fixtures for the legacy Phase 10-16 engines. Off unless explicitly
+    # enabled, and refused at startup in staging and production.
+    dev_seed: bool = False
     model_artifact_dir: str = "./data/models"
     # Notification channels are only enabled when configured. IN_APP is
     # always available because it is just a database row.

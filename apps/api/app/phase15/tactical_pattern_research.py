@@ -12,6 +12,7 @@ Non-causal policy: Formations or tactical shifts are associated with, not causes
 from typing import Any
 from pydantic import BaseModel, Field
 from app.phase15.causality_guardrail import CausalityGuardrail
+from app.dev_fixtures import dev_seed_enabled
 
 
 class ObservedTacticalPattern(BaseModel):
@@ -144,21 +145,22 @@ def get_tactical_pattern_engine() -> TacticalPatternResearchEngine:
     global _GLOBAL_TACTICAL_ENGINE
     if _GLOBAL_TACTICAL_ENGINE is None:
         _GLOBAL_TACTICAL_ENGINE = TacticalPatternResearchEngine()
-        _GLOBAL_TACTICAL_ENGINE.record_tactical_research(
-            team_id="arsenal_fc",
-            competition="EPL",
-            season="2023/2024",
-            matches_observed=38,
-            primary_shape="4-3-3",
-            in_possession_structure="3-2-5",
-            out_of_possession_structure="4-4-2",
-            measured_width=52.4,
-            high_press_line=48.2,
-            progression_bias={"left": 0.38, "central": 0.22, "right": 0.40},
-            counter_press_index=0.88,
-            box_density=0.74,
-            counterfactuals=[
-                {"scenario_id": "scen_343_switch", "simulated_formation": "3-4-3", "simulated_variation": "symmetric_wingbacks"}
-            ],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            _GLOBAL_TACTICAL_ENGINE.record_tactical_research(
+                team_id="arsenal_fc",
+                competition="EPL",
+                season="2023/2024",
+                matches_observed=38,
+                primary_shape="4-3-3",
+                in_possession_structure="3-2-5",
+                out_of_possession_structure="4-4-2",
+                measured_width=52.4,
+                high_press_line=48.2,
+                progression_bias={"left": 0.38, "central": 0.22, "right": 0.40},
+                counter_press_index=0.88,
+                box_density=0.74,
+                counterfactuals=[
+                    {"scenario_id": "scen_343_switch", "simulated_formation": "3-4-3", "simulated_variation": "symmetric_wingbacks"}
+                ],
+            )
     return _GLOBAL_TACTICAL_ENGINE

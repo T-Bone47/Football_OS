@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase13 import EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -101,7 +102,8 @@ class SquadBaselineRegistry:
 
     def __init__(self) -> None:
         self._baselines: dict[str, ClubSquadBaseline] = {}
-        self._seed_default_baseline()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_baseline()
 
     def _seed_default_baseline(self) -> None:
         # Seed: Arsenal FC baseline roster

@@ -27,6 +27,7 @@ import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -76,7 +77,8 @@ class RoleDependencyEngine:
 
     def __init__(self) -> None:
         self._graphs: dict[str, RoleDependencyGraph] = {}
-        self._seed_default_graphs()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_graphs()
 
     def _seed_default_graphs(self) -> None:
         edges = [

@@ -29,6 +29,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase13 import EpistemicModality
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -131,7 +132,8 @@ class MultiTransferScenarioEngine:
 
     def __init__(self) -> None:
         self._scenarios: dict[str, MultiTransferScenario] = {}
-        self._seed_default_scenarios()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_scenarios()
 
     def _seed_default_scenarios(self) -> None:
         # Scenario A: Sell Partey / Buy Inácio

@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import MarketOpportunityState
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -59,7 +60,8 @@ class MarketInefficiencyEngine:
 
     def __init__(self) -> None:
         self._signals: dict[str, MarketInefficiencySignal] = {}
-        self._seed_default_signals()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_signals()
 
     def _seed_default_signals(self) -> None:
         seed = MarketInefficiencySignal(

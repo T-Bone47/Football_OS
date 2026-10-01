@@ -12,6 +12,7 @@ Rules:
 
 from typing import Any
 from app.phase15.research_models import ResearchPromotionRecord
+from app.dev_fixtures import dev_seed_enabled
 
 
 class AdaptiveModelCandidateEngine:
@@ -94,14 +95,15 @@ def get_adaptive_model_engine() -> AdaptiveModelCandidateEngine:
     global _GLOBAL_ADAPTIVE_ENGINE
     if _GLOBAL_ADAPTIVE_ENGINE is None:
         _GLOBAL_ADAPTIVE_ENGINE = AdaptiveModelCandidateEngine()
-        _GLOBAL_ADAPTIVE_ENGINE.review_candidate_for_promotion(
-            candidate_id="challenger_xg_v3_spatial_spline",
-            champion_id="champion_xg_v3_gradient_boosted",
-            target_type="MODEL",
-            champion_metrics={"brier": 0.174, "ece": 0.038, "mae": 0.135},
-            challenger_metrics={"brier": 0.162, "ece": 0.032, "mae": 0.128},
-            evaluation_windows=[{"name": "2023_24_EPL", "N": 380}, {"name": "2023_24_Bundesliga", "N": 306}],
-            subgroup_parity_passed=True,
-            author="lead_model_governance_officer",
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            _GLOBAL_ADAPTIVE_ENGINE.review_candidate_for_promotion(
+                candidate_id="challenger_xg_v3_spatial_spline",
+                champion_id="champion_xg_v3_gradient_boosted",
+                target_type="MODEL",
+                champion_metrics={"brier": 0.174, "ece": 0.038, "mae": 0.135},
+                challenger_metrics={"brier": 0.162, "ece": 0.032, "mae": 0.128},
+                evaluation_windows=[{"name": "2023_24_EPL", "N": 380}, {"name": "2023_24_Bundesliga", "N": 306}],
+                subgroup_parity_passed=True,
+                author="lead_model_governance_officer",
+            )
     return _GLOBAL_ADAPTIVE_ENGINE

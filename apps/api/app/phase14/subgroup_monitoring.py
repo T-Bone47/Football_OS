@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase14 import DataSufficiencyStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -64,7 +65,8 @@ class SubgroupMonitoringEngine:
 
     def __init__(self) -> None:
         self._reports: dict[str, ModelContextualReport] = {}
-        self._seed_default_context_report()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_context_report()
 
     def generate_contextual_report(
         self,

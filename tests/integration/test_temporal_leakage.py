@@ -93,7 +93,7 @@ async def test_definitive_temporal_leakage_invariance(db_session):
     ]
 
     for i in range(4):
-        m = Match(
+        m = Match(provider="test-fixture", 
             competition_season_id=comp_season.id,
             date=match_dates[i],
             status="FINISHED",
@@ -130,7 +130,7 @@ async def test_definitive_temporal_leakage_invariance(db_session):
 
     # Target Match 5
     match_5_date = datetime(2026, 1, 20, 15, 0, 0, tzinfo=timezone.utc)
-    match_5 = Match(
+    match_5 = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=match_5_date,
         status="SCHEDULED",
@@ -174,7 +174,7 @@ async def test_definitive_temporal_leakage_invariance(db_session):
 
     # 4. Now insert Match 6 with massive future performance (day 25)
     match_6_date = datetime(2026, 1, 25, 15, 0, 0, tzinfo=timezone.utc)
-    match_6 = Match(
+    match_6 = Match(provider="test-fixture", 
         competition_season_id=comp_season.id,
         date=match_6_date,
         status="FINISHED",

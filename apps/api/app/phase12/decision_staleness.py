@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import DecisionFreshnessState
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -54,7 +55,8 @@ class DecisionStalenessEngine:
 
     def __init__(self) -> None:
         self._assessments: dict[str, DecisionFreshnessAssessment] = {}
-        self._seed_default_assessment()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_assessment()
 
     def _seed_default_assessment(self) -> None:
         seed = DecisionFreshnessAssessment(

@@ -22,6 +22,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import IncidentSeverity, IncidentStatus
+from app.dev_fixtures import dev_seed_enabled
 
 
 class QualityCheckResult(BaseModel):
@@ -146,16 +147,17 @@ def get_data_quality_engine() -> DataQualityEngine:
     global _GLOBAL_DATA_QUALITY_ENGINE
     if _GLOBAL_DATA_QUALITY_ENGINE is None:
         _GLOBAL_DATA_QUALITY_ENGINE = DataQualityEngine()
-        # Seed an operational data quality incident
-        _GLOBAL_DATA_QUALITY_ENGINE.report_incident(
-            incident_id="dqi_ligue1_coord_drift_2024",
-            source="api_football",
-            resource="events",
-            entity="canonical_matches",
-            severity=IncidentSeverity.MEDIUM,
-            affected_records=14,
-            diagnosis="Coordinate inversion detected on touchline throw-in events in round 22.",
-            remediation="Applied normalization transform v2.1 to invert coordinate axes for provider feed.",
-            evidence=["Event #19283 x=124.5 > 120 max", "Event #19284 y=-2.1 < 0 min"],
-        )
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            # Seed an operational data quality incident
+            _GLOBAL_DATA_QUALITY_ENGINE.report_incident(
+                incident_id="dqi_ligue1_coord_drift_2024",
+                source="api_football",
+                resource="events",
+                entity="canonical_matches",
+                severity=IncidentSeverity.MEDIUM,
+                affected_records=14,
+                diagnosis="Coordinate inversion detected on touchline throw-in events in round 22.",
+                remediation="Applied normalization transform v2.1 to invert coordinate axes for provider feed.",
+                evidence=["Event #19283 x=124.5 > 120 max", "Event #19284 y=-2.1 < 0 min"],
+            )
     return _GLOBAL_DATA_QUALITY_ENGINE

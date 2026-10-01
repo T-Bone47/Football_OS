@@ -65,7 +65,7 @@ async def api_client(postgres_url):
 
     data = {}
     async with Session() as session:
-        comp = Competition(name="La Liga", country="Spain")
+        comp = Competition(type="LEAGUE", name="La Liga", country="Spain")
         season = Season(name="2025/2026", start_year=2025, end_year=2026)
         session.add_all([comp, season])
         await session.flush()

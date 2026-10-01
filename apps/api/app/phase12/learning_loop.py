@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from app.phase12 import RetrainRecommendation
+from app.dev_fixtures import dev_seed_enabled
 
 
 @dataclass
@@ -87,7 +88,8 @@ class ContinuousLearningPipeline:
 
     def __init__(self) -> None:
         self._jobs: dict[str, LearningPipelineJob] = {}
-        self._seed_default_job()
+        if dev_seed_enabled():  # demo fixtures only (DEV_SEED)
+            self._seed_default_job()
 
     def _seed_default_job(self) -> None:
         seed = LearningPipelineJob(
