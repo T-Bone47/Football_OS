@@ -1,5 +1,6 @@
 import pytest
 import pytest_asyncio
+from phase17_support import bearer_headers
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -56,7 +57,7 @@ async def app_client(postgres_url):
         await session.commit()
 
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+    async with httpx.AsyncClient(transport=transport, base_url="http://test", headers=await bearer_headers(Session)) as client:
         yield client
 
     app.dependency_overrides.clear()

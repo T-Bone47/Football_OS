@@ -19,7 +19,7 @@ Exposes REST endpoints for:
 from __future__ import annotations
 
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from app.phase12 import (
@@ -67,7 +67,6 @@ class BenchmarkCreateRequest(BaseModel):
     )
     source_reference_players: list[str] = Field(default_factory=lambda: ["William Saliba", "John Stones"])
     competition_scope: list[str] = Field(default_factory=lambda: ["GB-PL", "ES-L1", "IT-SA", "DE-BL", "FR-L1"])
-    created_by: str = "Scout"
 
 
 class CandidateDiscoveryRequest(BaseModel):
@@ -156,7 +155,7 @@ def list_benchmarks() -> list[dict[str, Any]]:
 
 
 @router.post("/benchmarks")
-def create_benchmark(req: BenchmarkCreateRequest) -> dict[str, Any]:
+def create_benchmark(req: BenchmarkCreateRequest, request: Request) -> dict[str, Any]:
     """Creates a new versioned benchmark profile."""
     profile = benchmark_registry.create_benchmark(
         name=req.name,
@@ -167,7 +166,7 @@ def create_benchmark(req: BenchmarkCreateRequest) -> dict[str, Any]:
         source_reference_players=req.source_reference_players,
         competition_scope=req.competition_scope,
         version=req.version,
-        created_by=req.created_by,
+        created_by=request.state.principal.email,  # from the authenticated principal
     )
     return profile.to_dict()
 

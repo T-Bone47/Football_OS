@@ -38,7 +38,7 @@ from app.ingestion.factory import build_snapshot_store
 from app.phase17 import AlertState, CompetitionOperationalState, OpsRole
 from app.phase17.alerts import InvalidCondition, channel_status, evaluate_item, transition, validate_condition
 from app.phase17.audit import append_event, verify_chain
-from app.phase17.auth import current_user, issue_user, load_project_for, rate_limit_backend, require
+from app.phase17.auth import current_user, issue_user, load_project_for, rate_limit_backend, require, revoke_token, rotate_token
 from app.phase17.copilot_v7 import ToolContext, answer
 from app.phase17.live_ingestion import SCHEDULES, LiveIngestionRunner
 from app.phase17.match_state import match_state
@@ -93,7 +93,29 @@ async def create_user(body: UserCreate, admin: OpsUser = Depends(require("user:a
     await append_event(session, "USER_CREATED", str(admin.id), str(user.id), {"role": body.role.value})
     await session.commit()
     return {"id": str(user.id), "role": user.role, "token": token,
+            "token_expires_at": user.token_expires_at.isoformat() if user.token_expires_at else None,
             "note": "the token is shown once and stored only as a SHA-256 hash"}
+
+
+@router.post("/users/{user_id}/revoke")
+async def revoke_user_token(user_id: uuid.UUID, admin: OpsUser = Depends(require("user:admin")),
+                            session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    target = await session.get(OpsUser, user_id)
+    if target is None or target.organization_id != admin.organization_id:
+        raise HTTPException(status_code=404, detail="user not found")
+    await revoke_token(session, target)
+    await append_event(session, "TOKEN_REVOKED", str(admin.id), str(target.id), {})
+    await session.commit()
+    return {"id": str(target.id), "token_revoked_at": target.token_revoked_at.isoformat()}
+
+
+@router.post("/me/rotate-token")
+async def rotate_my_token(user: OpsUser = Depends(current_user), session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    token = await rotate_token(session, user)
+    await append_event(session, "TOKEN_ROTATED", str(user.id), str(user.id), {})
+    await session.commit()
+    return {"token": token, "token_expires_at": user.token_expires_at.isoformat(),
+            "note": "the previous token no longer works"}
 
 
 # --------------------------------------------------------------- system / providers

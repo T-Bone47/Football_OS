@@ -61,8 +61,23 @@ async def test_ready_only_when_database_is_at_code_head(api, p17_session):
         await p17_session.commit()
 
 
+async def _h(session) -> dict[str, str]:
+    from app.phase17 import OpsRole
+    from app.phase17.auth import issue_user
+
+    _, token = await issue_user(session, "Org", f"v-{uuid.uuid4().hex[:6]}@example.test", "V", OpsRole.VIEWER)
+    await session.commit()
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def test_status_endpoints_require_authentication(api):
+    assert (await api.get("/data-status")).status_code == 401
+    assert (await api.get("/model-status")).status_code == 401
+
+
 async def test_data_status_measures_provenance_coverage(api, p17_session):
-    empty = (await api.get("/data-status")).json()
+    h = await _h(p17_session)
+    empty = (await api.get("/data-status", headers=h)).json()
     assert empty["status"] == "NO_DATA"
     assert empty["latest_snapshot_age_hours"] == "NOT_MEASURED"
     assert empty["provenance_coverage"]["matches"]["coverage"] == "NOT_MEASURED"
@@ -83,14 +98,15 @@ async def test_data_status_measures_provenance_coverage(api, p17_session):
                           date=datetime(2099, 5, 1, tzinfo=timezone.utc), status="SCHEDULED"))
     await p17_session.commit()
 
-    body = (await api.get("/data-status")).json()
+    body = (await api.get("/data-status", headers=h)).json()
     assert body["counts"]["matches"] == 1
     assert body["provenance_coverage"]["matches"] == {"rows": 1, "rows_with_snapshot": 0, "coverage": 0.0}
     assert body["status"] == "PROVENANCE_GAPS" and "matches" in body["tables_with_provenance_gaps"]
 
 
 async def test_model_status_reads_the_registry(api, p17_session):
-    body = (await api.get("/model-status")).json()
+    h = await _h(p17_session)
+    body = (await api.get("/model-status", headers=h)).json()
     assert body["status"] == "NO_MODELS_REGISTERED" and body["models"] == []
     assert "active_engines" not in body  # the old hardcoded engine list is gone
 
@@ -99,7 +115,7 @@ async def test_model_status_reads_the_registry(api, p17_session):
         "supported_competitions, deployment_state, validation_metrics, min_history_matches) VALUES "
         "(gen_random_uuid(), 'match_outcome', 'm', '1', 'f1', 'd1', '[]', 'REGISTERED', '{}', 5)"))
     await p17_session.commit()
-    body = (await api.get("/model-status")).json()
+    body = (await api.get("/model-status", headers=h)).json()
     assert body["status"] == "NO_SERVABLE_MODEL"
     assert body["models"][0]["status"] == "REGISTERED" and body["models"][0]["has_validation_evidence"] is False
 

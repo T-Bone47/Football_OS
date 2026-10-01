@@ -205,6 +205,7 @@ class Organization(Base):
 
 class OpsUser(Base):
     __tablename__ = "ops_users"
+    __table_args__ = (UniqueConstraint("oidc_issuer", "oidc_subject", name="uq_ops_user_oidc_subject"),)
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     organization_id: Mapped[uuid.UUID] = mapped_column(
@@ -217,6 +218,14 @@ class OpsUser(Base):
     token_sha256: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = _created()
+    # Phase 18 (migration 0017): bearer tokens expire and can be revoked
+    # individually (logout, rotation) without disabling the account.
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    token_revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # OIDC binding: a verified ID token maps to this user by (issuer, subject).
+    # Users are provisioned by an ADMIN; an unknown subject is refused.
+    oidc_issuer: Mapped[str | None] = mapped_column(String(512))
+    oidc_subject: Mapped[str | None] = mapped_column(String(255))
 
 
 class Project(Base):

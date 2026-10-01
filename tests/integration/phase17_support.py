@@ -102,3 +102,19 @@ class StatsBombFixtureTransport(httpx.AsyncBaseTransport):
             return httpx.Response(200, content=json.dumps(self.payloads[path]).encode(),
                                   headers={"content-type": "application/json"}, request=request)
         return httpx.Response(404, request=request)
+
+
+async def bearer_headers(sessionmaker, role: str = "ANALYST") -> dict[str, str]:
+    """A real bearer token for a freshly issued user in the test database.
+    Integration tests authenticate exactly like a client would; there is no
+    auth bypass in this suite."""
+    import uuid as _uuid
+
+    from app.phase17 import OpsRole
+    from app.phase17.auth import issue_user
+
+    async with sessionmaker() as s:
+        _, token = await issue_user(s, "Integration tests", f"it-{_uuid.uuid4().hex[:10]}@example.test",
+                                    "Integration test user", OpsRole(role))
+        await s.commit()
+    return {"Authorization": f"Bearer {token}"}

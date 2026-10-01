@@ -230,6 +230,12 @@
       "header:authorization"
     ]
   },
+  "POST /api/v1/ops/me/rotate-token": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
   "POST /api/v1/ops/models/{model_id}/demote": {
     "body": null,
     "params": [
@@ -281,6 +287,13 @@
     "body": "UserCreate",
     "params": [
       "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/users/{user_id}/revoke": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:user_id*"
     ]
   },
   "POST /api/v1/ops/watchlists/{watchlist_id}/evaluate": {

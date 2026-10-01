@@ -104,4 +104,6 @@ async def test_phase10_and_phase11_readiness_are_the_authoritative_engine(api, p
     b = (await api.get("/api/phase11/competitions/coverage", headers=h)).json()
     c = (await api.get("/api/v1/ops/competitions/readiness", headers=h)).json()["competitions"]
     assert a == b == c
-    assert (await api.post("/api/phase11/competitions/EPL/advance", json={})).status_code == 410
+    assert (await api.post("/api/phase11/competitions/EPL/advance", json={})).status_code == 401
+    admin = await _token(p17_session, OpsRole.ADMIN)
+    assert (await api.post("/api/phase11/competitions/EPL/advance", json={}, headers=admin)).status_code == 410

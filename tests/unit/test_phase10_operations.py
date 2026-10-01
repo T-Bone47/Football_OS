@@ -468,7 +468,15 @@ class TestPhase10ApiRoutes:
     def test_api_get_competition_readiness(self, client):
         """Phase 18 (R7): readiness is no longer a declared EPL profile. The
         route serves the authoritative engine and requires authentication."""
-        resp = client.get("/api/phase10/operations/competition-readiness/EPL")
+        from app.auth_gate import auth_gate
+        from app.main import app as _app
+
+        gate = _app.dependency_overrides.pop(auth_gate, None)  # anonymous: no test principal
+        try:
+            resp = client.get("/api/phase10/operations/competition-readiness/EPL")
+        finally:
+            if gate:
+                _app.dependency_overrides[auth_gate] = gate
         assert resp.status_code == 401
 
     def test_api_watchlist_alerts(self, client):

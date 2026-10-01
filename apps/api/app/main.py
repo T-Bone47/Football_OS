@@ -21,8 +21,9 @@ from app.db.session import engine, get_session
 from app.decisions.copilot import orchestrate_copilot_decision
 
 from app.observability.correlation import CorrelationIdMiddleware
+from app.auth_gate import auth_gate
 from app.dev_fixtures import dev_seed_enabled
-from app.phase17.auth import require
+from app.phase17.auth import current_user, require
 from app.db.models.operations import OpsUser
 from app.phase17.environments import enforce_startup_policy
 from app.phase17.telemetry import LatencyTelemetryMiddleware
@@ -38,7 +39,8 @@ settings = get_settings()
 # defaults, wildcard CORS or non-durable snapshot storage.
 environment_audit = enforce_startup_policy(settings)
 
-app = FastAPI(title="Football Intelligence OS", version="0.1.0")
+# Deny by default: every route runs the access gate first (app/auth_gate.py).
+app = FastAPI(title="Football Intelligence OS", version="0.1.0", dependencies=[Depends(auth_gate)])
 
 app.add_middleware(LatencyTelemetryMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
@@ -111,19 +113,23 @@ async def data_status(session: AsyncSession = Depends(get_session)) -> dict:
 
 
 @app.get("/api/auth/me")
-async def get_current_user() -> dict:
-    """Provides local scout analyst session for decision-room workspace access."""
-    return {
-        "user_id": "scout_01",
-        "email": "scout@football-intelligence.local",
-        "name": "Head of Scouting",
-        "picture": None,
-    }
+async def get_current_principal(user: OpsUser = Depends(current_user)) -> dict:
+    """The authenticated principal. There is no anonymous or default user."""
+    return {"user_id": str(user.id), "email": user.email, "name": user.name, "role": user.role,
+            "organization_id": str(user.organization_id),
+            "token_expires_at": user.token_expires_at.isoformat() if user.token_expires_at else None,
+            "auth_method": "OIDC" if user.oidc_subject else "BEARER_TOKEN"}
 
 
 @app.post("/api/auth/logout")
-async def logout() -> dict:
-    return {"ok": True}
+async def logout(user: OpsUser = Depends(current_user), session: AsyncSession = Depends(get_session)) -> dict:
+    """Revokes the caller's bearer token. The account stays active; an ADMIN
+    (or the user via rotation) issues a new token."""
+    from app.phase17.auth import revoke_token
+
+    await revoke_token(session, user)
+    await session.commit()
+    return {"ok": True, "token_revoked": True}
 
 
 @app.get("/api/status")

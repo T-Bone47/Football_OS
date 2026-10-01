@@ -38,6 +38,13 @@ class Settings(BaseSettings):
     # Demo fixtures for the legacy Phase 10-16 engines. Off unless explicitly
     # enabled, and refused at startup in staging and production.
     dev_seed: bool = False
+    # Authentication. Local bearer tokens expire after TOKEN_TTL_HOURS. When the
+    # three OIDC settings are present, RS256 ID/access tokens from that issuer
+    # are verified against its JWKS and mapped to a provisioned user.
+    token_ttl_hours: int = 720
+    oidc_issuer: str | None = None
+    oidc_audience: str | None = None
+    oidc_jwks_url: str | None = None
     model_artifact_dir: str = "./data/models"
     # Notification channels are only enabled when configured. IN_APP is
     # always available because it is just a database row.

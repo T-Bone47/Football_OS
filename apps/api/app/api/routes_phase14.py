@@ -24,7 +24,7 @@ Zero business logic inside router functions.
 from __future__ import annotations
 
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from app.phase14 import OutcomeType
@@ -60,7 +60,6 @@ class CreateResearchRequest(BaseModel):
     topic: str
     hypothesis: str
     items: list[dict[str, Any]]
-    created_by: str = "analyst_research_lead"
 
 
 class CopilotOutcomeQueryRequest(BaseModel):
@@ -219,13 +218,13 @@ def list_research_dossiers() -> list[dict[str, Any]]:
 
 
 @router.post("/research")
-def create_research_dossier(req: CreateResearchRequest) -> dict[str, Any]:
+def create_research_dossier(req: CreateResearchRequest, request: Request) -> dict[str, Any]:
     """Creates a new research dossier with explicit epistemic tagging."""
     dossier = research_workspace_engine.create_research_dossier(
         topic=req.topic,
         hypothesis=req.hypothesis,
         items=req.items,
-        created_by=req.created_by,
+        created_by=request.state.principal.email,  # from the authenticated principal
     )
     return dossier.to_dict()
 

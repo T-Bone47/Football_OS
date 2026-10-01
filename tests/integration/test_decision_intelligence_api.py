@@ -15,6 +15,7 @@ Verifies:
 import uuid
 import pytest
 import pytest_asyncio
+from phase17_support import bearer_headers
 import httpx
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -111,7 +112,7 @@ async def decision_client(postgres_url):
         p3_id = str(p3.id)
 
     transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+    async with httpx.AsyncClient(transport=transport, base_url="http://test", headers=await bearer_headers(Session)) as client:
         client.test_club_id = club_id
         client.p1_id = p1_id
         client.p2_id = p2_id
