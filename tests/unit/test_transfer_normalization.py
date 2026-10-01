@@ -12,6 +12,12 @@ from app.market.normalizer import (
 from app.market.schemas import NormalizedTransfer
 from app.market.taxonomy import DataQualityStatus, TransferFeeStatus
 
+_SNAPSHOT = Path("data/bronze/api-football/transfers/b0beb3a6793a7c02d9ada731a6edcd2e2e1b9ed78f425735a154688de94eabf6.json")
+requires_snapshot = pytest.mark.skipif(
+    not _SNAPSHOT.exists(),
+    reason="NOT_TESTED: requires Bronze evidence at 'data/bronze/api-football/transfers/b0beb3a6...json', which .gitignore excludes and the repository never contained (docs/PHASE_17_RECONNAISSANCE.md R1/R21). Runs wherever the files exist.",
+)
+
 
 @pytest.fixture
 def sample_payload():
@@ -19,6 +25,7 @@ def sample_payload():
     return json.loads(snapshot_path.read_bytes())
 
 
+@requires_snapshot
 def test_transform_api_football_transfers(sample_payload):
     transfers = transform_api_football_transfers(sample_payload)
     assert len(transfers) > 30
@@ -123,6 +130,7 @@ def test_assess_transfer_quality():
     assert "fee_undisclosed" in reasons
 
 
+@requires_snapshot
 def test_normalization_idempotency(sample_payload):
     """Normalization must be deterministic and pure."""
     run1 = transform_api_football_transfers(sample_payload)

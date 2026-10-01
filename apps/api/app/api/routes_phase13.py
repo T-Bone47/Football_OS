@@ -148,9 +148,12 @@ def get_squad_baseline(club_id: str) -> dict[str, Any]:
     """Returns verified squad roster, tactical identity, and financial state (§4)."""
     try:
         baseline = squad_baseline_registry.get_baseline(club_id)
-        return baseline.to_dict()
     except KeyError:
+        baseline = None
+    # get_baseline returns None for an unknown club; this used to surface as a 500.
+    if baseline is None:
         raise HTTPException(status_code=404, detail=f"Club baseline '{club_id}' not found.")
+    return baseline.to_dict()
 
 
 @router.get("/tactical/{club_id}")

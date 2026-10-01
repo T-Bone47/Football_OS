@@ -78,5 +78,11 @@ class DataSnapshot(Base):
     validation_errors: Mapped[str | None] = mapped_column(Text)
     size_bytes: Mapped[int | None] = mapped_column(BigInteger)
     retrieved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Phase 17 (migration 0014): what the provider actually returned, so a
+    # snapshot can be traced to a request rather than to an insert time.
+    provider_retrieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    http_status: Mapped[int | None] = mapped_column(Integer)
+    content_type: Mapped[str | None] = mapped_column(String(128))
+    source_url: Mapped[str | None] = mapped_column(String(1024))
 
     ingestion_run: Mapped["IngestionRun"] = relationship(back_populates="snapshots")

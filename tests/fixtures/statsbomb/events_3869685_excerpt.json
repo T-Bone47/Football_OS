@@ -1,0 +1,4831 @@
+[
+ {
+  "id": "0584ee21-e3dd-4d9f-95a0-5b5e84be25c3",
+  "index": 1,
+  "period": 1,
+  "timestamp": "00:00:00.000",
+  "minute": 0,
+  "second": 0,
+  "type": {
+   "id": 35,
+   "name": "Starting XI"
+  },
+  "possession": 1,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "tactics": {
+   "formation": 433,
+   "lineup": [
+    {
+     "player": {
+      "id": 6909,
+      "name": "Dami\u00e1n Emiliano Mart\u00ednez"
+     },
+     "position": {
+      "id": 1,
+      "name": "Goalkeeper"
+     },
+     "jersey_number": 23
+    },
+    {
+     "player": {
+      "id": 29201,
+      "name": "Nahuel Molina Lucero"
+     },
+     "position": {
+      "id": 2,
+      "name": "Right Back"
+     },
+     "jersey_number": 26
+    },
+    {
+     "player": {
+      "id": 20572,
+      "name": "Cristian Gabriel Romero"
+     },
+     "position": {
+      "id": 3,
+      "name": "Right Center Back"
+     },
+     "jersey_number": 13
+    },
+    {
+     "player": {
+      "id": 3090,
+      "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+     },
+     "position": {
+      "id": 5,
+      "name": "Left Center Back"
+     },
+     "jersey_number": 19
+    },
+    {
+     "player": {
+      "id": 5507,
+      "name": "Nicol\u00e1s Alejandro Tagliafico"
+     },
+     "position": {
+      "id": 6,
+      "name": "Left Back"
+     },
+     "jersey_number": 3
+    },
+    {
+     "player": {
+      "id": 38718,
+      "name": "Enzo Fernandez"
+     },
+     "position": {
+      "id": 10,
+      "name": "Center Defensive Midfield"
+     },
+     "jersey_number": 24
+    },
+    {
+     "player": {
+      "id": 7797,
+      "name": "Rodrigo Javier De Paul"
+     },
+     "position": {
+      "id": 13,
+      "name": "Right Center Midfield"
+     },
+     "jersey_number": 7
+    },
+    {
+     "player": {
+      "id": 27886,
+      "name": "Alexis Mac Allister"
+     },
+     "position": {
+      "id": 15,
+      "name": "Left Center Midfield"
+     },
+     "jersey_number": 20
+    },
+    {
+     "player": {
+      "id": 5503,
+      "name": "Lionel Andr\u00e9s Messi Cuccittini"
+     },
+     "position": {
+      "id": 17,
+      "name": "Right Wing"
+     },
+     "jersey_number": 10
+    },
+    {
+     "player": {
+      "id": 2995,
+      "name": "\u00c1ngel Fabi\u00e1n Di Mar\u00eda Hern\u00e1ndez"
+     },
+     "position": {
+      "id": 21,
+      "name": "Left Wing"
+     },
+     "jersey_number": 11
+    },
+    {
+     "player": {
+      "id": 29560,
+      "name": "Juli\u00e1n \u00c1lvarez"
+     },
+     "position": {
+      "id": 23,
+      "name": "Center Forward"
+     },
+     "jersey_number": 9
+    }
+   ]
+  }
+ },
+ {
+  "id": "b32679f8-942e-4122-96a2-015caf75e628",
+  "index": 2,
+  "period": 1,
+  "timestamp": "00:00:00.000",
+  "minute": 0,
+  "second": 0,
+  "type": {
+   "id": 35,
+   "name": "Starting XI"
+  },
+  "possession": 1,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "tactics": {
+   "formation": 4231,
+   "lineup": [
+    {
+     "player": {
+      "id": 3099,
+      "name": "Hugo Lloris"
+     },
+     "position": {
+      "id": 1,
+      "name": "Goalkeeper"
+     },
+     "jersey_number": 1
+    },
+    {
+     "player": {
+      "id": 4445,
+      "name": "Jules Kound\u00e9"
+     },
+     "position": {
+      "id": 2,
+      "name": "Right Back"
+     },
+     "jersey_number": 5
+    },
+    {
+     "player": {
+      "id": 5485,
+      "name": "Rapha\u00ebl Varane"
+     },
+     "position": {
+      "id": 3,
+      "name": "Right Center Back"
+     },
+     "jersey_number": 4
+    },
+    {
+     "player": {
+      "id": 8519,
+      "name": "Dayotchanculle Upamecano"
+     },
+     "position": {
+      "id": 5,
+      "name": "Left Center Back"
+     },
+     "jersey_number": 18
+    },
+    {
+     "player": {
+      "id": 6704,
+      "name": "Theo Bernard Fran\u00e7ois Hern\u00e1ndez"
+     },
+     "position": {
+      "id": 6,
+      "name": "Left Back"
+     },
+     "jersey_number": 22
+    },
+    {
+     "player": {
+      "id": 10481,
+      "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+     },
+     "position": {
+      "id": 9,
+      "name": "Right Defensive Midfield"
+     },
+     "jersey_number": 8
+    },
+    {
+     "player": {
+      "id": 3026,
+      "name": "Adrien Rabiot"
+     },
+     "position": {
+      "id": 11,
+      "name": "Left Defensive Midfield"
+     },
+     "jersey_number": 14
+    },
+    {
+     "player": {
+      "id": 5477,
+      "name": "Ousmane Demb\u00e9l\u00e9"
+     },
+     "position": {
+      "id": 17,
+      "name": "Right Wing"
+     },
+     "jersey_number": 11
+    },
+    {
+     "player": {
+      "id": 5487,
+      "name": "Antoine Griezmann"
+     },
+     "position": {
+      "id": 19,
+      "name": "Center Attacking Midfield"
+     },
+     "jersey_number": 7
+    },
+    {
+     "player": {
+      "id": 3009,
+      "name": "Kylian Mbapp\u00e9 Lottin"
+     },
+     "position": {
+      "id": 21,
+      "name": "Left Wing"
+     },
+     "jersey_number": 10
+    },
+    {
+     "player": {
+      "id": 3604,
+      "name": "Olivier Giroud"
+     },
+     "position": {
+      "id": 23,
+      "name": "Center Forward"
+     },
+     "jersey_number": 9
+    }
+   ]
+  }
+ },
+ {
+  "id": "954f6855-de22-46a2-8d09-6fe94eec2b9b",
+  "index": 3,
+  "period": 1,
+  "timestamp": "00:00:00.000",
+  "minute": 0,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 1,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "6404a8e8-afaf-489d-b65e-173a237ffed5"
+  ]
+ },
+ {
+  "id": "6404a8e8-afaf-489d-b65e-173a237ffed5",
+  "index": 4,
+  "period": 1,
+  "timestamp": "00:00:00.000",
+  "minute": 0,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 1,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "954f6855-de22-46a2-8d09-6fe94eec2b9b"
+  ]
+ },
+ {
+  "id": "f651a6c4-55e3-4e0f-a178-59414ba83d6a",
+  "index": 5,
+  "period": 1,
+  "timestamp": "00:00:00.578",
+  "minute": 0,
+  "second": 0,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 2,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 9,
+   "name": "From Kick Off"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 5487,
+   "name": "Antoine Griezmann"
+  },
+  "position": {
+   "id": 19,
+   "name": "Center Attacking Midfield"
+  },
+  "location": [
+   61.0,
+   40.1
+  ],
+  "duration": 0.975702,
+  "related_events": [
+   "97b5dc82-547a-4f93-a632-a2a8daf5ac98"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 10481,
+    "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+   },
+   "length": 13.364505,
+   "angle": 2.907503,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    48.0,
+    43.2
+   ],
+   "type": {
+    "id": 65,
+    "name": "Kick Off"
+   },
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   }
+  }
+ },
+ {
+  "id": "97b5dc82-547a-4f93-a632-a2a8daf5ac98",
+  "index": 6,
+  "period": 1,
+  "timestamp": "00:00:01.554",
+  "minute": 0,
+  "second": 1,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 2,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 9,
+   "name": "From Kick Off"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 10481,
+   "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+  },
+  "position": {
+   "id": 9,
+   "name": "Right Defensive Midfield"
+  },
+  "location": [
+   48.0,
+   43.2
+  ],
+  "related_events": [
+   "f651a6c4-55e3-4e0f-a178-59414ba83d6a"
+  ]
+ },
+ {
+  "id": "9707e590-1d55-4d25-a50f-475019356152",
+  "index": 7,
+  "period": 1,
+  "timestamp": "00:00:01.554",
+  "minute": 0,
+  "second": 1,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 2,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 9,
+   "name": "From Kick Off"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 10481,
+   "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+  },
+  "position": {
+   "id": 9,
+   "name": "Right Defensive Midfield"
+  },
+  "location": [
+   48.0,
+   43.2
+  ],
+  "duration": 1.170175,
+  "related_events": [
+   "97b5dc82-547a-4f93-a632-a2a8daf5ac98",
+   "a5956ecc-d637-44d2-8705-e2079e12013e"
+  ],
+  "carry": {
+   "end_location": [
+    49.7,
+    43.6
+   ]
+  }
+ },
+ {
+  "id": "a5956ecc-d637-44d2-8705-e2079e12013e",
+  "index": 8,
+  "period": 1,
+  "timestamp": "00:00:02.724",
+  "minute": 0,
+  "second": 2,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 2,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 9,
+   "name": "From Kick Off"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 10481,
+   "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+  },
+  "position": {
+   "id": 9,
+   "name": "Right Defensive Midfield"
+  },
+  "location": [
+   49.7,
+   43.6
+  ],
+  "duration": 4.179173,
+  "related_events": [
+   "810629a9-ac49-494a-b859-89ef3ff36c57"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 3604,
+    "name": "Olivier Giroud"
+   },
+   "length": 62.37732,
+   "angle": -0.7343642,
+   "height": {
+    "id": 3,
+    "name": "High Pass"
+   },
+   "end_location": [
+    96.0,
+    1.8
+   ],
+   "switch": true,
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "outcome": {
+    "id": 75,
+    "name": "Out"
+   }
+  }
+ },
+ {
+  "id": "810629a9-ac49-494a-b859-89ef3ff36c57",
+  "index": 9,
+  "period": 1,
+  "timestamp": "00:00:06.903",
+  "minute": 0,
+  "second": 6,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 2,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 9,
+   "name": "From Kick Off"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3604,
+   "name": "Olivier Giroud"
+  },
+  "position": {
+   "id": 23,
+   "name": "Center Forward"
+  },
+  "location": [
+   92.7,
+   11.7
+  ],
+  "related_events": [
+   "a5956ecc-d637-44d2-8705-e2079e12013e"
+  ],
+  "ball_receipt": {
+   "outcome": {
+    "id": 9,
+    "name": "Incomplete"
+   }
+  }
+ },
+ {
+  "id": "5ba6dfab-49f0-4225-bbb6-8b1e27bc729a",
+  "index": 10,
+  "period": 1,
+  "timestamp": "00:00:16.423",
+  "minute": 0,
+  "second": 16,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 29201,
+   "name": "Nahuel Molina Lucero"
+  },
+  "position": {
+   "id": 2,
+   "name": "Right Back"
+  },
+  "location": [
+   22.7,
+   80.0
+  ],
+  "duration": 1.123351,
+  "related_events": [
+   "2be9a9f2-84ab-4935-8fb2-bd497202fa2f"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 7797,
+    "name": "Rodrigo Javier De Paul"
+   },
+   "length": 14.139661,
+   "angle": -0.3463541,
+   "height": {
+    "id": 2,
+    "name": "Low Pass"
+   },
+   "end_location": [
+    36.0,
+    75.2
+   ],
+   "type": {
+    "id": 67,
+    "name": "Throw-in"
+   }
+  }
+ },
+ {
+  "id": "54bd94ec-86b7-4428-b71b-286c1e080b9f",
+  "index": 11,
+  "period": 1,
+  "timestamp": "00:00:17.350",
+  "minute": 0,
+  "second": 17,
+  "type": {
+   "id": 17,
+   "name": "Pressure"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3026,
+   "name": "Adrien Rabiot"
+  },
+  "position": {
+   "id": 11,
+   "name": "Left Defensive Midfield"
+  },
+  "location": [
+   84.5,
+   8.5
+  ],
+  "duration": 1.533107,
+  "related_events": [
+   "2be9a9f2-84ab-4935-8fb2-bd497202fa2f",
+   "a511000a-bb39-4888-80e5-d81cabf8819e"
+  ]
+ },
+ {
+  "id": "2be9a9f2-84ab-4935-8fb2-bd497202fa2f",
+  "index": 12,
+  "period": 1,
+  "timestamp": "00:00:17.546",
+  "minute": 0,
+  "second": 17,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 7797,
+   "name": "Rodrigo Javier De Paul"
+  },
+  "position": {
+   "id": 13,
+   "name": "Right Center Midfield"
+  },
+  "location": [
+   36.0,
+   75.2
+  ],
+  "under_pressure": true,
+  "related_events": [
+   "54bd94ec-86b7-4428-b71b-286c1e080b9f",
+   "5ba6dfab-49f0-4225-bbb6-8b1e27bc729a"
+  ]
+ },
+ {
+  "id": "a511000a-bb39-4888-80e5-d81cabf8819e",
+  "index": 13,
+  "period": 1,
+  "timestamp": "00:00:17.546",
+  "minute": 0,
+  "second": 17,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 7797,
+   "name": "Rodrigo Javier De Paul"
+  },
+  "position": {
+   "id": 13,
+   "name": "Right Center Midfield"
+  },
+  "location": [
+   36.0,
+   75.2
+  ],
+  "duration": 1.458978,
+  "under_pressure": true,
+  "related_events": [
+   "2be9a9f2-84ab-4935-8fb2-bd497202fa2f",
+   "54bd94ec-86b7-4428-b71b-286c1e080b9f",
+   "6cb6421d-f26c-4193-95c5-fa22b7c69247",
+   "8932a9c2-693a-4dde-afad-5115c7237e87"
+  ],
+  "carry": {
+   "end_location": [
+    35.4,
+    75.4
+   ]
+  }
+ },
+ {
+  "id": "8932a9c2-693a-4dde-afad-5115c7237e87",
+  "index": 14,
+  "period": 1,
+  "timestamp": "00:00:19.005",
+  "minute": 0,
+  "second": 19,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3026,
+   "name": "Adrien Rabiot"
+  },
+  "position": {
+   "id": 11,
+   "name": "Left Defensive Midfield"
+  },
+  "location": [
+   84.7,
+   4.7
+  ],
+  "duration": 0.0,
+  "related_events": [
+   "6cb6421d-f26c-4193-95c5-fa22b7c69247",
+   "a511000a-bb39-4888-80e5-d81cabf8819e"
+  ]
+ },
+ {
+  "id": "6cb6421d-f26c-4193-95c5-fa22b7c69247",
+  "index": 15,
+  "period": 1,
+  "timestamp": "00:00:19.005",
+  "minute": 0,
+  "second": 19,
+  "type": {
+   "id": 21,
+   "name": "Foul Won"
+  },
+  "possession": 3,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 7797,
+   "name": "Rodrigo Javier De Paul"
+  },
+  "position": {
+   "id": 13,
+   "name": "Right Center Midfield"
+  },
+  "location": [
+   35.4,
+   75.4
+  ],
+  "duration": 0.0,
+  "under_pressure": true,
+  "related_events": [
+   "8932a9c2-693a-4dde-afad-5115c7237e87"
+  ]
+ },
+ {
+  "id": "27829865-a43c-4c50-b545-b09e8a965e16",
+  "index": 16,
+  "period": 1,
+  "timestamp": "00:00:31.843",
+  "minute": 0,
+  "second": 31,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 7797,
+   "name": "Rodrigo Javier De Paul"
+  },
+  "position": {
+   "id": 13,
+   "name": "Right Center Midfield"
+  },
+  "location": [
+   41.1,
+   73.9
+  ],
+  "duration": 1.660349,
+  "related_events": [
+   "22dde0b6-5149-411e-a910-68f6aa5b7523"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 20572,
+    "name": "Cristian Gabriel Romero"
+   },
+   "length": 21.062288,
+   "angle": -2.5865161,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    23.2,
+    62.8
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 62,
+    "name": "Free Kick"
+   }
+  }
+ },
+ {
+  "id": "22dde0b6-5149-411e-a910-68f6aa5b7523",
+  "index": 17,
+  "period": 1,
+  "timestamp": "00:00:33.503",
+  "minute": 0,
+  "second": 33,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   23.2,
+   62.8
+  ],
+  "related_events": [
+   "27829865-a43c-4c50-b545-b09e8a965e16"
+  ]
+ },
+ {
+  "id": "55bc4eb3-a4c0-4f12-b8c5-c6057381360b",
+  "index": 18,
+  "period": 1,
+  "timestamp": "00:00:33.503",
+  "minute": 0,
+  "second": 33,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   23.2,
+   62.8
+  ],
+  "duration": 1.224406,
+  "related_events": [
+   "22dde0b6-5149-411e-a910-68f6aa5b7523",
+   "59420b0c-94cc-4fb8-86fb-e1105936f6eb"
+  ],
+  "carry": {
+   "end_location": [
+    24.7,
+    59.4
+   ]
+  }
+ },
+ {
+  "id": "59420b0c-94cc-4fb8-86fb-e1105936f6eb",
+  "index": 19,
+  "period": 1,
+  "timestamp": "00:00:34.727",
+  "minute": 0,
+  "second": 34,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   24.7,
+   59.4
+  ],
+  "duration": 1.814283,
+  "related_events": [
+   "29f8db49-f71f-4177-9825-3e93697fa4ba"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 3090,
+    "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+   },
+   "length": 27.387589,
+   "angle": -1.6879051,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    21.5,
+    32.2
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "29f8db49-f71f-4177-9825-3e93697fa4ba",
+  "index": 20,
+  "period": 1,
+  "timestamp": "00:00:36.542",
+  "minute": 0,
+  "second": 36,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   21.5,
+   32.2
+  ],
+  "related_events": [
+   "59420b0c-94cc-4fb8-86fb-e1105936f6eb"
+  ]
+ },
+ {
+  "id": "45e89cea-452a-423d-91c7-31750ef3dca5",
+  "index": 21,
+  "period": 1,
+  "timestamp": "00:00:36.542",
+  "minute": 0,
+  "second": 36,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   21.5,
+   32.2
+  ],
+  "duration": 2.685029,
+  "related_events": [
+   "29f8db49-f71f-4177-9825-3e93697fa4ba",
+   "71cb648d-11fe-4275-b838-cbcfc62bee04"
+  ],
+  "carry": {
+   "end_location": [
+    24.0,
+    27.1
+   ]
+  }
+ },
+ {
+  "id": "71cb648d-11fe-4275-b838-cbcfc62bee04",
+  "index": 22,
+  "period": 1,
+  "timestamp": "00:00:39.227",
+  "minute": 0,
+  "second": 39,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   24.0,
+   27.1
+  ],
+  "duration": 1.121537,
+  "related_events": [
+   "a5d54bb6-ba44-46ac-bba2-9c3c5d354283"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 20572,
+    "name": "Cristian Gabriel Romero"
+   },
+   "length": 22.318827,
+   "angle": 1.6740316,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    21.7,
+    49.3
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "a5d54bb6-ba44-46ac-bba2-9c3c5d354283",
+  "index": 23,
+  "period": 1,
+  "timestamp": "00:00:40.348",
+  "minute": 0,
+  "second": 40,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   21.7,
+   49.3
+  ],
+  "related_events": [
+   "71cb648d-11fe-4275-b838-cbcfc62bee04"
+  ]
+ },
+ {
+  "id": "42431b57-23ae-42bb-a0a7-c6b1c4c0cec0",
+  "index": 24,
+  "period": 1,
+  "timestamp": "00:00:40.348",
+  "minute": 0,
+  "second": 40,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   21.7,
+   49.3
+  ],
+  "duration": 2.936683,
+  "related_events": [
+   "4fd86774-8f37-4ea2-b562-b1a43c5adedf",
+   "a5d54bb6-ba44-46ac-bba2-9c3c5d354283"
+  ],
+  "carry": {
+   "end_location": [
+    22.1,
+    49.8
+   ]
+  }
+ },
+ {
+  "id": "4fd86774-8f37-4ea2-b562-b1a43c5adedf",
+  "index": 25,
+  "period": 1,
+  "timestamp": "00:00:43.285",
+  "minute": 0,
+  "second": 43,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 20572,
+   "name": "Cristian Gabriel Romero"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "location": [
+   22.1,
+   49.8
+  ],
+  "duration": 1.586917,
+  "related_events": [
+   "b2e3ba63-98d2-4e2e-b456-3b9af203f6b2"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 3090,
+    "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+   },
+   "length": 22.58008,
+   "angle": -1.4865518,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    24.0,
+    27.3
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "b2e3ba63-98d2-4e2e-b456-3b9af203f6b2",
+  "index": 26,
+  "period": 1,
+  "timestamp": "00:00:44.872",
+  "minute": 0,
+  "second": 44,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   24.0,
+   27.3
+  ],
+  "related_events": [
+   "4fd86774-8f37-4ea2-b562-b1a43c5adedf"
+  ]
+ },
+ {
+  "id": "b31fbada-813c-4523-b528-0c585b756308",
+  "index": 27,
+  "period": 1,
+  "timestamp": "00:00:44.872",
+  "minute": 0,
+  "second": 44,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   24.0,
+   27.3
+  ],
+  "duration": 0.729416,
+  "related_events": [
+   "4a4fd288-9139-4987-9c2a-3ab0e1793310",
+   "b2e3ba63-98d2-4e2e-b456-3b9af203f6b2"
+  ],
+  "carry": {
+   "end_location": [
+    21.7,
+    24.5
+   ]
+  }
+ },
+ {
+  "id": "4a4fd288-9139-4987-9c2a-3ab0e1793310",
+  "index": 28,
+  "period": 1,
+  "timestamp": "00:00:45.601",
+  "minute": 0,
+  "second": 45,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   21.7,
+   24.5
+  ],
+  "duration": 1.328806,
+  "related_events": [
+   "f6c30bac-9533-4dd1-bff7-95900d699747"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 5507,
+    "name": "Nicol\u00e1s Alejandro Tagliafico"
+   },
+   "length": 21.953815,
+   "angle": -1.3457046,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    26.6,
+    3.1
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "34e4c829-064b-4e37-b02c-e997f114b25f",
+  "index": 29,
+  "period": 1,
+  "timestamp": "00:00:46.868",
+  "minute": 0,
+  "second": 46,
+  "type": {
+   "id": 17,
+   "name": "Pressure"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 5477,
+   "name": "Ousmane Demb\u00e9l\u00e9"
+  },
+  "position": {
+   "id": 17,
+   "name": "Right Wing"
+  },
+  "location": [
+   87.3,
+   73.5
+  ],
+  "duration": 0.437584,
+  "related_events": [
+   "b29ee2e5-444f-4a7a-9214-67dded65d069",
+   "f6c30bac-9533-4dd1-bff7-95900d699747"
+  ]
+ },
+ {
+  "id": "f6c30bac-9533-4dd1-bff7-95900d699747",
+  "index": 30,
+  "period": 1,
+  "timestamp": "00:00:46.930",
+  "minute": 0,
+  "second": 46,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5507,
+   "name": "Nicol\u00e1s Alejandro Tagliafico"
+  },
+  "position": {
+   "id": 6,
+   "name": "Left Back"
+  },
+  "location": [
+   26.6,
+   3.1
+  ],
+  "under_pressure": true,
+  "related_events": [
+   "34e4c829-064b-4e37-b02c-e997f114b25f",
+   "4a4fd288-9139-4987-9c2a-3ab0e1793310"
+  ]
+ },
+ {
+  "id": "b29ee2e5-444f-4a7a-9214-67dded65d069",
+  "index": 31,
+  "period": 1,
+  "timestamp": "00:00:46.930",
+  "minute": 0,
+  "second": 46,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5507,
+   "name": "Nicol\u00e1s Alejandro Tagliafico"
+  },
+  "position": {
+   "id": 6,
+   "name": "Left Back"
+  },
+  "location": [
+   26.6,
+   3.1
+  ],
+  "duration": 0.668659,
+  "under_pressure": true,
+  "related_events": [
+   "34e4c829-064b-4e37-b02c-e997f114b25f",
+   "bdf6b02c-1c04-4777-9617-bf73ececbf6c",
+   "f6c30bac-9533-4dd1-bff7-95900d699747"
+  ],
+  "carry": {
+   "end_location": [
+    29.2,
+    2.5
+   ]
+  }
+ },
+ {
+  "id": "bdf6b02c-1c04-4777-9617-bf73ececbf6c",
+  "index": 32,
+  "period": 1,
+  "timestamp": "00:00:47.599",
+  "minute": 0,
+  "second": 47,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5507,
+   "name": "Nicol\u00e1s Alejandro Tagliafico"
+  },
+  "position": {
+   "id": 6,
+   "name": "Left Back"
+  },
+  "location": [
+   29.2,
+   2.5
+  ],
+  "duration": 1.256802,
+  "related_events": [
+   "585421b8-3acc-4627-8b3c-74496fd20d1d"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 27886,
+    "name": "Alexis Mac Allister"
+   },
+   "length": 16.487875,
+   "angle": 0.10328964,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    45.6,
+    4.2
+   ],
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   }
+  }
+ },
+ {
+  "id": "a907b58d-360e-485d-b5dd-f85e72b59e94",
+  "index": 33,
+  "period": 1,
+  "timestamp": "00:00:48.332",
+  "minute": 0,
+  "second": 48,
+  "type": {
+   "id": 17,
+   "name": "Pressure"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 10481,
+   "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+  },
+  "position": {
+   "id": 9,
+   "name": "Right Defensive Midfield"
+  },
+  "location": [
+   73.6,
+   73.5
+  ],
+  "duration": 0.333605
+ },
+ {
+  "id": "585421b8-3acc-4627-8b3c-74496fd20d1d",
+  "index": 34,
+  "period": 1,
+  "timestamp": "00:00:48.855",
+  "minute": 0,
+  "second": 48,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 27886,
+   "name": "Alexis Mac Allister"
+  },
+  "position": {
+   "id": 15,
+   "name": "Left Center Midfield"
+  },
+  "location": [
+   45.6,
+   4.2
+  ],
+  "related_events": [
+   "bdf6b02c-1c04-4777-9617-bf73ececbf6c"
+  ]
+ },
+ {
+  "id": "a3e9b42a-4087-4335-8cbd-b31f077d7782",
+  "index": 35,
+  "period": 1,
+  "timestamp": "00:00:48.855",
+  "minute": 0,
+  "second": 48,
+  "type": {
+   "id": 43,
+   "name": "Carry"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 27886,
+   "name": "Alexis Mac Allister"
+  },
+  "position": {
+   "id": 15,
+   "name": "Left Center Midfield"
+  },
+  "location": [
+   45.6,
+   4.2
+  ],
+  "duration": 0.349605,
+  "under_pressure": true,
+  "related_events": [
+   "585421b8-3acc-4627-8b3c-74496fd20d1d",
+   "af7e1034-cf84-454b-bcad-7e8b8435d7b3",
+   "e1741082-3b80-48fa-b0e1-b979a3727cf1"
+  ],
+  "carry": {
+   "end_location": [
+    45.0,
+    3.8
+   ]
+  }
+ },
+ {
+  "id": "af7e1034-cf84-454b-bcad-7e8b8435d7b3",
+  "index": 36,
+  "period": 1,
+  "timestamp": "00:00:49.205",
+  "minute": 0,
+  "second": 49,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 10481,
+   "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+  },
+  "position": {
+   "id": 9,
+   "name": "Right Defensive Midfield"
+  },
+  "location": [
+   75.1,
+   76.3
+  ],
+  "duration": 0.0,
+  "related_events": [
+   "a3e9b42a-4087-4335-8cbd-b31f077d7782",
+   "e1741082-3b80-48fa-b0e1-b979a3727cf1"
+  ]
+ },
+ {
+  "id": "e1741082-3b80-48fa-b0e1-b979a3727cf1",
+  "index": 37,
+  "period": 1,
+  "timestamp": "00:00:49.205",
+  "minute": 0,
+  "second": 49,
+  "type": {
+   "id": 21,
+   "name": "Foul Won"
+  },
+  "possession": 4,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 27886,
+   "name": "Alexis Mac Allister"
+  },
+  "position": {
+   "id": 15,
+   "name": "Left Center Midfield"
+  },
+  "location": [
+   45.0,
+   3.8
+  ],
+  "duration": 0.0,
+  "under_pressure": true,
+  "related_events": [
+   "af7e1034-cf84-454b-bcad-7e8b8435d7b3"
+  ]
+ },
+ {
+  "id": "03ffd8af-1f1f-42b4-9c25-37d2a0c07981",
+  "index": 38,
+  "period": 1,
+  "timestamp": "00:01:01.290",
+  "minute": 1,
+  "second": 1,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 5,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "off_camera": true,
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5507,
+   "name": "Nicol\u00e1s Alejandro Tagliafico"
+  },
+  "position": {
+   "id": 6,
+   "name": "Left Back"
+  },
+  "location": [
+   44.1,
+   3.8
+  ],
+  "duration": 2.139165,
+  "related_events": [
+   "93a49f81-734c-4bdd-abd3-36f587a3404d"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 3090,
+    "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+   },
+   "length": 24.667793,
+   "angle": 2.8070223,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    20.8,
+    11.9
+   ],
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   },
+   "type": {
+    "id": 62,
+    "name": "Free Kick"
+   }
+  }
+ },
+ {
+  "id": "93a49f81-734c-4bdd-abd3-36f587a3404d",
+  "index": 39,
+  "period": 1,
+  "timestamp": "00:01:03.429",
+  "minute": 1,
+  "second": 3,
+  "type": {
+   "id": 42,
+   "name": "Ball Receipt*"
+  },
+  "possession": 5,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   20.8,
+   11.9
+  ],
+  "related_events": [
+   "03ffd8af-1f1f-42b4-9c25-37d2a0c07981"
+  ]
+ },
+ {
+  "id": "03684593-83f8-4faa-9039-721b694edad8",
+  "index": 40,
+  "period": 1,
+  "timestamp": "00:01:04.704",
+  "minute": 1,
+  "second": 4,
+  "type": {
+   "id": 30,
+   "name": "Pass"
+  },
+  "possession": 5,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 3090,
+   "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+  },
+  "position": {
+   "id": 5,
+   "name": "Left Center Back"
+  },
+  "location": [
+   21.7,
+   17.7
+  ],
+  "duration": 1.168952,
+  "related_events": [
+   "1eb5caf2-76a4-4284-aa93-b074cf3db421"
+  ],
+  "pass": {
+   "recipient": {
+    "id": 20572,
+    "name": "Cristian Gabriel Romero"
+   },
+   "length": 15.727683,
+   "angle": 1.6983058,
+   "height": {
+    "id": 1,
+    "name": "Ground Pass"
+   },
+   "end_location": [
+    19.7,
+    33.3
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "6d527ebc-a948-4cd8-ac82-daced35bb715",
+  "index": 771,
+  "period": 1,
+  "timestamp": "00:22:24.114",
+  "minute": 22,
+  "second": 24,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 32,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5503,
+   "name": "Lionel Andr\u00e9s Messi Cuccittini"
+  },
+  "position": {
+   "id": 17,
+   "name": "Right Wing"
+  },
+  "location": [
+   108.0,
+   40.0
+  ],
+  "duration": 0.625635,
+  "related_events": [
+   "c9b8e568-dcdc-4302-9683-0e9e9a55a42a"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    41.8,
+    0.2
+   ],
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   }
+  }
+ },
+ {
+  "id": "ef86f4d9-7acd-4ed0-a5ec-9129079e8fbe",
+  "index": 1178,
+  "period": 1,
+  "timestamp": "00:35:22.647",
+  "minute": 35,
+  "second": 22,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 52,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 6,
+   "name": "From Counter"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 2995,
+   "name": "\u00c1ngel Fabi\u00e1n Di Mar\u00eda Hern\u00e1ndez"
+  },
+  "position": {
+   "id": 21,
+   "name": "Left Wing"
+  },
+  "location": [
+   111.8,
+   32.1
+  ],
+  "duration": 0.466153,
+  "related_events": [
+   "07ff403e-90ed-4589-8dc1-d9ac61050632"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.30340916,
+   "end_location": [
+    120.0,
+    41.7,
+    0.5
+   ],
+   "key_pass_id": "ed70825d-8a40-470d-8b30-fd315ab5f0a6",
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   },
+   "type": {
+    "id": 87,
+    "name": "Open Play"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "first_time": true,
+   "freeze_frame": [
+    {
+     "location": [
+      91.0,
+      50.1
+     ],
+     "player": {
+      "id": 29560,
+      "name": "Juli\u00e1n \u00c1lvarez"
+     },
+     "position": {
+      "id": 23,
+      "name": "Center Forward"
+     },
+     "teammate": true
+    },
+    {
+     "location": [
+      111.7,
+      51.7
+     ],
+     "player": {
+      "id": 4445,
+      "name": "Jules Kound\u00e9"
+     },
+     "position": {
+      "id": 2,
+      "name": "Right Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      107.5,
+      48.1
+     ],
+     "player": {
+      "id": 8519,
+      "name": "Dayotchanculle Upamecano"
+     },
+     "position": {
+      "id": 5,
+      "name": "Left Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      110.4,
+      37.7
+     ],
+     "player": {
+      "id": 10481,
+      "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+     },
+     "position": {
+      "id": 9,
+      "name": "Right Defensive Midfield"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      101.6,
+      48.0
+     ],
+     "player": {
+      "id": 5485,
+      "name": "Rapha\u00ebl Varane"
+     },
+     "position": {
+      "id": 3,
+      "name": "Right Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      93.8,
+      59.2
+     ],
+     "player": {
+      "id": 6704,
+      "name": "Theo Bernard Fran\u00e7ois Hern\u00e1ndez"
+     },
+     "position": {
+      "id": 6,
+      "name": "Left Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      114.6,
+      35.1
+     ],
+     "player": {
+      "id": 3099,
+      "name": "Hugo Lloris"
+     },
+     "position": {
+      "id": 1,
+      "name": "Goalkeeper"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      109.2,
+      53.3
+     ],
+     "player": {
+      "id": 27886,
+      "name": "Alexis Mac Allister"
+     },
+     "position": {
+      "id": 15,
+      "name": "Left Center Midfield"
+     },
+     "teammate": true
+    }
+   ]
+  }
+ },
+ {
+  "id": "df245155-92fc-4123-8bcf-66ba2ee77870",
+  "index": 1378,
+  "period": 1,
+  "timestamp": "00:40:32.571",
+  "minute": 40,
+  "second": 32,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 60,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 5477,
+   "name": "Ousmane Demb\u00e9l\u00e9"
+  },
+  "position": {
+   "id": 17,
+   "name": "Right Wing"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 22097,
+    "name": "Randal Kolo Muani"
+   }
+  }
+ },
+ {
+  "id": "bae6c6ee-59b6-419e-992d-7567437736f5",
+  "index": 1379,
+  "period": 1,
+  "timestamp": "00:41:01.496",
+  "minute": 41,
+  "second": 1,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 60,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3604,
+   "name": "Olivier Giroud"
+  },
+  "position": {
+   "id": 23,
+   "name": "Center Forward"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 2972,
+    "name": "Marcus Thuram"
+   }
+  }
+ },
+ {
+  "id": "af8c7775-091a-4905-aeb3-484b9a99de81",
+  "index": 1747,
+  "period": 1,
+  "timestamp": "00:51:21.058",
+  "minute": 51,
+  "second": 21,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 78,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 38718,
+   "name": "Enzo Fernandez"
+  },
+  "position": {
+   "id": 10,
+   "name": "Center Defensive Midfield"
+  },
+  "location": [
+   48.8,
+   4.9
+  ],
+  "duration": 0.0,
+  "related_events": [
+   "e1bc15ab-0d49-44bb-8295-3d56cb509cdf"
+  ],
+  "foul_committed": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "595f7a7f-5d24-4f99-b4e8-bacaeaa2de17",
+  "index": 1750,
+  "period": 1,
+  "timestamp": "00:52:34.569",
+  "minute": 52,
+  "second": 34,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 79,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "3ac68cd5-7121-4d73-bec2-9a220743c465"
+  ]
+ },
+ {
+  "id": "3ac68cd5-7121-4d73-bec2-9a220743c465",
+  "index": 1751,
+  "period": 1,
+  "timestamp": "00:52:34.569",
+  "minute": 52,
+  "second": 34,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 79,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "595f7a7f-5d24-4f99-b4e8-bacaeaa2de17"
+  ]
+ },
+ {
+  "id": "e84fb5b3-270f-4427-bf97-1a6eaec7285f",
+  "index": 1752,
+  "period": 2,
+  "timestamp": "00:00:00.000",
+  "minute": 45,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 79,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "3e8de8c9-8be8-4921-96ec-1a29ce8fd3d4"
+  ]
+ },
+ {
+  "id": "3e8de8c9-8be8-4921-96ec-1a29ce8fd3d4",
+  "index": 1753,
+  "period": 2,
+  "timestamp": "00:00:00.000",
+  "minute": 45,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 79,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "e84fb5b3-270f-4427-bf97-1a6eaec7285f"
+  ]
+ },
+ {
+  "id": "5683007d-fde4-40ee-aa5e-c1624424b24e",
+  "index": 2107,
+  "period": 2,
+  "timestamp": "00:09:12.466",
+  "minute": 54,
+  "second": 12,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 101,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3026,
+   "name": "Adrien Rabiot"
+  },
+  "position": {
+   "id": 11,
+   "name": "Left Defensive Midfield"
+  },
+  "location": [
+   74.5,
+   3.6
+  ],
+  "duration": 0.0,
+  "related_events": [
+   "9bb9d95d-d0e5-4ec9-a8e1-bd41d86ad716"
+  ],
+  "foul_committed": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "e7e1f696-1fe2-4b3a-b2ec-aeb36b0c8258",
+  "index": 2355,
+  "period": 2,
+  "timestamp": "00:18:51.930",
+  "minute": 63,
+  "second": 51,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 124,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 2995,
+   "name": "\u00c1ngel Fabi\u00e1n Di Mar\u00eda Hern\u00e1ndez"
+  },
+  "position": {
+   "id": 21,
+   "name": "Left Wing"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 19597,
+    "name": "Marcos Javier Acu\u00f1a"
+   }
+  }
+ },
+ {
+  "id": "3c9df00b-0b30-4548-9cd1-ceff03cc9919",
+  "index": 2660,
+  "period": 2,
+  "timestamp": "00:25:27.931",
+  "minute": 70,
+  "second": 27,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 138,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 6704,
+   "name": "Theo Bernard Fran\u00e7ois Hern\u00e1ndez"
+  },
+  "position": {
+   "id": 6,
+   "name": "Left Back"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 24778,
+    "name": "Eduardo Camavinga"
+   }
+  }
+ },
+ {
+  "id": "43fe1865-0aa9-4bb1-bf33-a2871df4589b",
+  "index": 2661,
+  "period": 2,
+  "timestamp": "00:25:29.718",
+  "minute": 70,
+  "second": 29,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 138,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 5487,
+   "name": "Antoine Griezmann"
+  },
+  "position": {
+   "id": 19,
+   "name": "Center Attacking Midfield"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 8217,
+    "name": "Kingsley Coman"
+   }
+  }
+ },
+ {
+  "id": "6cc0d5e2-6999-4006-8a7a-34de4cbe3ffd",
+  "index": 2928,
+  "period": 2,
+  "timestamp": "00:34:24.975",
+  "minute": 79,
+  "second": 24,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 163,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3009,
+   "name": "Kylian Mbapp\u00e9 Lottin"
+  },
+  "position": {
+   "id": 24,
+   "name": "Left Center Forward"
+  },
+  "location": [
+   108.0,
+   40.0
+  ],
+  "duration": 0.360706,
+  "related_events": [
+   "657afc07-537a-44cc-9411-cb0a713b0a63"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    37.3,
+    0.3
+   ],
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   }
+  }
+ },
+ {
+  "id": "03fb2918-e1e7-4ec8-89ff-7bc5531e853d",
+  "index": 2987,
+  "period": 2,
+  "timestamp": "00:35:59.025",
+  "minute": 80,
+  "second": 59,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 165,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 4,
+   "name": "From Throw In"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3009,
+   "name": "Kylian Mbapp\u00e9 Lottin"
+  },
+  "position": {
+   "id": 24,
+   "name": "Left Center Forward"
+  },
+  "location": [
+   104.8,
+   30.1
+  ],
+  "duration": 0.869946,
+  "related_events": [
+   "18c660b6-283a-430e-abbd-925713631028"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.1017027,
+   "end_location": [
+    120.0,
+    41.5,
+    0.3
+   ],
+   "key_pass_id": "7b1441f1-4911-44d7-ac4b-f3f8f11daa76",
+   "first_time": true,
+   "technique": {
+    "id": 95,
+    "name": "Volley"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 87,
+    "name": "Open Play"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "freeze_frame": [
+    {
+     "location": [
+      117.7,
+      37.9
+     ],
+     "player": {
+      "id": 6909,
+      "name": "Dami\u00e1n Emiliano Mart\u00ednez"
+     },
+     "position": {
+      "id": 1,
+      "name": "Goalkeeper"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      102.8,
+      41.9
+     ],
+     "player": {
+      "id": 5507,
+      "name": "Nicol\u00e1s Alejandro Tagliafico"
+     },
+     "position": {
+      "id": 6,
+      "name": "Left Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      100.3,
+      45.1
+     ],
+     "player": {
+      "id": 27886,
+      "name": "Alexis Mac Allister"
+     },
+     "position": {
+      "id": 15,
+      "name": "Left Center Midfield"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      99.5,
+      46.5
+     ],
+     "player": {
+      "id": 19597,
+      "name": "Marcos Javier Acu\u00f1a"
+     },
+     "position": {
+      "id": 21,
+      "name": "Left Wing"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      103.5,
+      36.0
+     ],
+     "player": {
+      "id": 3090,
+      "name": "Nicol\u00e1s Hern\u00e1n Otamendi"
+     },
+     "position": {
+      "id": 5,
+      "name": "Left Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      99.0,
+      35.3
+     ],
+     "player": {
+      "id": 20572,
+      "name": "Cristian Gabriel Romero"
+     },
+     "position": {
+      "id": 3,
+      "name": "Right Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      102.2,
+      27.0
+     ],
+     "player": {
+      "id": 29201,
+      "name": "Nahuel Molina Lucero"
+     },
+     "position": {
+      "id": 2,
+      "name": "Right Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      94.0,
+      37.7
+     ],
+     "player": {
+      "id": 38718,
+      "name": "Enzo Fernandez"
+     },
+     "position": {
+      "id": 10,
+      "name": "Center Defensive Midfield"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      98.1,
+      65.9
+     ],
+     "player": {
+      "id": 8217,
+      "name": "Kingsley Coman"
+     },
+     "position": {
+      "id": 12,
+      "name": "Right Midfield"
+     },
+     "teammate": true
+    },
+    {
+     "location": [
+      104.2,
+      42.6
+     ],
+     "player": {
+      "id": 22097,
+      "name": "Randal Kolo Muani"
+     },
+     "position": {
+      "id": 22,
+      "name": "Right Center Forward"
+     },
+     "teammate": true
+    },
+    {
+     "location": [
+      101.1,
+      37.1
+     ],
+     "player": {
+      "id": 2972,
+      "name": "Marcus Thuram"
+     },
+     "position": {
+      "id": 16,
+      "name": "Left Midfield"
+     },
+     "teammate": true
+    }
+   ]
+  }
+ },
+ {
+  "id": "8f75db1a-1ee2-4ff8-b211-1c46d9a76a69",
+  "index": 3160,
+  "period": 2,
+  "timestamp": "00:41:24.413",
+  "minute": 86,
+  "second": 24,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 173,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 2972,
+   "name": "Marcus Thuram"
+  },
+  "position": {
+   "id": 16,
+   "name": "Left Midfield"
+  },
+  "location": [
+   106.6,
+   27.3
+  ],
+  "duration": 0.0,
+  "foul_committed": {
+   "offensive": true,
+   "type": {
+    "id": 22,
+    "name": "Dive"
+   },
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "ed616313-3980-444e-805f-9951a40d8a52",
+  "index": 3303,
+  "period": 2,
+  "timestamp": "00:49:35.193",
+  "minute": 94,
+  "second": 35,
+  "type": {
+   "id": 24,
+   "name": "Bad Behaviour"
+  },
+  "possession": 185,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3604,
+   "name": "Olivier Giroud"
+  },
+  "position": {
+   "id": 23,
+   "name": "Center Forward"
+  },
+  "duration": 0.0,
+  "bad_behaviour": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "4b295434-7285-4337-95b4-26395b799643",
+  "index": 3396,
+  "period": 2,
+  "timestamp": "00:52:33.580",
+  "minute": 97,
+  "second": 33,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 193,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 19597,
+   "name": "Marcos Javier Acu\u00f1a"
+  },
+  "position": {
+   "id": 21,
+   "name": "Left Wing"
+  },
+  "location": [
+   93.7,
+   29.7
+  ],
+  "duration": 0.0,
+  "counterpress": true,
+  "related_events": [
+   "ab0496ee-5d60-4781-84ac-ede051716754"
+  ],
+  "foul_committed": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "f397f367-ab83-4815-93d9-b1874bbda346",
+  "index": 3439,
+  "period": 2,
+  "timestamp": "00:53:37.921",
+  "minute": 98,
+  "second": 37,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 196,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "440c7e28-8628-4082-8f69-b465068a927b"
+  ]
+ },
+ {
+  "id": "440c7e28-8628-4082-8f69-b465068a927b",
+  "index": 3440,
+  "period": 2,
+  "timestamp": "00:53:37.921",
+  "minute": 98,
+  "second": 37,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 196,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "f397f367-ab83-4815-93d9-b1874bbda346"
+  ]
+ },
+ {
+  "id": "f5de15c8-0f4c-4de3-a7a5-67f8326d1042",
+  "index": 3441,
+  "period": 3,
+  "timestamp": "00:00:00.000",
+  "minute": 90,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 196,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "97489f9c-4763-4be3-a1c5-453b71c710a8"
+  ]
+ },
+ {
+  "id": "97489f9c-4763-4be3-a1c5-453b71c710a8",
+  "index": 3442,
+  "period": 3,
+  "timestamp": "00:00:00.000",
+  "minute": 90,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 196,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "f5de15c8-0f4c-4de3-a7a5-67f8326d1042"
+  ]
+ },
+ {
+  "id": "c7266755-5003-418c-bf4f-f7da41d47840",
+  "index": 3443,
+  "period": 3,
+  "timestamp": "00:00:00.000",
+  "minute": 90,
+  "second": 0,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 196,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 29201,
+   "name": "Nahuel Molina Lucero"
+  },
+  "position": {
+   "id": 2,
+   "name": "Right Back"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 28263,
+    "name": "Gonzalo Ariel Montiel"
+   }
+  }
+ },
+ {
+  "id": "5688fcf1-1b7a-4938-8d14-92b87c198d95",
+  "index": 3636,
+  "period": 3,
+  "timestamp": "00:05:10.351",
+  "minute": 95,
+  "second": 10,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 205,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3026,
+   "name": "Adrien Rabiot"
+  },
+  "position": {
+   "id": 11,
+   "name": "Left Defensive Midfield"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 11990,
+    "name": "Youssouf Fofana"
+   }
+  }
+ },
+ {
+  "id": "8939a18c-593c-41fc-b86d-308cd189fca1",
+  "index": 3834,
+  "period": 3,
+  "timestamp": "00:11:37.470",
+  "minute": 101,
+  "second": 37,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 215,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 7797,
+   "name": "Rodrigo Javier De Paul"
+  },
+  "position": {
+   "id": 13,
+   "name": "Right Center Midfield"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 16308,
+    "name": "Leandro Daniel Paredes"
+   }
+  }
+ },
+ {
+  "id": "1e6477ea-098a-41d5-96d1-d2944e38f46c",
+  "index": 3835,
+  "period": 3,
+  "timestamp": "00:11:49.276",
+  "minute": 101,
+  "second": 49,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 215,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 29560,
+   "name": "Juli\u00e1n \u00c1lvarez"
+  },
+  "position": {
+   "id": 23,
+   "name": "Center Forward"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 11456,
+    "name": "Lautaro Javier Mart\u00ednez"
+   }
+  }
+ },
+ {
+  "id": "2cc2184c-c5ef-43ba-8347-3d0889ae4703",
+  "index": 3976,
+  "period": 3,
+  "timestamp": "00:16:04.648",
+  "minute": 106,
+  "second": 4,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 222,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "8a65b685-e82c-4ab6-9aa3-00192328a7d4"
+  ]
+ },
+ {
+  "id": "8a65b685-e82c-4ab6-9aa3-00192328a7d4",
+  "index": 3977,
+  "period": 3,
+  "timestamp": "00:16:04.648",
+  "minute": 106,
+  "second": 4,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 222,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "2cc2184c-c5ef-43ba-8347-3d0889ae4703"
+  ]
+ },
+ {
+  "id": "282c606f-3f21-4629-b770-f09c61ba7689",
+  "index": 3978,
+  "period": 4,
+  "timestamp": "00:00:00.000",
+  "minute": 105,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 222,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "55134cc4-8d38-44e2-9303-ce53ab7feb3d"
+  ]
+ },
+ {
+  "id": "55134cc4-8d38-44e2-9303-ce53ab7feb3d",
+  "index": 3979,
+  "period": 4,
+  "timestamp": "00:00:00.000",
+  "minute": 105,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 222,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "282c606f-3f21-4629-b770-f09c61ba7689"
+  ]
+ },
+ {
+  "id": "54b889ec-6026-49ea-a913-e883dbe6e301",
+  "index": 4070,
+  "period": 4,
+  "timestamp": "00:02:58.079",
+  "minute": 107,
+  "second": 58,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 228,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5503,
+   "name": "Lionel Andr\u00e9s Messi Cuccittini"
+  },
+  "position": {
+   "id": 17,
+   "name": "Right Wing"
+  },
+  "location": [
+   116.6,
+   43.0
+  ],
+  "duration": 0.330581,
+  "related_events": [
+   "1a6eba89-8e9f-449f-b97c-d1374213eb33"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.48840353,
+   "end_location": [
+    120.0,
+    40.9,
+    0.3
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 87,
+    "name": "Open Play"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "first_time": true,
+   "technique": {
+    "id": 91,
+    "name": "Half Volley"
+   },
+   "freeze_frame": [
+    {
+     "location": [
+      118.3,
+      43.7
+     ],
+     "player": {
+      "id": 3099,
+      "name": "Hugo Lloris"
+     },
+     "position": {
+      "id": 1,
+      "name": "Goalkeeper"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      103.5,
+      42.2
+     ],
+     "player": {
+      "id": 11990,
+      "name": "Youssouf Fofana"
+     },
+     "position": {
+      "id": 11,
+      "name": "Left Defensive Midfield"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      108.9,
+      48.5
+     ],
+     "player": {
+      "id": 24778,
+      "name": "Eduardo Camavinga"
+     },
+     "position": {
+      "id": 6,
+      "name": "Left Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      109.9,
+      39.7
+     ],
+     "player": {
+      "id": 10481,
+      "name": "Aur\u00e9lien Djani Tchouam\u00e9ni"
+     },
+     "position": {
+      "id": 9,
+      "name": "Right Defensive Midfield"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      112.0,
+      42.1
+     ],
+     "player": {
+      "id": 5485,
+      "name": "Rapha\u00ebl Varane"
+     },
+     "position": {
+      "id": 3,
+      "name": "Right Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      119.0,
+      50.8
+     ],
+     "player": {
+      "id": 8519,
+      "name": "Dayotchanculle Upamecano"
+     },
+     "position": {
+      "id": 5,
+      "name": "Left Center Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      120.0,
+      40.6
+     ],
+     "player": {
+      "id": 4445,
+      "name": "Jules Kound\u00e9"
+     },
+     "position": {
+      "id": 2,
+      "name": "Right Back"
+     },
+     "teammate": false
+    },
+    {
+     "location": [
+      93.5,
+      28.4
+     ],
+     "player": {
+      "id": 19597,
+      "name": "Marcos Javier Acu\u00f1a"
+     },
+     "position": {
+      "id": 21,
+      "name": "Left Wing"
+     },
+     "teammate": true
+    },
+    {
+     "location": [
+      115.5,
+      34.6
+     ],
+     "player": {
+      "id": 38718,
+      "name": "Enzo Fernandez"
+     },
+     "position": {
+      "id": 13,
+      "name": "Right Center Midfield"
+     },
+     "teammate": true
+    },
+    {
+     "location": [
+      115.6,
+      50.8
+     ],
+     "player": {
+      "id": 11456,
+      "name": "Lautaro Javier Mart\u00ednez"
+     },
+     "position": {
+      "id": 23,
+      "name": "Center Forward"
+     },
+     "teammate": true
+    }
+   ]
+  }
+ },
+ {
+  "id": "c001d49f-247b-40d8-b247-38c7adcdebe4",
+  "index": 4139,
+  "period": 4,
+  "timestamp": "00:07:28.100",
+  "minute": 112,
+  "second": 28,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 232,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 5485,
+   "name": "Rapha\u00ebl Varane"
+  },
+  "position": {
+   "id": 3,
+   "name": "Right Center Back"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 102,
+    "name": "Injury"
+   },
+   "replacement": {
+    "id": 11135,
+    "name": "Ibrahima Konat\u00e9"
+   }
+  }
+ },
+ {
+  "id": "19e301d2-38dd-4cbd-8bc2-61d2b46b9951",
+  "index": 4167,
+  "period": 4,
+  "timestamp": "00:08:27.111",
+  "minute": 113,
+  "second": 27,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 235,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 16308,
+   "name": "Leandro Daniel Paredes"
+  },
+  "position": {
+   "id": 10,
+   "name": "Center Defensive Midfield"
+  },
+  "location": [
+   45.8,
+   66.0
+  ],
+  "duration": 0.0,
+  "related_events": [
+   "88a5892c-3ac4-4ee6-b50f-34bd3fb169db"
+  ],
+  "foul_committed": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "6e81c350-5788-4f84-891a-92db9bfbf0db",
+  "index": 4191,
+  "period": 4,
+  "timestamp": "00:10:22.165",
+  "minute": 115,
+  "second": 22,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 236,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 3,
+   "name": "From Free Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 27886,
+   "name": "Alexis Mac Allister"
+  },
+  "position": {
+   "id": 15,
+   "name": "Left Center Midfield"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 7161,
+    "name": "Germ\u00e1n Alejandro Pezzella"
+   }
+  }
+ },
+ {
+  "id": "dcbf6fe6-7b7f-4066-978e-de1a3d6d70ff",
+  "index": 4202,
+  "period": 4,
+  "timestamp": "00:10:39.116",
+  "minute": 115,
+  "second": 39,
+  "type": {
+   "id": 22,
+   "name": "Foul Committed"
+  },
+  "possession": 237,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 2,
+   "name": "From Corner"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 28263,
+   "name": "Gonzalo Ariel Montiel"
+  },
+  "position": {
+   "id": 7,
+   "name": "Right Wing Back"
+  },
+  "location": [
+   14.8,
+   52.1
+  ],
+  "duration": 0.0,
+  "foul_committed": {
+   "type": {
+    "id": 24,
+    "name": "Handball"
+   },
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   },
+   "penalty": true
+  }
+ },
+ {
+  "id": "d9b92dbd-4fea-4f48-b2fb-d7222eab2dbd",
+  "index": 4203,
+  "period": 4,
+  "timestamp": "00:12:05.189",
+  "minute": 117,
+  "second": 5,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 238,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3009,
+   "name": "Kylian Mbapp\u00e9 Lottin"
+  },
+  "position": {
+   "id": 24,
+   "name": "Left Center Forward"
+  },
+  "location": [
+   108.0,
+   40.0
+  ],
+  "duration": 0.406482,
+  "related_events": [
+   "7702c4cb-e5ea-4353-9e70-6df2eead4987"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    36.7,
+    1.1
+   ],
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   }
+  }
+ },
+ {
+  "id": "838765c8-45c7-4379-857c-f103770acbfc",
+  "index": 4273,
+  "period": 4,
+  "timestamp": "00:15:35.826",
+  "minute": 120,
+  "second": 35,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 242,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 4445,
+   "name": "Jules Kound\u00e9"
+  },
+  "position": {
+   "id": 2,
+   "name": "Right Back"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 7439,
+    "name": "Axel Disasi"
+   }
+  }
+ },
+ {
+  "id": "27c68f97-cc44-4fb8-9703-0a4de1c9f6ed",
+  "index": 4274,
+  "period": 4,
+  "timestamp": "00:15:46.162",
+  "minute": 120,
+  "second": 46,
+  "type": {
+   "id": 19,
+   "name": "Substitution"
+  },
+  "possession": 242,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 1,
+   "name": "Regular Play"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5507,
+   "name": "Nicol\u00e1s Alejandro Tagliafico"
+  },
+  "position": {
+   "id": 8,
+   "name": "Left Wing Back"
+  },
+  "duration": 0.0,
+  "substitution": {
+   "outcome": {
+    "id": 103,
+    "name": "Tactical"
+   },
+   "replacement": {
+    "id": 5743,
+    "name": "Paulo Bruno Exequiel Dybala"
+   }
+  }
+ },
+ {
+  "id": "f062c70e-e942-4997-bba1-f57b0ac1baf7",
+  "index": 4385,
+  "period": 4,
+  "timestamp": "00:19:07.472",
+  "minute": 124,
+  "second": 7,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 247,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "da654dbc-5e9d-4067-ab4a-2db561a77c8f"
+  ]
+ },
+ {
+  "id": "da654dbc-5e9d-4067-ab4a-2db561a77c8f",
+  "index": 4386,
+  "period": 4,
+  "timestamp": "00:19:07.472",
+  "minute": 124,
+  "second": 7,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 247,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "f062c70e-e942-4997-bba1-f57b0ac1baf7"
+  ]
+ },
+ {
+  "id": "4934823b-d303-4ca0-bbcd-50c725470e22",
+  "index": 4387,
+  "period": 5,
+  "timestamp": "00:00:00.000",
+  "minute": 120,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 247,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "f792bb69-f5b3-4945-82f8-3b98382e6605"
+  ]
+ },
+ {
+  "id": "f792bb69-f5b3-4945-82f8-3b98382e6605",
+  "index": 4388,
+  "period": 5,
+  "timestamp": "00:00:00.000",
+  "minute": 120,
+  "second": 0,
+  "type": {
+   "id": 18,
+   "name": "Half Start"
+  },
+  "possession": 247,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 7,
+   "name": "From Goal Kick"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "4934823b-d303-4ca0-bbcd-50c725470e22"
+  ]
+ },
+ {
+  "id": "d0f76056-0d67-4aae-b44a-83bef0b1cf27",
+  "index": 4389,
+  "period": 5,
+  "timestamp": "00:00:13.386",
+  "minute": 120,
+  "second": 13,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 248,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 3009,
+   "name": "Kylian Mbapp\u00e9 Lottin"
+  },
+  "position": {
+   "id": 24,
+   "name": "Left Center Forward"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.440684,
+  "related_events": [
+   "a78b2f33-2a71-4455-8590-0beab022c230"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    37.6,
+    1.3
+   ],
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   }
+  }
+ },
+ {
+  "id": "2a15edb5-2a54-41d5-afe9-87e447389b18",
+  "index": 4391,
+  "period": 5,
+  "timestamp": "00:01:02.191",
+  "minute": 121,
+  "second": 2,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 249,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5503,
+   "name": "Lionel Andr\u00e9s Messi Cuccittini"
+  },
+  "position": {
+   "id": 22,
+   "name": "Right Center Forward"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.843986,
+  "related_events": [
+   "571f2328-3a11-4aa6-b344-0f281668a2e7"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    38.3,
+    0.2
+   ],
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   }
+  }
+ },
+ {
+  "id": "50dcde1a-faa3-4eec-a0cd-3f09a7cf763a",
+  "index": 4395,
+  "period": 5,
+  "timestamp": "00:02:27.184",
+  "minute": 122,
+  "second": 27,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 251,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 5743,
+   "name": "Paulo Bruno Exequiel Dybala"
+  },
+  "position": {
+   "id": 15,
+   "name": "Left Center Midfield"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.518391,
+  "related_events": [
+   "d6c9beb1-073a-4ed5-a07d-b2d032ed7229"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    40.4,
+    0.2
+   ],
+   "body_part": {
+    "id": 38,
+    "name": "Left Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   }
+  }
+ },
+ {
+  "id": "bcc6d4ae-f71c-4566-bf2d-c12f910eb526",
+  "index": 4399,
+  "period": 5,
+  "timestamp": "00:04:16.722",
+  "minute": 124,
+  "second": 16,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 253,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 16308,
+   "name": "Leandro Daniel Paredes"
+  },
+  "position": {
+   "id": 10,
+   "name": "Center Defensive Midfield"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.571088,
+  "related_events": [
+   "18368163-57c7-4e9f-a4c2-c1c884a0d696"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    37.6,
+    0.2
+   ],
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   }
+  }
+ },
+ {
+  "id": "ad6e8237-8cb9-44f4-b9fb-356f066f3b2b",
+  "index": 4401,
+  "period": 5,
+  "timestamp": "00:04:57.514",
+  "minute": 124,
+  "second": 57,
+  "type": {
+   "id": 24,
+   "name": "Bad Behaviour"
+  },
+  "possession": 253,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 6909,
+   "name": "Dami\u00e1n Emiliano Mart\u00ednez"
+  },
+  "position": {
+   "id": 1,
+   "name": "Goalkeeper"
+  },
+  "duration": 0.0,
+  "bad_behaviour": {
+   "card": {
+    "id": 7,
+    "name": "Yellow Card"
+   }
+  }
+ },
+ {
+  "id": "59ebe83e-616a-4288-89fd-a0246b53d48f",
+  "index": 4402,
+  "period": 5,
+  "timestamp": "00:05:09.782",
+  "minute": 125,
+  "second": 9,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 254,
+  "possession_team": {
+   "id": 771,
+   "name": "France"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "player": {
+   "id": 22097,
+   "name": "Randal Kolo Muani"
+  },
+  "position": {
+   "id": 22,
+   "name": "Right Center Forward"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.347222,
+  "related_events": [
+   "071e5f12-a2c3-455d-8129-2b14cb81fad8"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    39.3,
+    1.6
+   ],
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   },
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   }
+  }
+ },
+ {
+  "id": "66eaf262-999f-4953-a924-f1b596de4dbf",
+  "index": 4404,
+  "period": 5,
+  "timestamp": "00:05:57.883",
+  "minute": 125,
+  "second": 57,
+  "type": {
+   "id": 16,
+   "name": "Shot"
+  },
+  "possession": 255,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "player": {
+   "id": 28263,
+   "name": "Gonzalo Ariel Montiel"
+  },
+  "position": {
+   "id": 7,
+   "name": "Right Wing Back"
+  },
+  "location": [
+   108.1,
+   40.1
+  ],
+  "duration": 0.496009,
+  "related_events": [
+   "14d51627-1f8e-42ec-bf97-74f1f22c5e40"
+  ],
+  "shot": {
+   "statsbomb_xg": 0.7835,
+   "end_location": [
+    120.0,
+    37.9,
+    0.2
+   ],
+   "type": {
+    "id": 88,
+    "name": "Penalty"
+   },
+   "outcome": {
+    "id": 97,
+    "name": "Goal"
+   },
+   "technique": {
+    "id": 93,
+    "name": "Normal"
+   },
+   "body_part": {
+    "id": 40,
+    "name": "Right Foot"
+   }
+  }
+ },
+ {
+  "id": "0e712309-2130-4ad9-ab32-cda2e26c4d0b",
+  "index": 4406,
+  "period": 5,
+  "timestamp": "00:05:58.866",
+  "minute": 125,
+  "second": 58,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 255,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 771,
+   "name": "France"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "4f66bdf1-2c51-483a-b45a-89b525bc23c0"
+  ]
+ },
+ {
+  "id": "4f66bdf1-2c51-483a-b45a-89b525bc23c0",
+  "index": 4407,
+  "period": 5,
+  "timestamp": "00:05:58.866",
+  "minute": 125,
+  "second": 58,
+  "type": {
+   "id": 34,
+   "name": "Half End"
+  },
+  "possession": 255,
+  "possession_team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "play_pattern": {
+   "id": 5,
+   "name": "Other"
+  },
+  "team": {
+   "id": 779,
+   "name": "Argentina"
+  },
+  "duration": 0.0,
+  "related_events": [
+   "0e712309-2130-4ad9-ab32-cda2e26c4d0b"
+  ]
+ }
+]

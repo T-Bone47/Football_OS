@@ -1,0 +1,3206 @@
+{
+  "generated_at": "2026-10-01T15:57:07.969685+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "database": "fios_p17_live",
+  "bronze_root": "data/bronze",
+  "pilots": {
+    "Premier League 2015/2016": {
+      "matches_job": {
+        "status": "SUCCESS",
+        "snapshot_sha256": "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+        "records": 380,
+        "errors": [],
+        "silver": {
+          "normalization": {
+            "entity": "matches",
+            "count": 380,
+            "snapshot_id": "e18e97c1-bfbe-4309-9b47-aa1b720a5b74"
+          },
+          "before": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 0,
+            "competition_seasons": 0
+          },
+          "after": {
+            "matches": 380,
+            "clubs": 20,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 0,
+            "competition_seasons": 1
+          },
+          "delta": {
+            "matches": 380,
+            "clubs": 20,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 0,
+            "competition_seasons": 1
+          }
+        },
+        "silver_quality": {
+          "scope": "silver:statsbomb:13dabd8a-51f1-4e69-9851-2cf0a5272103",
+          "overall": "WARN",
+          "records_examined": 380,
+          "snapshot_sha256": null,
+          "created_at": "2026-10-01T15:48:14.260383+00:00",
+          "checks": [
+            {
+              "name": "referential_integrity",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "Silver match with no Bronze snapshot (orphan)",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate fixture",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "FINISHED match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "score_event_reconciliation",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "0 matches with events reconciled against final score",
+              "evaluated": false
+            },
+            {
+              "name": "lineup_completeness",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "no lineups ingested for this scope",
+              "evaluated": false
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "provider id mapped to more than one canonical entity",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "canonical entity with empty name",
+              "evaluated": true
+            }
+          ]
+        },
+        "payload_quality": {
+          "scope": "bronze:statsbomb:matches",
+          "overall": "WARN",
+          "records_examined": 380,
+          "snapshot_sha256": "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+          "created_at": "2026-10-01T15:48:10.926550+00:00",
+          "checks": [
+            {
+              "name": "schema_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "CONTRACT_OK",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate match_id in payload",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "matches without a final score",
+              "evaluated": true
+            },
+            {
+              "name": "impossible_values",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "score outside [0, 15]",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "scored match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "competition_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in competition 2",
+              "evaluated": true
+            },
+            {
+              "name": "season_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in season 27",
+              "evaluated": true
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "home team id equals away team id",
+              "evaluated": true
+            },
+            {
+              "name": "provider_conflict_detection",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "single provider for this resource; cross-provider comparison not possible",
+              "evaluated": false
+            }
+          ]
+        },
+        "contract": {
+          "provider": "statsbomb",
+          "resource": "matches",
+          "status": "CONTRACT_OK",
+          "findings": [],
+          "observed_fingerprint": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+          "registered_fingerprint": null
+        },
+        "latency_ms": 4468.9
+      },
+      "lineup_jobs": {
+        "SUCCESS": 380
+      },
+      "event_jobs_detail": [
+        {
+          "match_id": 3754324,
+          "status": "SUCCESS",
+          "records": 3178,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754125,
+          "status": "SUCCESS",
+          "records": 4049,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754328,
+          "status": "SUCCESS",
+          "records": 3897,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 13,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754326,
+          "status": "SUCCESS",
+          "records": 3167,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 11,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754143,
+          "status": "SUCCESS",
+          "records": 3574,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 12,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754269,
+          "status": "SUCCESS",
+          "records": 3759,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 11,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754210,
+          "status": "SUCCESS",
+          "records": 3478,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 8,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3754158,
+          "status": "SUCCESS",
+          "records": 3424,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        }
+      ],
+      "event_jobs": {
+        "SUCCESS": 8
+      },
+      "competition_season_id": "13dabd8a-51f1-4e69-9851-2cf0a5272103"
+    },
+    "FIFA World Cup 2022": {
+      "matches_job": {
+        "status": "SUCCESS",
+        "snapshot_sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+        "records": 64,
+        "errors": [],
+        "silver": {
+          "normalization": {
+            "entity": "matches",
+            "count": 64,
+            "snapshot_id": "13fb9d46-da50-47f9-9aaa-c247de7f8472"
+          },
+          "before": {
+            "matches": 380,
+            "clubs": 20,
+            "players": 644,
+            "match_lineups": 13678,
+            "match_events": 97,
+            "competition_seasons": 1
+          },
+          "after": {
+            "matches": 444,
+            "clubs": 52,
+            "players": 644,
+            "match_lineups": 13678,
+            "match_events": 97,
+            "competition_seasons": 2
+          },
+          "delta": {
+            "matches": 64,
+            "clubs": 32,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 0,
+            "competition_seasons": 1
+          }
+        },
+        "silver_quality": {
+          "scope": "silver:statsbomb:3ceaeb3d-b29f-47b0-a438-77627616e48e",
+          "overall": "WARN",
+          "records_examined": 64,
+          "snapshot_sha256": null,
+          "created_at": "2026-10-01T15:54:55.784081+00:00",
+          "checks": [
+            {
+              "name": "referential_integrity",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "Silver match with no Bronze snapshot (orphan)",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate fixture",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "FINISHED match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "score_event_reconciliation",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "0 matches with events reconciled against final score",
+              "evaluated": false
+            },
+            {
+              "name": "lineup_completeness",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "no lineups ingested for this scope",
+              "evaluated": false
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "provider id mapped to more than one canonical entity",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "canonical entity with empty name",
+              "evaluated": true
+            }
+          ]
+        },
+        "payload_quality": {
+          "scope": "bronze:statsbomb:matches",
+          "overall": "WARN",
+          "records_examined": 64,
+          "snapshot_sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+          "created_at": "2026-10-01T15:54:55.062280+00:00",
+          "checks": [
+            {
+              "name": "schema_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "CONTRACT_OK",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate match_id in payload",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "matches without a final score",
+              "evaluated": true
+            },
+            {
+              "name": "impossible_values",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "score outside [0, 15]",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "scored match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "competition_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in competition 43",
+              "evaluated": true
+            },
+            {
+              "name": "season_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in season 106",
+              "evaluated": true
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "home team id equals away team id",
+              "evaluated": true
+            },
+            {
+              "name": "provider_conflict_detection",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "single provider for this resource; cross-provider comparison not possible",
+              "evaluated": false
+            }
+          ]
+        },
+        "contract": {
+          "provider": "statsbomb",
+          "resource": "matches",
+          "status": "CONTRACT_OK",
+          "findings": [],
+          "observed_fingerprint": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+          "registered_fingerprint": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10"
+        },
+        "latency_ms": 1219.8
+      },
+      "lineup_jobs": {
+        "SUCCESS": 64
+      },
+      "event_jobs_detail": [
+        {
+          "match_id": 3869685,
+          "status": "SUCCESS",
+          "records": 4407,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 26,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3869152,
+          "status": "SUCCESS",
+          "records": 3618,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 16,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3857301,
+          "status": "SUCCESS",
+          "records": 3546,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 19,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3857297,
+          "status": "SUCCESS",
+          "records": 3202,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3857274,
+          "status": "SUCCESS",
+          "records": 3563,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 10,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3857291,
+          "status": "SUCCESS",
+          "records": 4351,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 19,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3869151,
+          "status": "SUCCESS",
+          "records": 4150,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 15,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3857262,
+          "status": "SUCCESS",
+          "records": 3378,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        }
+      ],
+      "event_jobs": {
+        "SUCCESS": 8
+      },
+      "competition_season_id": "3ceaeb3d-b29f-47b0-a438-77627616e48e"
+    },
+    "1. Bundesliga 2023/2024": {
+      "matches_job": {
+        "status": "SUCCESS",
+        "snapshot_sha256": "13dff90f126d9f73da410ae3292b2773744657d3ba968a2b7a9c02135033581c",
+        "records": 34,
+        "errors": [],
+        "silver": {
+          "normalization": {
+            "entity": "matches",
+            "count": 34,
+            "snapshot_id": "1c7178c9-4a51-4b54-ba64-5a90bd71b852"
+          },
+          "before": {
+            "matches": 444,
+            "clubs": 52,
+            "players": 1415,
+            "match_lineups": 16922,
+            "match_events": 230,
+            "competition_seasons": 2
+          },
+          "after": {
+            "matches": 478,
+            "clubs": 70,
+            "players": 1415,
+            "match_lineups": 16922,
+            "match_events": 230,
+            "competition_seasons": 3
+          },
+          "delta": {
+            "matches": 34,
+            "clubs": 18,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 0,
+            "competition_seasons": 1
+          }
+        },
+        "silver_quality": {
+          "scope": "silver:statsbomb:adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6",
+          "overall": "WARN",
+          "records_examined": 34,
+          "snapshot_sha256": null,
+          "created_at": "2026-10-01T15:56:10.485056+00:00",
+          "checks": [
+            {
+              "name": "referential_integrity",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "Silver match with no Bronze snapshot (orphan)",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate fixture",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "FINISHED match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "score_event_reconciliation",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "0 matches with events reconciled against final score",
+              "evaluated": false
+            },
+            {
+              "name": "lineup_completeness",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "no lineups ingested for this scope",
+              "evaluated": false
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "provider id mapped to more than one canonical entity",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "canonical entity with empty name",
+              "evaluated": true
+            }
+          ]
+        },
+        "payload_quality": {
+          "scope": "bronze:statsbomb:matches",
+          "overall": "WARN",
+          "records_examined": 34,
+          "snapshot_sha256": "13dff90f126d9f73da410ae3292b2773744657d3ba968a2b7a9c02135033581c",
+          "created_at": "2026-10-01T15:56:10.125874+00:00",
+          "checks": [
+            {
+              "name": "schema_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "CONTRACT_OK",
+              "evaluated": true
+            },
+            {
+              "name": "duplicate_detection",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "duplicate match_id in payload",
+              "evaluated": true
+            },
+            {
+              "name": "null_checks",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "matches without a final score",
+              "evaluated": true
+            },
+            {
+              "name": "impossible_values",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "score outside [0, 15]",
+              "evaluated": true
+            },
+            {
+              "name": "temporal_validation",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "scored match dated in the future",
+              "evaluated": true
+            },
+            {
+              "name": "competition_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in competition 9",
+              "evaluated": true
+            },
+            {
+              "name": "season_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "records not in season 281",
+              "evaluated": true
+            },
+            {
+              "name": "identity_consistency",
+              "status": "PASS",
+              "affected_records": 0,
+              "detail": "home team id equals away team id",
+              "evaluated": true
+            },
+            {
+              "name": "provider_conflict_detection",
+              "status": "WARN",
+              "affected_records": 0,
+              "detail": "single provider for this resource; cross-provider comparison not possible",
+              "evaluated": false
+            }
+          ]
+        },
+        "contract": {
+          "provider": "statsbomb",
+          "resource": "matches",
+          "status": "CONTRACT_OK",
+          "findings": [],
+          "observed_fingerprint": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+          "registered_fingerprint": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10"
+        },
+        "latency_ms": 875.1
+      },
+      "lineup_jobs": {
+        "SUCCESS": 34
+      },
+      "event_jobs_detail": [
+        {
+          "match_id": 3895348,
+          "status": "SUCCESS",
+          "records": 4133,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895286,
+          "status": "SUCCESS",
+          "records": 3894,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 12,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895220,
+          "status": "SUCCESS",
+          "records": 4258,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 14,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895320,
+          "status": "SUCCESS",
+          "records": 3771,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 21,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895153,
+          "status": "SUCCESS",
+          "records": 4520,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 17,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895134,
+          "status": "SUCCESS",
+          "records": 3881,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 18,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895095,
+          "status": "SUCCESS",
+          "records": 4035,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 18,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        },
+        {
+          "match_id": 3895266,
+          "status": "SUCCESS",
+          "records": 4104,
+          "silver_delta": {
+            "matches": 0,
+            "clubs": 0,
+            "players": 0,
+            "match_lineups": 0,
+            "match_events": 16,
+            "competition_seasons": 0
+          },
+          "payload_quality": "WARN"
+        }
+      ],
+      "event_jobs": {
+        "SUCCESS": 8
+      },
+      "competition_season_id": "adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6"
+    }
+  },
+  "started_at": "2026-10-01T15:48:01.812891+00:00",
+  "credentials_configured": {
+    "api_football_key": true,
+    "football_data_token": false
+  },
+  "probes": [
+    {
+      "provider": "statsbomb",
+      "resource": "competitions",
+      "endpoint": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/competitions.json",
+      "state": "AVAILABLE",
+      "authentication_state": "NOT_REQUIRED",
+      "http_status": 200,
+      "latency_ms": 404.0,
+      "quota": {
+        "exposed": false
+      },
+      "capability": "competitions",
+      "detail": null,
+      "probed_at": "2026-10-01T15:48:04.105287+00:00",
+      "response_bytes": 34887
+    },
+    {
+      "provider": "statsbomb",
+      "resource": "matches",
+      "endpoint": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/matches/43/106.json",
+      "state": "AVAILABLE",
+      "authentication_state": "NOT_REQUIRED",
+      "http_status": 200,
+      "latency_ms": 855.8,
+      "quota": {
+        "exposed": false
+      },
+      "capability": "matches",
+      "detail": null,
+      "probed_at": "2026-10-01T15:48:05.025112+00:00",
+      "response_bytes": 119132
+    },
+    {
+      "provider": "statsbomb",
+      "resource": "lineups",
+      "endpoint": "https://raw.githubusercontent.com/statsbomb/open-data/master/data/lineups/3869685.json",
+      "state": "AVAILABLE",
+      "authentication_state": "NOT_REQUIRED",
+      "http_status": 200,
+      "latency_ms": 2026.0,
+      "quota": {
+        "exposed": false
+      },
+      "capability": "lineups",
+      "detail": null,
+      "probed_at": "2026-10-01T15:48:07.122211+00:00",
+      "response_bytes": 28432
+    },
+    {
+      "provider": "api-football",
+      "resource": "status",
+      "endpoint": "https://v3.football.api-sports.io/status",
+      "state": "BLOCKED",
+      "authentication_state": "NOT_ATTEMPTED_KEY_PRESENT",
+      "http_status": null,
+      "latency_ms": 846.0,
+      "quota": {},
+      "capability": "account_status",
+      "detail": "egress proxy refused CONNECT (403 Forbidden); policy denial and upstream failure are indistinguishable from inside this environment",
+      "probed_at": "2026-10-01T15:48:08.009553+00:00",
+      "response_bytes": null
+    },
+    {
+      "provider": "football-data-org",
+      "resource": "competitions",
+      "endpoint": "https://api.football-data.org/v4/competitions",
+      "state": "BLOCKED",
+      "authentication_state": "NOT_ATTEMPTED_NO_KEY",
+      "http_status": null,
+      "latency_ms": 593.1,
+      "quota": {},
+      "capability": "competitions",
+      "detail": "egress proxy refused CONNECT (403 Forbidden); policy denial and upstream failure are indistinguishable from inside this environment",
+      "probed_at": "2026-10-01T15:48:08.644486+00:00",
+      "response_bytes": null
+    }
+  ],
+  "competitions_index": {
+    "status": "SUCCESS",
+    "snapshot_sha256": "e6cd42f5d8956d6aa30fb917ce8d4c3b3df1879a93f02f8feba820930a6971fa",
+    "records": 80,
+    "contract": {
+      "provider": "statsbomb",
+      "resource": "competitions",
+      "status": "CONTRACT_OK",
+      "findings": [],
+      "observed_fingerprint": "cd9ec0ca9f3c1b69c12eb5850afdcd0854190d543b03abdf38cf914eac99b17e",
+      "registered_fingerprint": null
+    },
+    "payload_quality": {
+      "scope": "bronze:statsbomb:competitions",
+      "overall": "WARN",
+      "records_examined": 80,
+      "snapshot_sha256": "e6cd42f5d8956d6aa30fb917ce8d4c3b3df1879a93f02f8feba820930a6971fa",
+      "created_at": "2026-10-01T15:48:09.809257+00:00",
+      "checks": [
+        {
+          "name": "schema_validation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "CONTRACT_OK",
+          "evaluated": true
+        },
+        {
+          "name": "provider_conflict_detection",
+          "status": "WARN",
+          "affected_records": 0,
+          "detail": "single provider for this resource; cross-provider comparison not possible",
+          "evaluated": false
+        }
+      ]
+    }
+  },
+  "silver_counts_after_ingestion": {
+    "matches": 478,
+    "clubs": 70,
+    "players": 1802,
+    "match_lineups": 18275,
+    "match_events": 360,
+    "competition_seasons": 3
+  },
+  "idempotency": [
+    {
+      "scope": "Premier League 2015/2016",
+      "resource": "matches",
+      "status": "SUCCESS",
+      "sha256": "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+      "first_sha256": "e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+      "silver_delta": {
+        "matches": 0,
+        "clubs": 0,
+        "players": 0,
+        "match_lineups": 0,
+        "match_events": 0,
+        "competition_seasons": 0
+      },
+      "idempotent": true
+    },
+    {
+      "scope": "FIFA World Cup 2022",
+      "resource": "matches",
+      "status": "SUCCESS",
+      "sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+      "first_sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+      "silver_delta": {
+        "matches": 0,
+        "clubs": 0,
+        "players": 0,
+        "match_lineups": 0,
+        "match_events": 0,
+        "competition_seasons": 0
+      },
+      "idempotent": true
+    },
+    {
+      "scope": "1. Bundesliga 2023/2024",
+      "resource": "matches",
+      "status": "SUCCESS",
+      "sha256": "13dff90f126d9f73da410ae3292b2773744657d3ba968a2b7a9c02135033581c",
+      "first_sha256": "13dff90f126d9f73da410ae3292b2773744657d3ba968a2b7a9c02135033581c",
+      "silver_delta": {
+        "matches": 0,
+        "clubs": 0,
+        "players": 0,
+        "match_lineups": 0,
+        "match_events": 0,
+        "competition_seasons": 0
+      },
+      "idempotent": true
+    },
+    {
+      "scope": "match 3869685",
+      "resource": "lineups",
+      "status": "SUCCESS",
+      "sha256": "2b00c4cbf027b36ae2ce99f183a0943c649bb5bdcb8324683a8603785beffed5",
+      "silver_delta": {
+        "matches": 0,
+        "clubs": 0,
+        "players": 0,
+        "match_lineups": 0,
+        "match_events": 0,
+        "competition_seasons": 0
+      },
+      "idempotent": true
+    },
+    {
+      "scope": "match 3869685",
+      "resource": "events",
+      "status": "SUCCESS",
+      "sha256": "a0b0036d50c10a4c8879d1ee9f24a7502ec2cfb264a61951c8d500dfc897ec35",
+      "silver_delta": {
+        "matches": 0,
+        "clubs": 0,
+        "players": 0,
+        "match_lineups": 0,
+        "match_events": 0,
+        "competition_seasons": 0
+      },
+      "idempotent": true
+    }
+  ],
+  "feature_refresh": {
+    "Premier League 2015/2016": {
+      "first_pass": {
+        "REFRESHED": 20
+      },
+      "second_pass": {
+        "UNCHANGED": 20
+      },
+      "recomputed_on_second_pass": 0,
+      "example": {
+        "feature": "team_form_v1",
+        "entity_id": "0a4bea9e-ac92-4140-aa5e-c6387cf9cd41@13dabd8a-51f1-4e69-9851-2cf0a5272103",
+        "status": "REFRESHED",
+        "previous_version": null,
+        "new_version": "dcf0c2e142cc05bb",
+        "computed": true,
+        "values": {
+          "matches": 38,
+          "points_per_game": 1.1053,
+          "goals_for_per_game": 1.1842,
+          "goals_against_per_game": 1.7632,
+          "last5_points": 1,
+          "last_match_date": "2016-05-17T21:00:00+00:00"
+        }
+      }
+    },
+    "FIFA World Cup 2022": {
+      "first_pass": {
+        "REFRESHED": 32
+      },
+      "second_pass": {
+        "UNCHANGED": 32
+      },
+      "recomputed_on_second_pass": 0,
+      "example": {
+        "feature": "team_form_v1",
+        "entity_id": "0f37ecdc-460b-466d-bc1a-41cef1f30375@3ceaeb3d-b29f-47b0-a438-77627616e48e",
+        "status": "REFRESHED",
+        "previous_version": null,
+        "new_version": "f5f61d33ca6e1721",
+        "computed": true,
+        "values": {
+          "matches": 3,
+          "points_per_game": 1.3333,
+          "goals_for_per_game": 0.3333,
+          "goals_against_per_game": 0.3333,
+          "last5_points": 4,
+          "last_match_date": "2022-11-30T15:00:00+00:00"
+        }
+      }
+    },
+    "1. Bundesliga 2023/2024": {
+      "first_pass": {
+        "REFRESHED": 18
+      },
+      "second_pass": {
+        "UNCHANGED": 18
+      },
+      "recomputed_on_second_pass": 0,
+      "example": {
+        "feature": "team_form_v1",
+        "entity_id": "0069f631-72c1-49d6-a5dd-23a3c07907c4@adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6",
+        "status": "REFRESHED",
+        "previous_version": null,
+        "new_version": "f01385df2ed568cb",
+        "computed": true,
+        "values": {
+          "matches": 2,
+          "points_per_game": 0.0,
+          "goals_for_per_game": 0.5,
+          "goals_against_per_game": 2.5,
+          "last5_points": 0,
+          "last_match_date": "2024-02-23T21:30:00+00:00"
+        }
+      }
+    }
+  },
+  "model_validation": {
+    "Premier League 2015/2016": {
+      "backtest": {
+        "competition_season_id": "13dabd8a-51f1-4e69-9851-2cf0a5272103",
+        "matches": 380,
+        "inference_statuses": {
+          "INSUFFICIENT_DATA": 50,
+          "SERVED": 330
+        },
+        "outcomes_linked": 330
+      },
+      "competition_key": "Premier League (England)",
+      "verdict": {
+        "competition": "Premier League (England)",
+        "status": "VALIDATION_FAILED",
+        "n": 330,
+        "log_loss": 1.1832,
+        "brier": 0.7023,
+        "ece": 0.2148,
+        "mce": 0.3674,
+        "accuracy": 0.4727,
+        "baseline_class_prior_log_loss": 1.0803,
+        "beats_class_prior_baseline": false
+      }
+    },
+    "FIFA World Cup 2022": {
+      "backtest": {
+        "competition_season_id": "3ceaeb3d-b29f-47b0-a438-77627616e48e",
+        "matches": 64,
+        "inference_statuses": {
+          "INSUFFICIENT_DATA": 60,
+          "SERVED": 4
+        },
+        "outcomes_linked": 4
+      },
+      "competition_key": "FIFA World Cup (International)",
+      "verdict": {
+        "competition": "FIFA World Cup (International)",
+        "status": "NOT_ENOUGH_OUTCOMES",
+        "n": 4,
+        "minimum_required": 50
+      }
+    },
+    "1. Bundesliga 2023/2024": {
+      "backtest": {
+        "competition_season_id": "adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6",
+        "matches": 34,
+        "inference_statuses": {
+          "INSUFFICIENT_DATA": 34
+        },
+        "outcomes_linked": 0
+      },
+      "competition_key": "1. Bundesliga (Germany)",
+      "verdict": {
+        "competition": "1. Bundesliga (Germany)",
+        "status": "NOT_ENOUGH_OUTCOMES",
+        "n": 0,
+        "minimum_required": 50
+      }
+    }
+  },
+  "model_registry": {
+    "model_id": "calibrated_multinomial_logit_v1",
+    "model_version": "1.2.0",
+    "deployment_state": "REGISTERED",
+    "supported_competitions": [],
+    "dataset_version": "NONE_EVIDENCED",
+    "artifact_sha256": "3a073167505e57bd75b4e80fd1ac5f1acefbb1e2e29a987b503f3d4d196750a2"
+  },
+  "live_inference_attempts": [
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754159",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754159",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754159",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    },
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754041",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754041",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "Premier League 2015/2016",
+      "match": "3754041",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869685",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869685",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869685",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869684",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869684",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "FIFA World Cup 2022",
+      "match": "3869684",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895348",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895348",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895348",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895340",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895340",
+      "as_of": "kickoff - 2h (backdated LIVE)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ]
+    },
+    {
+      "competition": "1. Bundesliga 2023/2024",
+      "match": "3895340",
+      "as_of": "kickoff - 2h (HISTORICAL_REPLAY)",
+      "status": "MODEL_UNAVAILABLE",
+      "reasons": [
+        "no servable match_outcome model registered"
+      ],
+      "output": {}
+    }
+  ],
+  "calibration": {
+    "live": {
+      "status": "NOT_ENOUGH_LIVE_OUTCOMES",
+      "observation_mode": "LIVE",
+      "n": 0,
+      "minimum_required": 100
+    },
+    "historical_replay_validation": {
+      "status": "MEASURED",
+      "observation_mode": "HISTORICAL_REPLAY",
+      "n": 334,
+      "log_loss": 1.1808,
+      "brier": 0.7008,
+      "ece": 0.2103,
+      "mce": 0.3674,
+      "accuracy": 0.4731,
+      "baseline_class_prior_log_loss": 1.0787,
+      "beats_class_prior_baseline": false,
+      "calibration_curve": [
+        {
+          "bin": [
+            0.3,
+            0.4
+          ],
+          "n": 20,
+          "mean_confidence": 0.3876,
+          "accuracy": 0.65
+        },
+        {
+          "bin": [
+            0.4,
+            0.5
+          ],
+          "n": 60,
+          "mean_confidence": 0.4476,
+          "accuracy": 0.3167
+        },
+        {
+          "bin": [
+            0.5,
+            0.6
+          ],
+          "n": 64,
+          "mean_confidence": 0.5521,
+          "accuracy": 0.5
+        },
+        {
+          "bin": [
+            0.6,
+            0.7
+          ],
+          "n": 58,
+          "mean_confidence": 0.6423,
+          "accuracy": 0.3793
+        },
+        {
+          "bin": [
+            0.7,
+            0.8
+          ],
+          "n": 49,
+          "mean_confidence": 0.7553,
+          "accuracy": 0.4898
+        },
+        {
+          "bin": [
+            0.8,
+            0.9
+          ],
+          "n": 53,
+          "mean_confidence": 0.8579,
+          "accuracy": 0.4906
+        },
+        {
+          "bin": [
+            0.9,
+            1.0
+          ],
+          "n": 30,
+          "mean_confidence": 0.9363,
+          "accuracy": 0.7333
+        }
+      ],
+      "subgroups": {
+        "Premier League (England)": {
+          "n": 330,
+          "log_loss": 1.1832,
+          "brier": 0.7023,
+          "ece": 0.2148,
+          "mce": 0.3674,
+          "accuracy": 0.4727,
+          "baseline_class_prior_log_loss": 1.0803,
+          "beats_class_prior_baseline": false
+        },
+        "FIFA World Cup (International)": {
+          "status": "NOT_ENOUGH_OUTCOMES",
+          "n": 4,
+          "minimum_required": 50
+        }
+      }
+    }
+  },
+  "drift": {
+    "live": {
+      "status": "NOT_ENOUGH_OBSERVATIONS",
+      "evidence_mode": "LIVE",
+      "reference_n": 0,
+      "current_n": 0,
+      "minimum_per_window": 50,
+      "retrain_recommended": false
+    },
+    "historical_validation": {
+      "status": "DRIFT",
+      "evidence_mode": "VALIDATION_BACKTEST",
+      "reference_window": [
+        "2015-09-19T11:45:00+00:00",
+        "2016-01-16T18:30:00+00:00"
+      ],
+      "current_window": [
+        "2016-01-17T15:05:00+00:00",
+        "2022-12-18T17:00:00+00:00"
+      ],
+      "reference_n": 167,
+      "current_n": 167,
+      "features": {
+        "elo_diff": {
+          "psi": 0.4181,
+          "class": "DRIFT"
+        },
+        "points_diff_l5": {
+          "psi": 0.0819,
+          "class": "STABLE"
+        },
+        "home_goal_diff_l5": {
+          "psi": 0.1566,
+          "class": "MONITOR"
+        },
+        "away_goal_diff_l5": {
+          "psi": 0.1515,
+          "class": "MONITOR"
+        }
+      },
+      "confidence_psi": {
+        "psi": 0.203,
+        "class": "MONITOR"
+      },
+      "retrain_recommended": true,
+      "action": "RETRAIN_RECOMMENDED -> governed challenger workflow (no automatic retraining)"
+    }
+  },
+  "model_health": {
+    "domain": "match_outcome",
+    "computed_at": "2026-10-01T15:57:07.298255+00:00",
+    "inference_volume": 496,
+    "by_status": {
+      "INSUFFICIENT_DATA": 144,
+      "SERVED": 334,
+      "MODEL_UNAVAILABLE": 18
+    },
+    "by_evidence_mode": {
+      "VALIDATION_BACKTEST": 478,
+      "LIVE": 12,
+      "HISTORICAL_REPLAY": 6
+    },
+    "live_inference_volume": 12,
+    "refusal_rate": 0.3266,
+    "ood_rate": 0.0,
+    "missing_feature_rate": 0.0,
+    "latency_ms": {
+      "p50": 11.42,
+      "p95": 15.19,
+      "p99": 17.719
+    },
+    "confidence_histogram": {
+      "0.0-0.1": 0,
+      "0.1-0.2": 0,
+      "0.2-0.3": 0,
+      "0.3-0.4": 20,
+      "0.4-0.5": 60,
+      "0.5-0.6": 64,
+      "0.6-0.7": 58,
+      "0.7-0.8": 49,
+      "0.8-0.9": 53,
+      "0.9-1.0": 30
+    },
+    "live_calibration": {
+      "status": "NOT_ENOUGH_LIVE_OUTCOMES",
+      "observation_mode": "LIVE",
+      "n": 0,
+      "minimum_required": 100
+    },
+    "status": "MEASURED"
+  },
+  "competition_readiness": [
+    {
+      "competition": "1. Bundesliga (Germany)",
+      "seasons": [
+        "2023"
+      ],
+      "providers": [
+        "statsbomb"
+      ],
+      "match_data": {
+        "matches": 34,
+        "finished": 34
+      },
+      "player_data": {
+        "lineup_rows": 1353,
+        "distinct_players": 460
+      },
+      "event_data": {
+        "event_rows": 130,
+        "matches_with_events": 8
+      },
+      "transfer_data": {
+        "rows": 0,
+        "state": "NOT_AVAILABLE"
+      },
+      "model_support": {
+        "model": "calibrated_multinomial_logit_v1",
+        "supported": false,
+        "deployment_state": "REGISTERED",
+        "validation": {
+          "n": 0,
+          "status": "NOT_ENOUGH_OUTCOMES",
+          "competition": "1. Bundesliga (Germany)",
+          "minimum_required": 50
+        }
+      },
+      "calibration": {
+        "historical_replay": "NOT_ENOUGH_OUTCOMES",
+        "live": "NOT_ENOUGH_LIVE_OUTCOMES",
+        "live_outcomes": 0
+      },
+      "freshness": {
+        "latest_retrieval": "2026-10-01T15:56:57.263509+00:00",
+        "data_mode": "HISTORICAL_ARCHIVE"
+      },
+      "ood": {
+        "inference_requests": 40,
+        "ood_refusals": 0,
+        "ood_rate": 0.0
+      },
+      "latest_quality": "PASS",
+      "provider_status": {
+        "statsbomb": "AVAILABLE"
+      },
+      "production_status": "DATA_AVAILABLE"
+    },
+    {
+      "competition": "FIFA World Cup (International)",
+      "seasons": [
+        "2022"
+      ],
+      "providers": [
+        "statsbomb"
+      ],
+      "match_data": {
+        "matches": 64,
+        "finished": 64
+      },
+      "player_data": {
+        "lineup_rows": 3244,
+        "distinct_players": 829
+      },
+      "event_data": {
+        "event_rows": 133,
+        "matches_with_events": 8
+      },
+      "transfer_data": {
+        "rows": 0,
+        "state": "NOT_AVAILABLE"
+      },
+      "model_support": {
+        "model": "calibrated_multinomial_logit_v1",
+        "supported": false,
+        "deployment_state": "REGISTERED",
+        "validation": {
+          "n": 4,
+          "status": "NOT_ENOUGH_OUTCOMES",
+          "competition": "FIFA World Cup (International)",
+          "minimum_required": 50
+        }
+      },
+      "calibration": {
+        "historical_replay": "NOT_ENOUGH_OUTCOMES",
+        "live": "NOT_ENOUGH_LIVE_OUTCOMES",
+        "live_outcomes": 0
+      },
+      "freshness": {
+        "latest_retrieval": "2026-10-01T15:56:56.431379+00:00",
+        "data_mode": "HISTORICAL_ARCHIVE"
+      },
+      "ood": {
+        "inference_requests": 70,
+        "ood_refusals": 0,
+        "ood_rate": 0.0
+      },
+      "latest_quality": "PASS",
+      "provider_status": {
+        "statsbomb": "AVAILABLE"
+      },
+      "production_status": "DATA_AVAILABLE"
+    },
+    {
+      "competition": "Premier League (England)",
+      "seasons": [
+        "2015"
+      ],
+      "providers": [
+        "statsbomb"
+      ],
+      "match_data": {
+        "matches": 380,
+        "finished": 380
+      },
+      "player_data": {
+        "lineup_rows": 13678,
+        "distinct_players": 644
+      },
+      "event_data": {
+        "event_rows": 97,
+        "matches_with_events": 8
+      },
+      "transfer_data": {
+        "rows": 0,
+        "state": "NOT_AVAILABLE"
+      },
+      "model_support": {
+        "model": "calibrated_multinomial_logit_v1",
+        "supported": false,
+        "deployment_state": "REGISTERED",
+        "validation": {
+          "n": 330,
+          "ece": 0.2148,
+          "mce": 0.3674,
+          "brier": 0.7023,
+          "status": "VALIDATION_FAILED",
+          "accuracy": 0.4727,
+          "log_loss": 1.1832,
+          "competition": "Premier League (England)",
+          "beats_class_prior_baseline": false,
+          "baseline_class_prior_log_loss": 1.0803
+        }
+      },
+      "calibration": {
+        "historical_replay": "VALIDATION_FAILED",
+        "live": "NOT_ENOUGH_LIVE_OUTCOMES",
+        "live_outcomes": 0
+      },
+      "freshness": {
+        "latest_retrieval": "2026-10-01T15:56:54.056100+00:00",
+        "data_mode": "HISTORICAL_ARCHIVE"
+      },
+      "ood": {
+        "inference_requests": 386,
+        "ood_refusals": 0,
+        "ood_rate": 0.0
+      },
+      "latest_quality": "PASS",
+      "provider_status": {
+        "statsbomb": "AVAILABLE"
+      },
+      "production_status": "DATA_AVAILABLE"
+    }
+  ],
+  "capability_matrix": {
+    "computed_at": "2026-10-01T15:57:07.408396+00:00",
+    "state_definitions": {
+      "LIVE_AVAILABLE": "verified by a real request from this deployment (not a claim of real-time data)",
+      "PARTIAL": "some scopes verified, some failed",
+      "UNAVAILABLE": "provider does not publish it",
+      "UNVERIFIED": "published by the provider but never successfully requested from here"
+    },
+    "providers": {
+      "statsbomb": {
+        "connectivity": "AVAILABLE",
+        "timing": {
+          "data_mode": "HISTORICAL_ARCHIVE",
+          "live_capable": false,
+          "live_verified": false
+        },
+        "resources": {
+          "leagues": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "competitions": {
+            "state": "LIVE_AVAILABLE",
+            "successful_scopes": 1,
+            "failed_scopes": 0,
+            "probe": {
+              "state": "AVAILABLE",
+              "http_status": 200,
+              "latency_ms": 404.0,
+              "probed_at": "2026-10-01T15:48:04.105287+00:00"
+            },
+            "evidence": "real ingestion runs"
+          },
+          "seasons": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "fixtures": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "matches": {
+            "state": "LIVE_AVAILABLE",
+            "successful_scopes": 3,
+            "failed_scopes": 0,
+            "probe": {
+              "state": "AVAILABLE",
+              "http_status": 200,
+              "latency_ms": 855.8,
+              "probed_at": "2026-10-01T15:48:05.025112+00:00"
+            },
+            "evidence": "real ingestion runs"
+          },
+          "teams": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "players": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "lineups": {
+            "state": "LIVE_AVAILABLE",
+            "successful_scopes": 478,
+            "failed_scopes": 0,
+            "probe": {
+              "state": "AVAILABLE",
+              "http_status": 200,
+              "latency_ms": 2026.0,
+              "probed_at": "2026-10-01T15:48:07.122211+00:00"
+            },
+            "evidence": "real ingestion runs"
+          },
+          "events": {
+            "state": "LIVE_AVAILABLE",
+            "successful_scopes": 24,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "real ingestion runs"
+          },
+          "statistics": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "transfers": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "injuries": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "standings": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "odds": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          }
+        }
+      },
+      "api-football": {
+        "connectivity": "BLOCKED",
+        "timing": {
+          "data_mode": "NEAR_REAL_TIME_DOCUMENTED",
+          "live_capable": true,
+          "live_verified": false
+        },
+        "resources": {
+          "leagues": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "competitions": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "seasons": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "fixtures": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "matches": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "teams": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "players": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "lineups": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "events": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "statistics": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "transfers": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "injuries": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "standings": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "odds": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          }
+        }
+      },
+      "football-data-org": {
+        "connectivity": "BLOCKED",
+        "timing": {
+          "data_mode": "DELAYED_DOCUMENTED",
+          "live_capable": false,
+          "live_verified": false
+        },
+        "resources": {
+          "leagues": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "competitions": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": {
+              "state": "BLOCKED",
+              "http_status": null,
+              "latency_ms": 593.1,
+              "probed_at": "2026-10-01T15:48:08.644486+00:00"
+            },
+            "evidence": "probe"
+          },
+          "seasons": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "fixtures": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "matches": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "teams": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "players": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "lineups": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "events": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "statistics": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "transfers": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "injuries": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          },
+          "standings": {
+            "state": "UNVERIFIED",
+            "successful_scopes": 0,
+            "failed_scopes": 0,
+            "probe": null,
+            "evidence": "none"
+          },
+          "odds": {
+            "state": "UNAVAILABLE",
+            "evidence": "provider does not publish this resource"
+          }
+        }
+      }
+    },
+    "statsbomb_competition_seasons": [
+      {
+        "provider": "statsbomb",
+        "competition": "1. Bundesliga (Germany)",
+        "season": "2023/2024",
+        "competition_id": 9,
+        "season_id": 281,
+        "provider_match_updated": "2024-09-28T20:46:38.893391",
+        "matches": "LIVE_AVAILABLE"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "1. Bundesliga (Germany)",
+        "season": "2015/2016",
+        "competition_id": 9,
+        "season_id": 27,
+        "provider_match_updated": "2024-05-19T11:11:14.192381",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "African Cup of Nations (Africa)",
+        "season": "2023",
+        "competition_id": 1267,
+        "season_id": 107,
+        "provider_match_updated": "2026-05-12T21:18:08.827431",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2018/2019",
+        "competition_id": 16,
+        "season_id": 4,
+        "provider_match_updated": "2026-05-15T15:54:04.598614",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2017/2018",
+        "competition_id": 16,
+        "season_id": 1,
+        "provider_match_updated": "2024-02-13T02:35:28.134882",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2016/2017",
+        "competition_id": 16,
+        "season_id": 2,
+        "provider_match_updated": "2024-02-13T02:37:32.205154",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2015/2016",
+        "competition_id": 16,
+        "season_id": 27,
+        "provider_match_updated": "2024-06-12T07:45:38.786894",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2014/2015",
+        "competition_id": 16,
+        "season_id": 26,
+        "provider_match_updated": "2024-02-12T12:49:54.914228",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2013/2014",
+        "competition_id": 16,
+        "season_id": 25,
+        "provider_match_updated": "2024-02-12T12:48:48.479157",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2012/2013",
+        "competition_id": 16,
+        "season_id": 24,
+        "provider_match_updated": "2024-02-12T12:47:34.340413",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2011/2012",
+        "competition_id": 16,
+        "season_id": 23,
+        "provider_match_updated": "2024-02-13T02:36:35.698340",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2010/2011",
+        "competition_id": 16,
+        "season_id": 22,
+        "provider_match_updated": "2024-02-12T12:53:03.944320",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2009/2010",
+        "competition_id": 16,
+        "season_id": 21,
+        "provider_match_updated": "2024-02-12T12:49:25.017694",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2008/2009",
+        "competition_id": 16,
+        "season_id": 41,
+        "provider_match_updated": "2024-02-13T07:02:54.657056",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2006/2007",
+        "competition_id": 16,
+        "season_id": 39,
+        "provider_match_updated": "2024-02-12T13:48:23.967222",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2004/2005",
+        "competition_id": 16,
+        "season_id": 37,
+        "provider_match_updated": "2025-06-24T09:44:09.039471",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "2003/2004",
+        "competition_id": 16,
+        "season_id": 44,
+        "provider_match_updated": "2025-06-24T13:57:37.321382",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "1999/2000",
+        "competition_id": 16,
+        "season_id": 76,
+        "provider_match_updated": "2025-06-23T12:34:36.649637",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "1972/1973",
+        "competition_id": 16,
+        "season_id": 277,
+        "provider_match_updated": "2024-02-13T14:25:16.532771",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "1971/1972",
+        "competition_id": 16,
+        "season_id": 71,
+        "provider_match_updated": "2024-02-12T14:25:01.735880",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Champions League (Europe)",
+        "season": "1970/1971",
+        "competition_id": 16,
+        "season_id": 276,
+        "provider_match_updated": "2024-02-13T14:24:12.213582",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Copa America (South America)",
+        "season": "2024",
+        "competition_id": 223,
+        "season_id": 282,
+        "provider_match_updated": "2026-05-13T12:24:48.807600",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Copa del Rey (Spain)",
+        "season": "1983/1984",
+        "competition_id": 87,
+        "season_id": 84,
+        "provider_match_updated": "2024-02-13T01:54:12.946985",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Copa del Rey (Spain)",
+        "season": "1982/1983",
+        "competition_id": 87,
+        "season_id": 268,
+        "provider_match_updated": "2024-02-13T14:19:57.954551",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Copa del Rey (Spain)",
+        "season": "1977/1978",
+        "competition_id": 87,
+        "season_id": 279,
+        "provider_match_updated": "2024-02-13T14:26:19.978418",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FA Women's Super League (England)",
+        "season": "2023/2024",
+        "competition_id": 37,
+        "season_id": 281,
+        "provider_match_updated": "2026-04-11T13:05:10.794831",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FA Women's Super League (England)",
+        "season": "2020/2021",
+        "competition_id": 37,
+        "season_id": 90,
+        "provider_match_updated": "2026-04-12T16:33:48.145602",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FA Women's Super League (England)",
+        "season": "2019/2020",
+        "competition_id": 37,
+        "season_id": 42,
+        "provider_match_updated": "2026-04-12T16:07:56.102610",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FA Women's Super League (England)",
+        "season": "2018/2019",
+        "competition_id": 37,
+        "season_id": 4,
+        "provider_match_updated": "2026-03-28T18:13:53.368475",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA U20 World Cup (International)",
+        "season": "1979",
+        "competition_id": 1470,
+        "season_id": 274,
+        "provider_match_updated": "2024-02-13T14:20:59.825440",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "2022",
+        "competition_id": 43,
+        "season_id": 106,
+        "provider_match_updated": "2026-05-04T01:48:57.914346",
+        "matches": "LIVE_AVAILABLE"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "2018",
+        "competition_id": 43,
+        "season_id": 3,
+        "provider_match_updated": "2026-05-15T15:48:12.789440",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1990",
+        "competition_id": 43,
+        "season_id": 55,
+        "provider_match_updated": "2023-06-28T10:58:20.137929",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1986",
+        "competition_id": 43,
+        "season_id": 54,
+        "provider_match_updated": "2026-05-04T01:30:23.212111",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1974",
+        "competition_id": 43,
+        "season_id": 51,
+        "provider_match_updated": "2026-05-15T02:20:43.439689",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1970",
+        "competition_id": 43,
+        "season_id": 272,
+        "provider_match_updated": "2026-05-04T02:09:10.916859",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1962",
+        "competition_id": 43,
+        "season_id": 270,
+        "provider_match_updated": "2026-05-04T02:05:35.653887",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "1958",
+        "competition_id": 43,
+        "season_id": 269,
+        "provider_match_updated": "2026-05-04T02:02:41.853159",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Frauen Bundesliga (Germany)",
+        "season": "2023/2024",
+        "competition_id": 135,
+        "season_id": 281,
+        "provider_match_updated": "2026-04-11T13:05:50.947635",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Indian Super league (India)",
+        "season": "2021/2022",
+        "competition_id": 1238,
+        "season_id": 108,
+        "provider_match_updated": "2026-04-06T18:33:57.872951",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2020/2021",
+        "competition_id": 11,
+        "season_id": 90,
+        "provider_match_updated": "2025-11-02T03:55:19.577958",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2019/2020",
+        "competition_id": 11,
+        "season_id": 42,
+        "provider_match_updated": "2024-12-16T16:51:06.833054",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2018/2019",
+        "competition_id": 11,
+        "season_id": 4,
+        "provider_match_updated": "2026-04-06T04:49:09.959011",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2017/2018",
+        "competition_id": 11,
+        "season_id": 1,
+        "provider_match_updated": "2025-07-14T10:01:16.674864",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2016/2017",
+        "competition_id": 11,
+        "season_id": 2,
+        "provider_match_updated": "2025-03-09T16:03:54.962718",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2015/2016",
+        "competition_id": 11,
+        "season_id": 27,
+        "provider_match_updated": "2025-04-23T13:59:22.835792",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2014/2015",
+        "competition_id": 11,
+        "season_id": 26,
+        "provider_match_updated": "2025-06-24T13:39:01.068680",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2013/2014",
+        "competition_id": 11,
+        "season_id": 25,
+        "provider_match_updated": "2025-06-24T09:52:44.048585",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2012/2013",
+        "competition_id": 11,
+        "season_id": 24,
+        "provider_match_updated": "2025-06-24T13:53:14.047130",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2011/2012",
+        "competition_id": 11,
+        "season_id": 23,
+        "provider_match_updated": "2025-06-24T13:38:10.764259",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2010/2011",
+        "competition_id": 11,
+        "season_id": 22,
+        "provider_match_updated": "2025-06-24T13:51:54.910296",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2009/2010",
+        "competition_id": 11,
+        "season_id": 21,
+        "provider_match_updated": "2025-06-24T13:43:36.379754",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2008/2009",
+        "competition_id": 11,
+        "season_id": 41,
+        "provider_match_updated": "2025-09-08T13:42:24.627088",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2007/2008",
+        "competition_id": 11,
+        "season_id": 40,
+        "provider_match_updated": "2026-05-26T13:35:19.781918",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2006/2007",
+        "competition_id": 11,
+        "season_id": 39,
+        "provider_match_updated": "2025-06-24T13:52:50.824119",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2005/2006",
+        "competition_id": 11,
+        "season_id": 38,
+        "provider_match_updated": "2025-06-24T14:05:07.849675",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "2004/2005",
+        "competition_id": 11,
+        "season_id": 37,
+        "provider_match_updated": "2025-06-24T13:48:43.998096",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "La Liga (Spain)",
+        "season": "1973/1974",
+        "competition_id": 11,
+        "season_id": 278,
+        "provider_match_updated": "2023-07-06T12:50:48.807820",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Liga F (Spain)",
+        "season": "2023/2024",
+        "competition_id": 182,
+        "season_id": 281,
+        "provider_match_updated": "2026-04-11T15:32:55.463202",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Liga Profesional (Argentina)",
+        "season": "1997/1998",
+        "competition_id": 81,
+        "season_id": 48,
+        "provider_match_updated": "2023-06-28T11:19:54.593488",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Liga Profesional (Argentina)",
+        "season": "1981",
+        "competition_id": 81,
+        "season_id": 275,
+        "provider_match_updated": "2023-12-05T14:19:40.272816",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Ligue 1 (France)",
+        "season": "2022/2023",
+        "competition_id": 7,
+        "season_id": 235,
+        "provider_match_updated": "2026-04-06T18:51:07.770289",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Ligue 1 (France)",
+        "season": "2021/2022",
+        "competition_id": 7,
+        "season_id": 108,
+        "provider_match_updated": "2026-04-25T22:22:46.370056",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Ligue 1 (France)",
+        "season": "2015/2016",
+        "competition_id": 7,
+        "season_id": 27,
+        "provider_match_updated": "2026-05-12T22:46:54.722768",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Major League Soccer (United States of America)",
+        "season": "2023",
+        "competition_id": 44,
+        "season_id": 107,
+        "provider_match_updated": "2026-02-05T12:10:54.420133",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "North American League (North and Central America)",
+        "season": "1977",
+        "competition_id": 116,
+        "season_id": 68,
+        "provider_match_updated": "2025-02-20T11:41:45.243252",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "NWSL (United States of America)",
+        "season": "2023",
+        "competition_id": 49,
+        "season_id": 107,
+        "provider_match_updated": "2026-04-08T09:41:46.347347",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "NWSL (United States of America)",
+        "season": "2018",
+        "competition_id": 49,
+        "season_id": 3,
+        "provider_match_updated": "2024-12-15T12:31:48.035735",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Premier League (England)",
+        "season": "2015/2016",
+        "competition_id": 2,
+        "season_id": 27,
+        "provider_match_updated": "2025-12-17T14:38:00.447595",
+        "matches": "LIVE_AVAILABLE"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Premier League (England)",
+        "season": "2003/2004",
+        "competition_id": 2,
+        "season_id": 44,
+        "provider_match_updated": "2025-06-24T13:53:07.585114",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Serie A (Italy)",
+        "season": "2015/2016",
+        "competition_id": 12,
+        "season_id": 27,
+        "provider_match_updated": "2025-08-15T14:28:50.169562",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Serie A (Italy)",
+        "season": "1986/1987",
+        "competition_id": 12,
+        "season_id": 86,
+        "provider_match_updated": "2025-11-23T11:00:00.442491",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Serie A Women (Italy)",
+        "season": "2023/2024",
+        "competition_id": 131,
+        "season_id": 281,
+        "provider_match_updated": "2026-04-11T13:29:49.465639",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "UEFA Euro (Europe)",
+        "season": "2024",
+        "competition_id": 55,
+        "season_id": 282,
+        "provider_match_updated": "2026-05-01T19:54:25.846072",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "UEFA Euro (Europe)",
+        "season": "2020",
+        "competition_id": 55,
+        "season_id": 43,
+        "provider_match_updated": "2026-05-10T12:59:26.302088",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "UEFA Europa League (Europe)",
+        "season": "1988/1989",
+        "competition_id": 35,
+        "season_id": 75,
+        "provider_match_updated": "2026-04-11T12:48:10.012987",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "UEFA Women's Euro (Europe)",
+        "season": "2025",
+        "competition_id": 53,
+        "season_id": 315,
+        "provider_match_updated": "2026-04-27T22:02:42.690507",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "UEFA Women's Euro (Europe)",
+        "season": "2022",
+        "competition_id": 53,
+        "season_id": 106,
+        "provider_match_updated": "2026-05-05T03:03:04.199896",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Women's World Cup (International)",
+        "season": "2023",
+        "competition_id": 72,
+        "season_id": 107,
+        "provider_match_updated": "2026-05-03T13:51:31.021141",
+        "matches": "UNVERIFIED"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Women's World Cup (International)",
+        "season": "2019",
+        "competition_id": 72,
+        "season_id": 30,
+        "provider_match_updated": "2026-05-15T15:31:40.299642",
+        "matches": "UNVERIFIED"
+      }
+    ],
+    "statsbomb_index_snapshot": "e6cd42f5d8956d6aa30fb917ce8d4c3b3df1879a93f02f8feba820930a6971fa",
+    "statsbomb_competition_seasons_total": 80,
+    "statsbomb_competition_seasons_verified": [
+      {
+        "provider": "statsbomb",
+        "competition": "1. Bundesliga (Germany)",
+        "season": "2023/2024",
+        "competition_id": 9,
+        "season_id": 281,
+        "provider_match_updated": "2024-09-28T20:46:38.893391",
+        "matches": "LIVE_AVAILABLE"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "FIFA World Cup (International)",
+        "season": "2022",
+        "competition_id": 43,
+        "season_id": 106,
+        "provider_match_updated": "2026-05-04T01:48:57.914346",
+        "matches": "LIVE_AVAILABLE"
+      },
+      {
+        "provider": "statsbomb",
+        "competition": "Premier League (England)",
+        "season": "2015/2016",
+        "competition_id": 2,
+        "season_id": 27,
+        "provider_match_updated": "2025-12-17T14:38:00.447595",
+        "matches": "LIVE_AVAILABLE"
+      }
+    ]
+  },
+  "freshness": {
+    "Premier League 2015/2016": {
+      "competition": "Premier League (England)",
+      "competition_season_id": "13dabd8a-51f1-4e69-9851-2cf0a5272103",
+      "data_mode": "HISTORICAL_ARCHIVE",
+      "is_live": false,
+      "contract_registered": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+      "last_ingestion_job": {
+        "status": "SUCCESS",
+        "started_at": "2026-10-01T15:56:53.438407+00:00"
+      },
+      "layers": [
+        {
+          "layer": "SOURCE",
+          "timestamp": "2025-12-17T14:38:00.447595",
+          "basis": "provider last_updated on match records",
+          "age_hours": 6913.32,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "BRONZE",
+          "timestamp": "2026-10-01T15:56:54.056100+00:00",
+          "content_first_seen": "2026-10-01T15:48:10.848133+00:00",
+          "basis": "snapshot e07d6d360b30e0cd17f9aeea0db1502d2a5666d298f1b44b83a2d2f21ba3d21b",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "SILVER",
+          "timestamp": "2026-10-01T15:56:54.101116+00:00",
+          "basis": "max(matches.updated_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "FEATURE",
+          "timestamp": "2026-10-01T15:56:59.294360+00:00",
+          "basis": "max(ops_feature_refresh.refreshed_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "MODEL_READINESS",
+          "timestamp": "2026-10-01T15:56:59.675677+00:00",
+          "basis": "model calibrated_multinomial_logit_v1 (REGISTERED)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "INTELLIGENCE",
+          "timestamp": "2026-10-01T15:57:07.165132+00:00",
+          "basis": "max(ops_inference_log.created_at) for these matches",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "DECISION",
+          "timestamp": null,
+          "basis": "max(ops_decisions.created_at) for these matches",
+          "state": "NOT_AVAILABLE"
+        },
+        {
+          "layer": "ALERT",
+          "timestamp": null,
+          "basis": "max(ops_alerts.triggered_at)",
+          "state": "NOT_AVAILABLE"
+        }
+      ]
+    },
+    "FIFA World Cup 2022": {
+      "competition": "FIFA World Cup (International)",
+      "competition_season_id": "3ceaeb3d-b29f-47b0-a438-77627616e48e",
+      "data_mode": "HISTORICAL_ARCHIVE",
+      "is_live": false,
+      "contract_registered": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+      "last_ingestion_job": {
+        "status": "SUCCESS",
+        "started_at": "2026-10-01T15:56:56.007864+00:00"
+      },
+      "layers": [
+        {
+          "layer": "SOURCE",
+          "timestamp": "2026-05-04T01:48:57.914346",
+          "basis": "provider last_updated on match records",
+          "age_hours": 3614.14,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "BRONZE",
+          "timestamp": "2026-10-01T15:56:56.431379+00:00",
+          "content_first_seen": "2026-10-01T15:54:55.038590+00:00",
+          "basis": "snapshot b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "SILVER",
+          "timestamp": "2026-10-01T15:56:56.458211+00:00",
+          "basis": "max(matches.updated_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "FEATURE",
+          "timestamp": "2026-10-01T15:56:59.532358+00:00",
+          "basis": "max(ops_feature_refresh.refreshed_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "MODEL_READINESS",
+          "timestamp": "2026-10-01T15:56:59.675677+00:00",
+          "basis": "model calibrated_multinomial_logit_v1 (REGISTERED)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "INTELLIGENCE",
+          "timestamp": "2026-10-01T15:57:07.165132+00:00",
+          "basis": "max(ops_inference_log.created_at) for these matches",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "DECISION",
+          "timestamp": null,
+          "basis": "max(ops_decisions.created_at) for these matches",
+          "state": "NOT_AVAILABLE"
+        },
+        {
+          "layer": "ALERT",
+          "timestamp": null,
+          "basis": "max(ops_alerts.triggered_at)",
+          "state": "NOT_AVAILABLE"
+        }
+      ]
+    },
+    "1. Bundesliga 2023/2024": {
+      "competition": "1. Bundesliga (Germany)",
+      "competition_season_id": "adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6",
+      "data_mode": "HISTORICAL_ARCHIVE",
+      "is_live": false,
+      "contract_registered": "1d7239da90619d95627ddafeff13c5679e0a34219d8f87e158b456e451532f10",
+      "last_ingestion_job": {
+        "status": "SUCCESS",
+        "started_at": "2026-10-01T15:56:56.908389+00:00"
+      },
+      "layers": [
+        {
+          "layer": "SOURCE",
+          "timestamp": "2024-08-15T15:32:43.513919",
+          "basis": "provider last_updated on match records",
+          "age_hours": 18648.41,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "BRONZE",
+          "timestamp": "2026-10-01T15:56:57.263509+00:00",
+          "content_first_seen": "2026-10-01T15:56:10.112863+00:00",
+          "basis": "snapshot 13dff90f126d9f73da410ae3292b2773744657d3ba968a2b7a9c02135033581c",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "SILVER",
+          "timestamp": "2026-10-01T15:56:57.283775+00:00",
+          "basis": "max(matches.updated_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "FEATURE",
+          "timestamp": "2026-10-01T15:56:59.670384+00:00",
+          "basis": "max(ops_feature_refresh.refreshed_at)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "MODEL_READINESS",
+          "timestamp": "2026-10-01T15:56:59.675677+00:00",
+          "basis": "model calibrated_multinomial_logit_v1 (REGISTERED)",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "INTELLIGENCE",
+          "timestamp": "2026-10-01T15:57:07.165132+00:00",
+          "basis": "max(ops_inference_log.created_at) for these matches",
+          "age_hours": 0.0,
+          "state": "CURRENT"
+        },
+        {
+          "layer": "DECISION",
+          "timestamp": null,
+          "basis": "max(ops_decisions.created_at) for these matches",
+          "state": "NOT_AVAILABLE"
+        },
+        {
+          "layer": "ALERT",
+          "timestamp": null,
+          "basis": "max(ops_alerts.triggered_at)",
+          "state": "NOT_AVAILABLE"
+        }
+      ]
+    }
+  },
+  "match_state_examples": [
+    {
+      "match_id": "793cf592-0779-431b-90a8-64625dd4254f",
+      "provider": "statsbomb",
+      "provider_fixture_id": "3869685",
+      "state": "FINAL",
+      "reason": "provider reports a final score",
+      "kickoff": "2022-12-18T17:00:00+00:00",
+      "score": {
+        "home": 3,
+        "away": 3
+      },
+      "data_mode": "HISTORICAL_ARCHIVE",
+      "real_time": false,
+      "source_timestamp": "2024-12-16T10:15:11.055845",
+      "retrieval_timestamp": "2026-10-01T15:56:56.431379+00:00",
+      "data_age_seconds": 11.1,
+      "snapshot_sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7"
+    }
+  ],
+  "provenance_audit": {
+    "sampled": 100,
+    "all_complete": true,
+    "all_hashes_match": true,
+    "orphans": {
+      "matches_without_snapshot": 0,
+      "lineups_without_snapshot": 0,
+      "events_without_snapshot": 0
+    },
+    "samples": [
+      {
+        "kind": "match",
+        "record_id": "ae96ea8a-74df-42a0-a22b-583564dd1363",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "765707d8-40a9-4da0-af23-865bd84b0511",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "0e47e7c7-927c-49f9-874c-7989e158b6e6",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "ac8faea4-94fa-459d-ac55-56aa4ff69941",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "f7d2f810-22c0-496f-bc19-3c99fa1eb52f",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "702c36be-3810-4bd0-97a0-3da2876b1c1a",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "c1a14ba9-0b8c-497c-82f1-35785a843fd9",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "a3078af9-467a-48e4-8848-7a9da9f096c0",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "a8e03c2a-4ce1-48bb-80d1-ce6b68693757",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      },
+      {
+        "kind": "match",
+        "record_id": "730f5503-e5bb-4b20-823c-f0a54dc6f406",
+        "lineage_complete": true,
+        "sha256_recomputed_matches": true,
+        "provider": "statsbomb",
+        "endpoint": "matches"
+      }
+    ]
+  },
+  "job_status_counts": {
+    "SUCCESS": 511
+  },
+  "inference_status_counts": {
+    "SERVED": 334,
+    "INSUFFICIENT_DATA": 144,
+    "MODEL_UNAVAILABLE": 18
+  },
+  "rate_governance": {
+    "backend": "PROCESS_LOCAL",
+    "providers": {
+      "statsbomb": {
+        "budget": {
+          "per_minute": 60,
+          "per_hour": 2000,
+          "source": "SELF_IMPOSED"
+        },
+        "requests_last_minute": 50,
+        "requests_last_hour": 511,
+        "total_requests": 511,
+        "logical_fetches": 511,
+        "retries": 0,
+        "http_429": 0,
+        "http_5xx": 0,
+        "transport_errors": 0,
+        "deferred_for_budget": 0,
+        "backoff_seconds": 0.0,
+        "budget_exceeded": false,
+        "in_provider_cooldown": false
+      }
+    }
+  },
+  "silver_counts_final": {
+    "matches": 478,
+    "clubs": 70,
+    "players": 1802,
+    "match_lineups": 18275,
+    "match_events": 360,
+    "competition_seasons": 3
+  },
+  "stage_seconds": {
+    "provider_probes": 5.24,
+    "competitions_index": 1.02,
+    "matches:Premier League 2015/2016": 4.48,
+    "lineups:Premier League 2015/2016": 390.3,
+    "events:Premier League 2015/2016": 9.96,
+    "matches:FIFA World Cup 2022": 1.23,
+    "lineups:FIFA World Cup 2022": 64.99,
+    "events:FIFA World Cup 2022": 8.83,
+    "matches:1. Bundesliga 2023/2024": 0.88,
+    "lineups:1. Bundesliga 2023/2024": 32.62,
+    "events:1. Bundesliga 2023/2024": 10.29,
+    "idempotency": 5.68,
+    "feature_refresh": 0.56,
+    "model_validation": 7.49,
+    "live_inference_attempts": 0.06,
+    "monitoring": 0.07,
+    "readiness_and_freshness": 0.28,
+    "provenance_audit": 0.37
+  },
+  "finished_at": "2026-10-01T15:57:07.969639+00:00"
+}

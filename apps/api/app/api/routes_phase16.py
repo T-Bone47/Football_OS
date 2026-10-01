@@ -11,9 +11,18 @@ Exposes endpoints conforming to Section 41 (API Contract):
 - /api/v1/audit
 """
 
+from datetime import datetime, timezone
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query, Header
+from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.config import get_settings
+from app.db.session import engine, get_session
+from app.phase17.environments import is_hardened, resolve_environment
+from app.phase17.model_ops import MODE_LIVE, drift_report, model_health_snapshot
+from app.phase17.readiness import competition_readiness
+from app.phase17.system_health import system_status
 
 from app.phase16 import (
     AlertSeverity,
@@ -54,6 +63,22 @@ from app.phase16.provider_orchestrator import (
 router = APIRouter(tags=["Phase 16 - Production Operations"])
 
 
+def _demo_only() -> None:
+    """Phase 17 (reconnaissance R9/R12): Phase 16's mutating routes act on
+    in-process memory and trust a user_id in the request body. They remain
+    for development/test and are refused in staging/production, where the
+    authenticated, persistent equivalents live under /api/v1/ops."""
+    if is_hardened(resolve_environment(get_settings().environment)):
+        raise HTTPException(status_code=410, detail="Phase 16 in-memory route disabled in this environment; use /api/v1/ops")
+
+
+DEMO_ONLY = [Depends(_demo_only)]
+
+
+def _unavailable(exc: Exception) -> dict[str, Any]:
+    return {"status": "UNAVAILABLE", "reason": f"backend state unreadable: {type(exc).__name__}"}
+
+
 # ============================================================
 # 1. OPERATIONS & SYSTEM STATUS
 # ============================================================
@@ -72,7 +97,8 @@ def get_operations_status() -> dict[str, Any]:
 
     return {
         "status": "OPERATIONAL" if not critical_alerts else "DEGRADED",
-        "timestamp": "2026-09-27T00:00:00Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "state_source": "IN_MEMORY_PHASE16_ENGINES",
         "active_ingestion_runs": len(ingest.list_runs()),
         "registered_freshness_entities": len(fresh.list_snapshots()),
         "active_models": len([m for m in models.list_models() if m.deployment_state == DeploymentState.ACTIVE]),
@@ -84,36 +110,19 @@ def get_operations_status() -> dict[str, Any]:
 
 
 @router.get("/api/v1/operations/health")
-def get_operations_health() -> dict[str, Any]:
-    """Detailed health checks for data plane, model serving, job queue, and cache."""
-    return {
-        "overall_health": "HEALTHY",
-        "components": {
-            "database": {"status": "HEALTHY", "latency_ms": 1.2},
-            "redis_cache": {"status": "HEALTHY", "hit_ratio": 0.84},
-            "object_storage": {"status": "HEALTHY", "durability_tier": "STANDARD"},
-            "background_workers": {"status": "HEALTHY", "active_workers": 4},
-            "model_serving": {"status": "HEALTHY", "active_champions": 1},
-            "provider_gateway": {"status": "HEALTHY", "rate_limit_headroom_pct": 92.5},
-        },
-    }
+async def get_operations_health(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Phase 17: real component probes (previously hardcoded, reconnaissance R5)."""
+    status = await system_status(session, engine, get_settings())
+    return {"overall_health": status["status"], "checked_at": status["checked_at"], "components": status["components"]}
 
 
 @router.get("/api/v1/system/status")
-def get_system_status() -> dict[str, Any]:
-    """Unified system health status conforming to Section 28."""
-    return {
-        "status": "HEALTHY",
-        "version": "1.0.0-phase16",
-        "environment": "production",
-        "services": {
-            "api": "HEALTHY",
-            "db": "HEALTHY",
-            "cache": "HEALTHY",
-            "workers": "HEALTHY",
-            "storage": "HEALTHY",
-        },
-    }
+async def get_system_status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Phase 17: real component probes (previously hardcoded, reconnaissance R5)."""
+    status = await system_status(session, engine, get_settings())
+    return {"status": status["status"], "checked_at": status["checked_at"], "environment": status["environment"],
+            "services": {k: (v.get("status") if isinstance(v, dict) and "status" in v else v)
+                         for k, v in status["components"].items()}}
 
 
 # ============================================================
@@ -130,7 +139,7 @@ def list_operational_alerts(
     return engine.list_alerts(severity=sev_enum, status=status)
 
 
-@router.post("/api/v1/operations/alerts/{alert_id}/acknowledge", response_model=OperationalAlert)
+@router.post("/api/v1/operations/alerts/{alert_id}/acknowledge", response_model=OperationalAlert, dependencies=DEMO_ONLY)
 def acknowledge_alert(alert_id: str) -> OperationalAlert:
     try:
         return get_alerting_engine().acknowledge_alert(alert_id)
@@ -138,7 +147,7 @@ def acknowledge_alert(alert_id: str) -> OperationalAlert:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/api/v1/operations/alerts/{alert_id}/resolve", response_model=OperationalAlert)
+@router.post("/api/v1/operations/alerts/{alert_id}/resolve", response_model=OperationalAlert, dependencies=DEMO_ONLY)
 def resolve_alert(alert_id: str) -> OperationalAlert:
     try:
         return get_alerting_engine().resolve_alert(alert_id)
@@ -164,7 +173,7 @@ def list_background_jobs(status: str | None = None) -> list[ProductionJob]:
     return mgr.list_jobs(status=st_enum)
 
 
-@router.post("/api/v1/operations/jobs", response_model=ProductionJob)
+@router.post("/api/v1/operations/jobs", response_model=ProductionJob, dependencies=DEMO_ONLY)
 def enqueue_background_job(body: JobEnqueueRequest) -> ProductionJob:
     mgr = get_job_manager()
     return mgr.enqueue_job(
@@ -175,7 +184,7 @@ def enqueue_background_job(body: JobEnqueueRequest) -> ProductionJob:
     )
 
 
-@router.post("/api/v1/operations/jobs/{job_id}/start", response_model=ProductionJob)
+@router.post("/api/v1/operations/jobs/{job_id}/start", response_model=ProductionJob, dependencies=DEMO_ONLY)
 def start_job(job_id: str) -> ProductionJob:
     try:
         return get_job_manager().start_job(job_id)
@@ -183,7 +192,7 @@ def start_job(job_id: str) -> ProductionJob:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/api/v1/operations/jobs/{job_id}/complete", response_model=ProductionJob)
+@router.post("/api/v1/operations/jobs/{job_id}/complete", response_model=ProductionJob, dependencies=DEMO_ONLY)
 def complete_job(job_id: str, result_ref: str = "result_done") -> ProductionJob:
     try:
         return get_job_manager().complete_job(job_id, result_reference=result_ref)
@@ -215,7 +224,7 @@ class IncidentResolveRequest(BaseModel):
     remediation_note: str
 
 
-@router.post("/api/v1/data/incidents/{incident_id}/resolve", response_model=DataQualityIncident)
+@router.post("/api/v1/data/incidents/{incident_id}/resolve", response_model=DataQualityIncident, dependencies=DEMO_ONLY)
 def resolve_incident(incident_id: str, body: IncidentResolveRequest) -> DataQualityIncident:
     try:
         return get_data_quality_engine().resolve_incident(incident_id, body.remediation_note)
@@ -224,63 +233,13 @@ def resolve_incident(incident_id: str, body: IncidentResolveRequest) -> DataQual
 
 
 @router.get("/api/v1/data/readiness")
-def get_competition_readiness() -> dict[str, Any]:
-    """Exposes independent competition production readiness per Section 10."""
-    return {
-        "competitions": {
-            "EPL": {
-                "match_prediction": "PRODUCTION_READY",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "PRODUCTION_READY",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "PRODUCTION_READY",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "PRODUCTION_READY",
-                "scenario_simulation": "PRODUCTION_READY",
-            },
-            "La_Liga": {
-                "match_prediction": "MODEL_VALIDATED",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "MODEL_VALIDATED",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "MODEL_VALIDATED",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "MODEL_VALIDATED",
-                "scenario_simulation": "MODEL_VALIDATED",
-            },
-            "Bundesliga": {
-                "match_prediction": "MODEL_VALIDATED",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "MODEL_VALIDATED",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "MODEL_VALIDATED",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "MODEL_VALIDATED",
-                "scenario_simulation": "MODEL_VALIDATED",
-            },
-            "Serie_A": {
-                "match_prediction": "DATA_AVAILABLE",
-                "player_intelligence": "MODEL_VALIDATED",
-                "tactical_intelligence": "DATA_AVAILABLE",
-                "valuation": "MODEL_VALIDATED",
-                "transfer_risk": "DATA_AVAILABLE",
-                "similarity": "MODEL_VALIDATED",
-                "recruitment": "DATA_AVAILABLE",
-                "scenario_simulation": "DATA_AVAILABLE",
-            },
-            "Ligue_1": {
-                "match_prediction": "DATA_AVAILABLE",
-                "player_intelligence": "DATA_AVAILABLE",
-                "tactical_intelligence": "DATA_AVAILABLE",
-                "valuation": "DATA_AVAILABLE",
-                "transfer_risk": "DATA_AVAILABLE",
-                "similarity": "DATA_AVAILABLE",
-                "recruitment": "DATA_AVAILABLE",
-                "scenario_simulation": "DATA_AVAILABLE",
-            },
-        },
-        "governance_rule": "No competition may inherit readiness from another competition.",
-    }
+async def get_competition_readiness(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Phase 17: computed from the database (previously a hardcoded table, R7)."""
+    try:
+        return {"competitions": await competition_readiness(session),
+                "governance_rule": "No competition may inherit readiness from another competition."}
+    except Exception as exc:  # noqa: BLE001
+        return _unavailable(exc)
 
 
 # ============================================================
@@ -293,38 +252,21 @@ def list_production_models() -> list[ModelServingProfile]:
 
 
 @router.get("/api/v1/models/health")
-def get_model_health_overview() -> dict[str, Any]:
-    """Exposes health metrics conforming to Section 15."""
-    return {
-        "health_state": "HEALTHY",
-        "prediction_volume_24h": 1420,
-        "failure_rate": 0.001,
-        "avg_latency_ms": 14.2,
-        "population_stability_index": 0.038,
-        "feature_missingness_pct": 0.0,
-        "calibration_status": "CALIBRATED",
-        "ood_rate_pct": 1.4,
-        "subgroup_degradation": False,
-        "champion_challenger_gap_brier": 0.004,
-    }
+async def get_model_health_overview(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Phase 17: computed from ops_inference_log (previously hardcoded, R6)."""
+    try:
+        return await model_health_snapshot(session)
+    except Exception as exc:  # noqa: BLE001
+        return _unavailable(exc)
 
 
 @router.get("/api/v1/models/drift")
-def get_model_drift_overview() -> dict[str, Any]:
-    return {
-        "status": "STABLE",
-        "drift_detected": False,
-        "features_monitored": 48,
-        "psi_by_feature": {
-            "progressive_carries_per_90": 0.042,
-            "pass_completion_under_pressure": 0.031,
-            "pressures_defensive_third": 0.055,
-            "box_entries_per_90": 0.029,
-        },
-        "max_psi": 0.055,
-        "threshold_warning": 0.10,
-        "threshold_critical": 0.25,
-    }
+async def get_model_drift_overview(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Phase 17: PSI over logged live inferences (previously hardcoded, R6)."""
+    try:
+        return await drift_report(session, MODE_LIVE)
+    except Exception as exc:  # noqa: BLE001
+        return _unavailable(exc)
 
 
 @router.get("/api/v1/models/challengers")
@@ -350,7 +292,7 @@ class ModelPromoteRequest(BaseModel):
     authorization_token: str | None = None
 
 
-@router.post("/api/v1/models/promote")
+@router.post("/api/v1/models/promote", dependencies=DEMO_ONLY)
 def promote_model(body: ModelPromoteRequest) -> dict[str, Any]:
     """Promotes a model to champion with strict authoritative RBAC check."""
     auth_mgr = get_project_auth_manager()
@@ -386,15 +328,20 @@ class PredictionRequest(BaseModel):
     input_data: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.post("/api/v1/models/predict")
+@router.post("/api/v1/models/predict", dependencies=DEMO_ONLY)
 def serve_prediction(body: PredictionRequest) -> dict[str, Any]:
     serving = get_model_serving_engine()
-    prod_resp, shadow_resp = serving.serve_inference(
-        domain=body.domain,
-        input_data=body.input_data,
-        competition=body.competition,
-        position=body.position,
-    )
+    try:
+        prod_resp, shadow_resp = serving.serve_inference(
+            domain=body.domain,
+            input_data=body.input_data,
+            competition=body.competition,
+            position=body.position,
+        )
+    except KeyError:
+        return {"production_prediction": {"data_status": "MODEL_UNAVAILABLE", "predicted_value": None,
+                                          "domain": body.domain},
+                "shadow_challenger": None}
     return {
         "production_prediction": prod_resp.model_dump(),
         "shadow_challenger": shadow_resp.model_dump() if shadow_resp else None,
@@ -446,12 +393,12 @@ class ProjectCreateRequest(BaseModel):
     competition_scope: list[str] = Field(default_factory=list)
 
 
-@router.get("/api/v1/projects", response_model=list[RecruitmentProject])
+@router.get("/api/v1/projects", response_model=list[RecruitmentProject], dependencies=DEMO_ONLY)
 def list_projects(org_id: str | None = None) -> list[RecruitmentProject]:
     return get_project_auth_manager().list_projects(org_id=org_id)
 
 
-@router.post("/api/v1/projects", response_model=RecruitmentProject)
+@router.post("/api/v1/projects", response_model=RecruitmentProject, dependencies=DEMO_ONLY)
 def create_project(body: ProjectCreateRequest) -> RecruitmentProject:
     auth_mgr = get_project_auth_manager()
     try:
@@ -504,12 +451,12 @@ class WatchlistItemEvaluateRequest(BaseModel):
     evidence: list[str] = Field(default_factory=list)
 
 
-@router.get("/api/v1/watchlists", response_model=list[ProductionWatchlist])
+@router.get("/api/v1/watchlists", response_model=list[ProductionWatchlist], dependencies=DEMO_ONLY)
 def list_watchlists(user_id: str | None = None) -> list[ProductionWatchlist]:
     return get_project_auth_manager().list_watchlists(user_id=user_id)
 
 
-@router.post("/api/v1/watchlists", response_model=ProductionWatchlist)
+@router.post("/api/v1/watchlists", response_model=ProductionWatchlist, dependencies=DEMO_ONLY)
 def create_watchlist(body: WatchlistCreateRequest) -> ProductionWatchlist:
     auth_mgr = get_project_auth_manager()
     wl = auth_mgr.create_watchlist(
@@ -528,7 +475,7 @@ def create_watchlist(body: WatchlistCreateRequest) -> ProductionWatchlist:
     return wl
 
 
-@router.post("/api/v1/watchlists/{watchlist_id}/items", response_model=WatchlistItem)
+@router.post("/api/v1/watchlists/{watchlist_id}/items", response_model=WatchlistItem, dependencies=DEMO_ONLY)
 def add_watchlist_item(watchlist_id: str, body: WatchlistItemAddRequest) -> WatchlistItem:
     try:
         return get_project_auth_manager().add_watchlist_item(
@@ -543,7 +490,7 @@ def add_watchlist_item(watchlist_id: str, body: WatchlistItemAddRequest) -> Watc
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/api/v1/watchlists/{watchlist_id}/items/{item_id}/evaluate", response_model=WatchlistItem)
+@router.post("/api/v1/watchlists/{watchlist_id}/items/{item_id}/evaluate", response_model=WatchlistItem, dependencies=DEMO_ONLY)
 def evaluate_watchlist_item(
     watchlist_id: str,
     item_id: str,

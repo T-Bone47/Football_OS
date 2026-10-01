@@ -26,12 +26,19 @@ from pathlib import Path
 import pytest
 import numpy as np
 
+_API_FOOTBALL_BRONZE = Path(__file__).resolve().parents[2] / "data" / "bronze" / "api-football"
+requires_api_football_bronze = pytest.mark.skipif(
+    not _API_FOOTBALL_BRONZE.exists(),
+    reason="NOT_TESTED: requires Bronze evidence at 'data/bronze/api-football', which .gitignore excludes and the repository never contained (docs/PHASE_17_RECONNAISSANCE.md R1/R21). Runs wherever the files exist.",
+)
+
 
 # ── §2 Data Coverage Audit ──────────────────────────────────────────
 
 class TestDataCoverageAudit:
     """Tests for the data coverage audit module."""
 
+    @requires_api_football_bronze
     def test_coverage_matrix_from_real_data(self):
         """Coverage matrix is built from actual repository data."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -46,6 +53,7 @@ class TestDataCoverageAudit:
         assert matrix.total_bronze_files > 0
         assert matrix.total_bronze_bytes > 0
 
+    @requires_api_football_bronze
     def test_coverage_dimensions_present(self):
         """All required dimensions are present in coverage matrix."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -97,6 +105,7 @@ class TestDataCoverageAudit:
             # Seasons dimension has PARTIAL quality by design (inferred), which raises average
             assert matrix.overall_quality in ("ABSENT", "MINIMAL", "SPARSE")
 
+    @requires_api_football_bronze
     def test_coverage_preserves_provider_provenance(self):
         """Each dimension tracks its provider provenance."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -826,6 +835,7 @@ class TestPhase9UnifiedReport:
             "MODEL_VALIDATION_COMPLETE",
         )
 
+    @requires_api_football_bronze
     def test_report_contains_all_sections(self):
         """Report contains all required sections."""
         from app.phase9.validation_engine import generate_phase9_report
@@ -939,6 +949,7 @@ class TestProductionIngestionDryRun:
 class TestDataCoverageSurfaceRoutes:
     """Tests for Phase 9 §20 frontend data coverage surface API."""
 
+    @requires_api_football_bronze
     def test_summary_route_returns_truthful_metrics(self):
         """Summary endpoint returns honest data coverage metrics."""
         from app.api.routes_data_coverage import get_data_coverage_summary

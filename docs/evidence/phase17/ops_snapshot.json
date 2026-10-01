@@ -1,0 +1,1226 @@
+{
+  "generated_at": "2026-10-01T16:20:40.448062+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "usage": {
+    "provider_requests": {
+      "backend": "PROCESS_LOCAL",
+      "providers": {}
+    },
+    "bronze_bytes_referenced": 93884528,
+    "bronze_bytes_distinct_content": 88310173,
+    "database_bytes": 25639959,
+    "job_runtime_ms_total": 391242.9,
+    "inference_requests": 666,
+    "notifications_by_channel": {
+      "WEBHOOK": 2,
+      "IN_APP": 9
+    },
+    "monetary_cost": "UNAVAILABLE (no provider billing API configured)"
+  },
+  "retention": {
+    "policy": [
+      {
+        "layer": "Bronze snapshots",
+        "retention": "indefinite; content-addressed, never overwritten",
+        "enforcement": "store writes only if absent"
+      },
+      {
+        "layer": "Silver canonical rows",
+        "retention": "indefinite; upserted from Bronze",
+        "enforcement": "rebuildable from Bronze"
+      },
+      {
+        "layer": "Gold / feature refresh records",
+        "retention": "indefinite; append-only history",
+        "enforcement": "application"
+      },
+      {
+        "layer": "Audit events",
+        "retention": "indefinite",
+        "enforcement": "DB trigger blocks UPDATE/DELETE + hash chain"
+      },
+      {
+        "layer": "Decisions",
+        "retention": "indefinite",
+        "enforcement": "DB trigger blocks UPDATE/DELETE"
+      },
+      {
+        "layer": "Inference log (predictions)",
+        "retention": "indefinite",
+        "enforcement": "DB trigger blocks UPDATE/DELETE"
+      },
+      {
+        "layer": "Outcomes",
+        "retention": "indefinite",
+        "enforcement": "FK RESTRICT to inference log"
+      },
+      {
+        "layer": "Model artifacts",
+        "retention": "indefinite; registry rows keep artifact SHA-256",
+        "enforcement": "application"
+      }
+    ],
+    "immutability_triggers_present": {
+      "ops_audit_events": "DELETE,UPDATE",
+      "ops_decisions": "DELETE,UPDATE",
+      "ops_inference_log": "DELETE,UPDATE"
+    },
+    "automatic_deletion_jobs": "none exist"
+  },
+  "notification_channels": {
+    "IN_APP": "AVAILABLE",
+    "WEBHOOK": "NOT_CONFIGURED",
+    "EMAIL": "NOT_CONFIGURED"
+  },
+  "schedules": [
+    {
+      "job_name": "statsbomb_competitions_index",
+      "provider": "statsbomb",
+      "resource": "competitions",
+      "schedule_class": "WEEKLY",
+      "rationale": "Open Data is an archive updated irregularly (competitions.json carries match_updated); weekly detects additions without polling an unchanging file."
+    },
+    {
+      "job_name": "statsbomb_season_matches",
+      "provider": "statsbomb",
+      "resource": "matches",
+      "schedule_class": "SEASONAL",
+      "rationale": "Archived seasons are complete; refresh only when the competitions index shows a newer match_updated."
+    },
+    {
+      "job_name": "statsbomb_match_lineups",
+      "provider": "statsbomb",
+      "resource": "lineups",
+      "schedule_class": "ON_DEMAND",
+      "rationale": "Per-match files; fetched when a match enters scope."
+    },
+    {
+      "job_name": "statsbomb_match_events",
+      "provider": "statsbomb",
+      "resource": "events",
+      "schedule_class": "ON_DEMAND",
+      "rationale": "3-4 MB per match; fetched for matches a workflow needs, never bulk-polled."
+    },
+    {
+      "job_name": "api_football_fixtures",
+      "provider": "api-football",
+      "resource": "fixtures",
+      "schedule_class": "LIVE",
+      "rationale": "Would support near-live polling within plan quota. BLOCKED here: host unreachable, no key."
+    },
+    {
+      "job_name": "api_football_transfers",
+      "provider": "api-football",
+      "resource": "transfers",
+      "schedule_class": "DAILY",
+      "rationale": "Transfer records change at most daily. BLOCKED here: host unreachable, no key."
+    }
+  ],
+  "system_status": {
+    "status": "DEGRADED",
+    "checked_at": "2026-10-01T16:20:40.110301+00:00",
+    "environment": "development",
+    "environment_audit": {
+      "environment": "development",
+      "ok": true,
+      "violations": [],
+      "warnings": [
+        "DATABASE_URL uses a development default password"
+      ]
+    },
+    "components": {
+      "database": {
+        "status": "HEALTHY",
+        "latency_ms": 43.26,
+        "migration_head": "0014"
+      },
+      "redis": {
+        "status": "HEALTHY",
+        "latency_ms": 3.66,
+        "keyspace_hits": 0,
+        "keyspace_misses": 0,
+        "used_by": "per-user API rate limit (falls back to process-local window when down)"
+      },
+      "object_storage": {
+        "status": "HEALTHY",
+        "backend": "local",
+        "path": "/home/user/Football_OS/data/bronze",
+        "snapshot_files": 506,
+        "latency_ms": 3.02,
+        "durability": "single local disk (not durable)"
+      },
+      "providers": {
+        "football-data-org": {
+          "status": "BLOCKED",
+          "last_probe": "2026-10-01T16:01:05.779490+00:00",
+          "probe_stale": false
+        },
+        "api-football": {
+          "status": "BLOCKED",
+          "last_probe": "2026-10-01T16:01:05.461154+00:00",
+          "probe_stale": false
+        },
+        "statsbomb": {
+          "status": "AVAILABLE",
+          "last_probe": "2026-10-01T16:01:05.126101+00:00",
+          "probe_stale": false
+        }
+      },
+      "jobs": {
+        "status": "HEALTHY",
+        "stuck_running": 0,
+        "last_job_started": "2026-10-01T16:08:13.195381+00:00"
+      },
+      "model_serving": {
+        "status": "UNAVAILABLE",
+        "models": [],
+        "note": "no ACTIVE model; SHADOW models serve labelled shadow predictions only"
+      },
+      "scheduler_worker": {
+        "status": "NOT_CONFIGURED",
+        "detail": "no long-running worker process exists (apps/worker absent); jobs run on demand or via tools/phase17_scheduler.py"
+      },
+      "api_rate_limit": {
+        "backend": "REDIS"
+      }
+    }
+  },
+  "audit_verify": {
+    "valid": true,
+    "events_checked": 55,
+    "head_hash": "f2b23ed7fb3ec003c3dbab2f92d1296a3691ed00b92e3065c5b012df3b378c1a"
+  },
+  "incidents": [
+    {
+      "id": "14652c36-34d5-4316-b7f3-c6f9de249114",
+      "kind": "CACHE_FAILURE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:05:01.110932+00:00",
+      "recovered_at": "2026-10-01T16:05:01.173666+00:00",
+      "degraded_behaviour": "Per-user limits enforced per process instead of cluster-wide.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:05:01.110932+00:00",
+          "redis": "UNAVAILABLE",
+          "stage": "DETECT",
+          "observation": "Redis probe UNAVAILABLE"
+        },
+        {
+          "at": "2026-10-01T16:05:01.110963+00:00",
+          "stage": "ALERT",
+          "system": "DEGRADED",
+          "observation": "system status DEGRADED"
+        },
+        {
+          "at": "2026-10-01T16:05:01.110968+00:00",
+          "stage": "ISOLATE",
+          "backend": "PROCESS_LOCAL_FALLBACK",
+          "observation": "rate limiting switched to the process-local window"
+        },
+        {
+          "at": "2026-10-01T16:05:01.157363+00:00",
+          "stage": "DEGRADED",
+          "http_status": 200,
+          "observation": "authenticated requests still served and still rate-limited"
+        },
+        {
+          "at": "2026-10-01T16:05:01.173666+00:00",
+          "stage": "RECOVER",
+          "seconds": 0.01,
+          "observation": "Redis restarted"
+        },
+        {
+          "at": "2026-10-01T16:05:32.295879+00:00",
+          "redis": "HEALTHY",
+          "stage": "VERIFY",
+          "backend": "REDIS",
+          "observation": "Redis healthy and back in use for rate limiting"
+        },
+        {
+          "at": "2026-10-01T16:05:32.295907+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "redis": "HEALTHY",
+        "passed": true,
+        "backend": "REDIS"
+      }
+    },
+    {
+      "id": "303a6b5a-9de5-4b0b-8c38-5733377d0873",
+      "kind": "DATABASE_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "CRITICAL",
+      "detected_at": "2026-10-01T16:04:58.305998+00:00",
+      "recovered_at": "2026-10-01T16:05:00.818274+00:00",
+      "degraded_behaviour": "Liveness OK, readiness 503, data endpoints fail closed; no partial writes.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:04:58.305998+00:00",
+          "stage": "DETECT",
+          "http_status": 503,
+          "observation": "readiness probe failed"
+        },
+        {
+          "at": "2026-10-01T16:04:58.407084+00:00",
+          "stage": "ALERT",
+          "database": "UNAVAILABLE",
+          "observation": "system status reports the database UNAVAILABLE (alert rows cannot be written while it is down)",
+          "system_status": "UNAVAILABLE"
+        },
+        {
+          "at": "2026-10-01T16:04:58.452937+00:00",
+          "stage": "ISOLATE",
+          "http_status": 500,
+          "observation": "authenticated endpoints fail closed; nothing is written"
+        },
+        {
+          "at": "2026-10-01T16:04:58.495696+00:00",
+          "stage": "DEGRADED",
+          "health": 200,
+          "observation": "process stays up; data-dependent endpoints refuse"
+        },
+        {
+          "at": "2026-10-01T16:05:00.818274+00:00",
+          "stage": "RECOVER",
+          "observation": "database restarted; API ready again without a restart (pool_pre_ping)",
+          "seconds_to_ready": 0.08
+        },
+        {
+          "at": "2026-10-01T16:05:00.907406+00:00",
+          "stage": "VERIFY",
+          "observation": "row counts identical and audit chain valid",
+          "counts_equal": true,
+          "audit_chain_valid": true
+        },
+        {
+          "at": "2026-10-01T16:05:00.907434+00:00",
+          "stage": "AUDIT",
+          "observation": "timeline held in memory during the outage, persisted after recovery"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "counts_equal": true,
+        "audit_chain_valid": true,
+        "seconds_to_ready_after_restart": 0.08
+      }
+    },
+    {
+      "id": "d7baacb4-b0e5-481c-8fe7-d5e0053018a5",
+      "kind": "NOTIFICATION_FAILURE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:04:53.347812+00:00",
+      "recovered_at": "2026-10-01T16:04:53.419663+00:00",
+      "degraded_behaviour": "In-app delivery only; webhook FAILED until requeued.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:04:53.347812+00:00",
+          "stage": "DETECT",
+          "state": "FAILED",
+          "channel": "WEBHOOK",
+          "attempts": 3,
+          "last_error": "ConnectError: All connection attempts failed",
+          "observation": "webhook delivery FAILED after bounded attempts; never reported SENT"
+        },
+        {
+          "at": "2026-10-01T16:04:53.347881+00:00",
+          "stage": "ALERT",
+          "observation": "failure visible in ops_notifications and to Copilot ('What failed?')"
+        },
+        {
+          "at": "2026-10-01T16:04:53.347888+00:00",
+          "stage": "ISOLATE",
+          "attempts": 3,
+          "observation": "retries capped at 3"
+        },
+        {
+          "at": "2026-10-01T16:04:53.347901+00:00",
+          "stage": "DEGRADED",
+          "alert_state": "DELIVERED",
+          "observation": "IN_APP delivery succeeded; alert state DELIVERED via IN_APP"
+        },
+        {
+          "at": "2026-10-01T16:04:53.419663+00:00",
+          "stage": "RECOVER",
+          "webhook": {
+            "state": "SENT",
+            "channel": "WEBHOOK",
+            "attempts": 1,
+            "last_error": null
+          },
+          "observation": "endpoint restored; operator requeued the notification"
+        },
+        {
+          "at": "2026-10-01T16:04:53.419698+00:00",
+          "hits": 1,
+          "stage": "VERIFY",
+          "observation": "endpoint received exactly one delivery"
+        },
+        {
+          "at": "2026-10-01T16:04:53.914668+00:00",
+          "stage": "AUDIT",
+          "observation": "requeue and incident are audited"
+        }
+      ],
+      "verification": {
+        "hits": 1,
+        "passed": true,
+        "webhook_state": "SENT"
+      }
+    },
+    {
+      "id": "0be0653a-1ab4-43f0-a008-2751add07391",
+      "kind": "RATE_LIMIT_EXHAUSTION",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:03:52.438889+00:00",
+      "recovered_at": "2026-10-01T16:04:53.222251+00:00",
+      "degraded_behaviour": "Jobs deferred (RATE_LIMIT_DEFERRED), not failed and not faked.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:03:52.438889+00:00",
+          "stage": "DETECT",
+          "statuses": [
+            "SUCCESS",
+            "SUCCESS",
+            "RATE_LIMIT_DEFERRED"
+          ],
+          "observation": "budget exhausted after 2 real requests; third job deferred without a request",
+          "requests_sent": 2
+        },
+        {
+          "at": "2026-10-01T16:03:52.438908+00:00",
+          "stage": "ALERT",
+          "observation": "deferral recorded as job status RATE_LIMIT_DEFERRED (governance, not an outage: no alert)"
+        },
+        {
+          "at": "2026-10-01T16:03:52.438923+00:00",
+          "stage": "ISOLATE",
+          "budget": {
+            "source": "SELF_IMPOSED",
+            "per_hour": 50,
+            "per_minute": 2
+          },
+          "observation": "provider never sees more than the budget"
+        },
+        {
+          "at": "2026-10-01T16:03:52.438926+00:00",
+          "stage": "DEGRADED",
+          "observation": "deferred work waits; nothing marked successful"
+        },
+        {
+          "at": "2026-10-01T16:04:53.222251+00:00",
+          "stage": "RECOVER",
+          "status": "SUCCESS",
+          "waited_s": 60.1,
+          "observation": "window rolled over; job ran"
+        },
+        {
+          "at": "2026-10-01T16:04:53.222303+00:00",
+          "stage": "VERIFY",
+          "observation": "budget never exceeded",
+          "total_requests": 3,
+          "budget_exceeded": false
+        },
+        {
+          "at": "2026-10-01T16:04:53.224991+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "statuses": [
+          "SUCCESS",
+          "SUCCESS",
+          "RATE_LIMIT_DEFERRED",
+          "SUCCESS"
+        ],
+        "budget_exceeded": false
+      }
+    },
+    {
+      "id": "d6a3e3fb-3050-4275-a035-b90be34375a4",
+      "kind": "BAD_DATA_SNAPSHOT",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:03:49.992072+00:00",
+      "recovered_at": "2026-10-01T16:03:50.741592+00:00",
+      "degraded_behaviour": "Replay/normalization refused for the corrupted snapshot only.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:03:49.992072+00:00",
+          "error": "Bronze snapshot 2b00c4cbf027b36ae2ce99f183a0943c649bb5bdcb8324683a8603785beffed5 now hashes to 86699f08fe4fb1e3a4148b00dc43faa76e3d6bc8f090fa514ebd71ecb71baf9a",
+          "stage": "DETECT",
+          "observation": "SHA-256 re-verification rejected the stored bytes"
+        },
+        {
+          "at": "2026-10-01T16:03:49.997173+00:00",
+          "stage": "ALERT",
+          "alert_id": "51c4962f-6bb6-4aef-8d67-85a0ad1e361f",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:03:50.004527+00:00",
+          "stage": "ISOLATE",
+          "observation": "corrupt bytes never reached Silver",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:50.004546+00:00",
+          "stage": "DEGRADED",
+          "observation": "Silver keeps the rows normalized from the verified copy"
+        },
+        {
+          "at": "2026-10-01T16:03:50.741592+00:00",
+          "stage": "RECOVER",
+          "status": "SUCCESS",
+          "same_sha": true,
+          "observation": "real re-fetch from the provider; store detected the bad copy and rewrote it"
+        },
+        {
+          "at": "2026-10-01T16:03:50.902460+00:00",
+          "stage": "VERIFY",
+          "healed": true,
+          "observation": "file hashes to its name again and replays cleanly",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:50.904299+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "healed": true,
+        "passed": true
+      }
+    },
+    {
+      "id": "83a1cf9a-3c32-4bc7-8479-7893ad9af86a",
+      "kind": "MODEL_ARTIFACT_FAILURE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:03:49.889607+00:00",
+      "recovered_at": "2026-10-01T16:03:49.899752+00:00",
+      "degraded_behaviour": "MODEL_UNAVAILABLE; no fallback prediction.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:03:49.889607+00:00",
+          "stage": "DETECT",
+          "reason": "ARTIFACT_INTEGRITY_FAILED: loaded model parameters do not match the registered artifact_sha256",
+          "status": "MODEL_UNAVAILABLE",
+          "observation": "inference refused: artifact digest mismatch",
+          "detected_by_artifact_gate": true
+        },
+        {
+          "at": "2026-10-01T16:03:49.896250+00:00",
+          "stage": "ALERT",
+          "alert_id": "0964f631-5e59-491c-b450-f7827e9c9776",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:03:49.896267+00:00",
+          "stage": "ISOLATE",
+          "output": {},
+          "observation": "no probabilities emitted while the artifact is untrusted"
+        },
+        {
+          "at": "2026-10-01T16:03:49.896271+00:00",
+          "stage": "DEGRADED",
+          "observation": "MODEL_UNAVAILABLE returned for every request; nothing substituted"
+        },
+        {
+          "at": "2026-10-01T16:03:49.899752+00:00",
+          "stage": "RECOVER",
+          "restored": true,
+          "observation": "registry digest restored to the verified artifact"
+        },
+        {
+          "at": "2026-10-01T16:03:49.923883+00:00",
+          "stage": "VERIFY",
+          "status": "SERVED",
+          "observation": "inference served again"
+        },
+        {
+          "at": "2026-10-01T16:03:49.925405+00:00",
+          "stage": "AUDIT",
+          "observation": "refused and served requests remain in the immutable inference log"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "served_after_recovery": true,
+        "detected_by_artifact_gate": true
+      }
+    },
+    {
+      "id": "6c85acc6-a957-46aa-bd6d-c126e91cd094",
+      "kind": "WORKER_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:03:49.753807+00:00",
+      "recovered_at": "2026-10-01T16:03:49.819654+00:00",
+      "degraded_behaviour": "Job visible as RUNNING until reaped; no partial Silver write.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:03:49.753807+00:00",
+          "stage": "DETECT",
+          "observation": "worker killed with SIGKILL mid-request (SIMULATED_FAULT: provider made to hang); its job row is still RUNNING and visible because RUNNING is committed before the request",
+          "running_rows": 1
+        },
+        {
+          "at": "2026-10-01T16:03:49.788079+00:00",
+          "stage": "ALERT",
+          "alert_id": "096d9f4a-48ca-46fe-8efb-64ff495fb3e3",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:03:49.802315+00:00",
+          "stage": "ISOLATE",
+          "observation": "no snapshot and no Silver rows from the lost job",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:49.802336+00:00",
+          "stage": "DEGRADED",
+          "observation": "other jobs unaffected; the lost job is the only gap"
+        },
+        {
+          "at": "2026-10-01T16:03:49.819654+00:00",
+          "stage": "RECOVER",
+          "reaped": [
+            "8a17e057-efe2-43d7-a8b2-0ebe576d1e8c"
+          ],
+          "observation": "reaper marked the orphaned job FAILED: WORKER_LOST"
+        },
+        {
+          "at": "2026-10-01T16:03:49.827749+00:00",
+          "stage": "VERIFY",
+          "observation": "no RUNNING orphans remain; Silver unchanged",
+          "running_rows": 0,
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:49.829204+00:00",
+          "stage": "AUDIT",
+          "observation": "reaper and incident write audit events"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "reaped": 1,
+        "orphans_after": 0
+      }
+    },
+    {
+      "id": "f3a67992-36cf-4280-b2c2-25d1973e38ca",
+      "kind": "PROVIDER_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:03:47.111055+00:00",
+      "recovered_at": "2026-10-01T16:03:47.995277+00:00",
+      "degraded_behaviour": "Silver served last-valid data; ingestion recorded FAILED; no fabricated payload.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:03:47.111055+00:00",
+          "stage": "DETECT",
+          "errors": [
+            "ProviderServerError: provider server error (503): Server error '503 Service Unavailable' for url 'https://raw.githubusercontent.com/statsbomb/open-data/master/data/matches/43/106.json'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
+          ],
+          "status": "FAILED",
+          "observation": "job FAILED after bounded retries (SIMULATED_FAULT: HTTP 503 injected at the transport)"
+        },
+        {
+          "at": "2026-10-01T16:03:47.115178+00:00",
+          "stage": "ALERT",
+          "alert_id": "3cc3ed62-4576-4ab1-b0f6-64c85904ea4e",
+          "alert_state": "DELIVERED",
+          "observation": "operational alert raised by the ingestion runner with job evidence"
+        },
+        {
+          "at": "2026-10-01T16:03:47.122516+00:00",
+          "stage": "ISOLATE",
+          "snapshot": null,
+          "observation": "no snapshot stored, Silver unchanged",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:47.126256+00:00",
+          "stage": "DEGRADED",
+          "observation": "last-valid Silver keeps serving with its own timestamps",
+          "last_valid_score": "3-3",
+          "silver_updated_at": "2026-10-01T16:01:24.493744+00:00"
+        },
+        {
+          "at": "2026-10-01T16:03:47.995277+00:00",
+          "stage": "RECOVER",
+          "sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+          "status": "SUCCESS",
+          "observation": "real request to the provider succeeded"
+        },
+        {
+          "at": "2026-10-01T16:03:48.001642+00:00",
+          "stage": "VERIFY",
+          "observation": "recovered payload is byte-identical to the last-valid snapshot (idempotent)",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:03:48.006560+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted with audit event"
+        }
+      ],
+      "verification": {
+        "passed": true,
+        "recovered": true
+      }
+    },
+    {
+      "id": "ae0023dc-f671-4920-b6a2-362253bc5437",
+      "kind": "CACHE_FAILURE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:02:37.894979+00:00",
+      "recovered_at": "2026-10-01T16:02:37.978334+00:00",
+      "degraded_behaviour": "Per-user limits enforced per process instead of cluster-wide.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:02:37.894979+00:00",
+          "redis": "UNAVAILABLE",
+          "stage": "DETECT",
+          "observation": "Redis probe UNAVAILABLE"
+        },
+        {
+          "at": "2026-10-01T16:02:37.895008+00:00",
+          "stage": "ALERT",
+          "system": "DEGRADED",
+          "observation": "system status DEGRADED"
+        },
+        {
+          "at": "2026-10-01T16:02:37.895013+00:00",
+          "stage": "ISOLATE",
+          "backend": "PROCESS_LOCAL_FALLBACK",
+          "observation": "rate limiting switched to the process-local window"
+        },
+        {
+          "at": "2026-10-01T16:02:37.963275+00:00",
+          "stage": "DEGRADED",
+          "http_status": 200,
+          "observation": "authenticated requests still served and still rate-limited"
+        },
+        {
+          "at": "2026-10-01T16:02:37.978334+00:00",
+          "stage": "RECOVER",
+          "seconds": 0.01,
+          "observation": "Redis restarted"
+        },
+        {
+          "at": "2026-10-01T16:03:09.089958+00:00",
+          "redis": "HEALTHY",
+          "stage": "VERIFY",
+          "backend": "REDIS",
+          "observation": "Redis healthy and back in use for rate limiting"
+        },
+        {
+          "at": "2026-10-01T16:03:09.089980+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "redis": "HEALTHY",
+        "backend": "REDIS"
+      }
+    },
+    {
+      "id": "0061a648-79f9-4c25-b778-1c55ee40baa0",
+      "kind": "DATABASE_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "CRITICAL",
+      "detected_at": "2026-10-01T16:02:35.098394+00:00",
+      "recovered_at": "2026-10-01T16:02:37.601911+00:00",
+      "degraded_behaviour": "Liveness OK, readiness 503, data endpoints fail closed; no partial writes.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:02:35.098394+00:00",
+          "stage": "DETECT",
+          "http_status": 503,
+          "observation": "readiness probe failed"
+        },
+        {
+          "at": "2026-10-01T16:02:35.195561+00:00",
+          "stage": "ALERT",
+          "database": "UNAVAILABLE",
+          "observation": "system status reports the database UNAVAILABLE (alert rows cannot be written while it is down)",
+          "system_status": "UNAVAILABLE"
+        },
+        {
+          "at": "2026-10-01T16:02:35.240420+00:00",
+          "stage": "ISOLATE",
+          "http_status": 500,
+          "observation": "authenticated endpoints fail closed; nothing is written"
+        },
+        {
+          "at": "2026-10-01T16:02:35.286570+00:00",
+          "stage": "DEGRADED",
+          "health": 200,
+          "observation": "process stays up; data-dependent endpoints refuse"
+        },
+        {
+          "at": "2026-10-01T16:02:37.601911+00:00",
+          "stage": "RECOVER",
+          "observation": "database restarted; API ready again without a restart (pool_pre_ping)",
+          "seconds_to_ready": 0.08
+        },
+        {
+          "at": "2026-10-01T16:02:37.686745+00:00",
+          "stage": "VERIFY",
+          "observation": "row counts identical and audit chain valid",
+          "counts_equal": true,
+          "audit_chain_valid": true
+        },
+        {
+          "at": "2026-10-01T16:02:37.686831+00:00",
+          "stage": "AUDIT",
+          "observation": "timeline held in memory during the outage, persisted after recovery"
+        }
+      ],
+      "verification": {
+        "counts_equal": true,
+        "audit_chain_valid": true,
+        "seconds_to_ready_after_restart": 0.08
+      }
+    },
+    {
+      "id": "37c377f5-5e42-4f31-84ea-1dd48b4137ef",
+      "kind": "NOTIFICATION_FAILURE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:02:30.248778+00:00",
+      "recovered_at": "2026-10-01T16:02:30.299166+00:00",
+      "degraded_behaviour": "In-app delivery only; webhook FAILED until requeued.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:02:30.248778+00:00",
+          "stage": "DETECT",
+          "state": "FAILED",
+          "channel": "WEBHOOK",
+          "attempts": 3,
+          "last_error": "ConnectError: All connection attempts failed",
+          "observation": "webhook delivery FAILED after bounded attempts; never reported SENT"
+        },
+        {
+          "at": "2026-10-01T16:02:30.248801+00:00",
+          "stage": "ALERT",
+          "observation": "failure visible in ops_notifications and to Copilot ('What failed?')"
+        },
+        {
+          "at": "2026-10-01T16:02:30.248805+00:00",
+          "stage": "ISOLATE",
+          "attempts": 3,
+          "observation": "retries capped at 3"
+        },
+        {
+          "at": "2026-10-01T16:02:30.248835+00:00",
+          "stage": "DEGRADED",
+          "alert_state": "DELIVERED",
+          "observation": "IN_APP delivery succeeded; alert state DELIVERED via IN_APP"
+        },
+        {
+          "at": "2026-10-01T16:02:30.299166+00:00",
+          "stage": "RECOVER",
+          "webhook": {
+            "state": "SENT",
+            "channel": "WEBHOOK",
+            "attempts": 1,
+            "last_error": null
+          },
+          "observation": "endpoint restored; operator requeued the notification"
+        },
+        {
+          "at": "2026-10-01T16:02:30.299185+00:00",
+          "hits": 1,
+          "stage": "VERIFY",
+          "observation": "endpoint received exactly one delivery"
+        },
+        {
+          "at": "2026-10-01T16:02:30.797010+00:00",
+          "stage": "AUDIT",
+          "observation": "requeue and incident are audited"
+        }
+      ],
+      "verification": {
+        "hits": 1,
+        "webhook_state": "SENT"
+      }
+    },
+    {
+      "id": "1201af0d-d239-4aa6-abcd-cb1ba93a9f9b",
+      "kind": "RATE_LIMIT_EXHAUSTION",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "MEDIUM",
+      "detected_at": "2026-10-01T16:01:29.725307+00:00",
+      "recovered_at": "2026-10-01T16:02:30.023432+00:00",
+      "degraded_behaviour": "Jobs deferred (RATE_LIMIT_DEFERRED), not failed and not faked.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:01:29.725307+00:00",
+          "stage": "DETECT",
+          "statuses": [
+            "SUCCESS",
+            "SUCCESS",
+            "RATE_LIMIT_DEFERRED"
+          ],
+          "observation": "budget exhausted after 2 real requests; third job deferred without a request",
+          "requests_sent": 2
+        },
+        {
+          "at": "2026-10-01T16:01:29.725319+00:00",
+          "stage": "ALERT",
+          "observation": "deferral recorded as job status RATE_LIMIT_DEFERRED (governance, not an outage: no alert)"
+        },
+        {
+          "at": "2026-10-01T16:01:29.725330+00:00",
+          "stage": "ISOLATE",
+          "budget": {
+            "source": "SELF_IMPOSED",
+            "per_hour": 50,
+            "per_minute": 2
+          },
+          "observation": "provider never sees more than the budget"
+        },
+        {
+          "at": "2026-10-01T16:01:29.725333+00:00",
+          "stage": "DEGRADED",
+          "observation": "deferred work waits; nothing marked successful"
+        },
+        {
+          "at": "2026-10-01T16:02:30.023432+00:00",
+          "stage": "RECOVER",
+          "status": "SUCCESS",
+          "waited_s": 59.6,
+          "observation": "window rolled over; job ran"
+        },
+        {
+          "at": "2026-10-01T16:02:30.023488+00:00",
+          "stage": "VERIFY",
+          "observation": "budget never exceeded",
+          "total_requests": 3,
+          "budget_exceeded": false
+        },
+        {
+          "at": "2026-10-01T16:02:30.025384+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "statuses": [
+          "SUCCESS",
+          "SUCCESS",
+          "RATE_LIMIT_DEFERRED",
+          "SUCCESS"
+        ],
+        "budget_exceeded": false
+      }
+    },
+    {
+      "id": "833b1449-e6e1-4607-a123-62497b623cd8",
+      "kind": "BAD_DATA_SNAPSHOT",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:01:26.887025+00:00",
+      "recovered_at": "2026-10-01T16:01:27.513472+00:00",
+      "degraded_behaviour": "Replay/normalization refused for the corrupted snapshot only.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:01:26.887025+00:00",
+          "error": "Bronze snapshot 2b00c4cbf027b36ae2ce99f183a0943c649bb5bdcb8324683a8603785beffed5 now hashes to 86699f08fe4fb1e3a4148b00dc43faa76e3d6bc8f090fa514ebd71ecb71baf9a",
+          "stage": "DETECT",
+          "observation": "SHA-256 re-verification rejected the stored bytes"
+        },
+        {
+          "at": "2026-10-01T16:01:26.914460+00:00",
+          "stage": "ALERT",
+          "alert_id": "51c4962f-6bb6-4aef-8d67-85a0ad1e361f",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:01:26.922050+00:00",
+          "stage": "ISOLATE",
+          "observation": "corrupt bytes never reached Silver",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:26.922067+00:00",
+          "stage": "DEGRADED",
+          "observation": "Silver keeps the rows normalized from the verified copy"
+        },
+        {
+          "at": "2026-10-01T16:01:27.513472+00:00",
+          "stage": "RECOVER",
+          "status": "SUCCESS",
+          "same_sha": true,
+          "observation": "real re-fetch from the provider; store detected the bad copy and rewrote it"
+        },
+        {
+          "at": "2026-10-01T16:01:27.661250+00:00",
+          "stage": "VERIFY",
+          "healed": true,
+          "observation": "file hashes to its name again and replays cleanly",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:27.663502+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted"
+        }
+      ],
+      "verification": {
+        "healed": true
+      }
+    },
+    {
+      "id": "2cab46ea-3457-4309-95a2-a12cf1966d51",
+      "kind": "MODEL_ARTIFACT_FAILURE",
+      "is_drill": true,
+      "state": "INVALID_DRILL",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:01:26.800521+00:00",
+      "recovered_at": "2026-10-01T16:01:26.824993+00:00",
+      "degraded_behaviour": "MODEL_UNAVAILABLE; no fallback prediction.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:01:26.800521+00:00",
+          "stage": "DETECT",
+          "reason": "no servable match_outcome model registered",
+          "status": "MODEL_UNAVAILABLE",
+          "observation": "inference refused: artifact digest mismatch"
+        },
+        {
+          "at": "2026-10-01T16:01:26.822297+00:00",
+          "stage": "ALERT",
+          "alert_id": "0964f631-5e59-491c-b450-f7827e9c9776",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:01:26.822315+00:00",
+          "stage": "ISOLATE",
+          "output": {},
+          "observation": "no probabilities emitted while the artifact is untrusted"
+        },
+        {
+          "at": "2026-10-01T16:01:26.822328+00:00",
+          "stage": "DEGRADED",
+          "observation": "MODEL_UNAVAILABLE returned for every request; nothing substituted"
+        },
+        {
+          "at": "2026-10-01T16:01:26.824993+00:00",
+          "stage": "RECOVER",
+          "restored": true,
+          "observation": "registry digest restored to the verified artifact"
+        },
+        {
+          "at": "2026-10-01T16:01:26.831635+00:00",
+          "stage": "VERIFY",
+          "status": "MODEL_UNAVAILABLE",
+          "observation": "inference served again"
+        },
+        {
+          "at": "2026-10-01T16:01:26.833067+00:00",
+          "stage": "AUDIT",
+          "observation": "refused and served requests remain in the immutable inference log"
+        }
+      ],
+      "verification": {
+        "invalidated": "drill never reached the artifact gate (model was REGISTERED, refused for that reason); superseded by the re-run",
+        "served_after_recovery": false
+      }
+    },
+    {
+      "id": "f102914e-5fda-4abd-b8cf-f172a7226311",
+      "kind": "WORKER_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:01:26.641418+00:00",
+      "recovered_at": "2026-10-01T16:01:26.726400+00:00",
+      "degraded_behaviour": "Job visible as RUNNING until reaped; no partial Silver write.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:01:26.641418+00:00",
+          "stage": "DETECT",
+          "observation": "worker killed with SIGKILL mid-request (SIMULATED_FAULT: provider made to hang); its job row is still RUNNING and visible because RUNNING is committed before the request",
+          "running_rows": 1
+        },
+        {
+          "at": "2026-10-01T16:01:26.694670+00:00",
+          "stage": "ALERT",
+          "alert_id": "096d9f4a-48ca-46fe-8efb-64ff495fb3e3",
+          "observation": "operational alert raised"
+        },
+        {
+          "at": "2026-10-01T16:01:26.716457+00:00",
+          "stage": "ISOLATE",
+          "observation": "no snapshot and no Silver rows from the lost job",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:26.716476+00:00",
+          "stage": "DEGRADED",
+          "observation": "other jobs unaffected; the lost job is the only gap"
+        },
+        {
+          "at": "2026-10-01T16:01:26.726400+00:00",
+          "stage": "RECOVER",
+          "reaped": [
+            "e65eed37-367b-4684-b818-c89eccc17ab1"
+          ],
+          "observation": "reaper marked the orphaned job FAILED: WORKER_LOST"
+        },
+        {
+          "at": "2026-10-01T16:01:26.737123+00:00",
+          "stage": "VERIFY",
+          "observation": "no RUNNING orphans remain; Silver unchanged",
+          "running_rows": 0,
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:26.739201+00:00",
+          "stage": "AUDIT",
+          "observation": "reaper and incident write audit events"
+        }
+      ],
+      "verification": {
+        "reaped": 1,
+        "orphans_after": 0
+      }
+    },
+    {
+      "id": "ca01f00b-1083-454e-8062-682992a5dcfc",
+      "kind": "PROVIDER_OUTAGE",
+      "is_drill": true,
+      "state": "CLOSED",
+      "severity": "HIGH",
+      "detected_at": "2026-10-01T16:01:23.963093+00:00",
+      "recovered_at": "2026-10-01T16:01:24.837528+00:00",
+      "degraded_behaviour": "Silver served last-valid data; ingestion recorded FAILED; no fabricated payload.",
+      "timeline": [
+        {
+          "at": "2026-10-01T16:01:23.963093+00:00",
+          "stage": "DETECT",
+          "errors": [
+            "ProviderServerError: provider server error (503): Server error '503 Service Unavailable' for url 'https://raw.githubusercontent.com/statsbomb/open-data/master/data/matches/43/106.json'\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503"
+          ],
+          "status": "FAILED",
+          "observation": "job FAILED after bounded retries (SIMULATED_FAULT: HTTP 503 injected at the transport)"
+        },
+        {
+          "at": "2026-10-01T16:01:23.966423+00:00",
+          "stage": "ALERT",
+          "alert_id": "3cc3ed62-4576-4ab1-b0f6-64c85904ea4e",
+          "alert_state": "DELIVERED",
+          "observation": "operational alert raised by the ingestion runner with job evidence"
+        },
+        {
+          "at": "2026-10-01T16:01:23.973371+00:00",
+          "stage": "ISOLATE",
+          "snapshot": null,
+          "observation": "no snapshot stored, Silver unchanged",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:23.976976+00:00",
+          "stage": "DEGRADED",
+          "observation": "last-valid Silver keeps serving with its own timestamps",
+          "last_valid_score": "3-3",
+          "silver_updated_at": "2026-10-01T16:01:06.260975+00:00"
+        },
+        {
+          "at": "2026-10-01T16:01:24.837528+00:00",
+          "stage": "RECOVER",
+          "sha256": "b9d7516dc9919a825f04c204ca85487958c8a2431e84140a48e944934661efc7",
+          "status": "SUCCESS",
+          "observation": "real request to the provider succeeded"
+        },
+        {
+          "at": "2026-10-01T16:01:24.844441+00:00",
+          "stage": "VERIFY",
+          "observation": "recovered payload is byte-identical to the last-valid snapshot (idempotent)",
+          "silver_unchanged": true
+        },
+        {
+          "at": "2026-10-01T16:01:24.844460+00:00",
+          "stage": "AUDIT",
+          "observation": "incident persisted with audit event"
+        }
+      ],
+      "verification": {
+        "recovered": true
+      }
+    }
+  ],
+  "model_health": {
+    "domain": "match_outcome",
+    "computed_at": "2026-10-01T16:20:40.229581+00:00",
+    "inference_volume": 666,
+    "by_status": {
+      "INSUFFICIENT_DATA": 144,
+      "SERVED": 335,
+      "MODEL_UNAVAILABLE": 187
+    },
+    "by_evidence_mode": {
+      "VALIDATION_BACKTEST": 480,
+      "HISTORICAL_REPLAY": 171,
+      "LIVE": 15
+    },
+    "live_inference_volume": 15,
+    "refusal_rate": 0.497,
+    "ood_rate": 0.0,
+    "missing_feature_rate": 0.0,
+    "latency_ms": {
+      "p50": 11.445,
+      "p95": 27.122,
+      "p99": 56.702
+    },
+    "confidence_histogram": {
+      "0.0-0.1": 0,
+      "0.1-0.2": 0,
+      "0.2-0.3": 0,
+      "0.3-0.4": 20,
+      "0.4-0.5": 60,
+      "0.5-0.6": 64,
+      "0.6-0.7": 59,
+      "0.7-0.8": 49,
+      "0.8-0.9": 53,
+      "0.9-1.0": 30
+    },
+    "live_calibration": {
+      "status": "NOT_ENOUGH_LIVE_OUTCOMES",
+      "observation_mode": "LIVE",
+      "n": 0,
+      "minimum_required": 100
+    },
+    "status": "MEASURED"
+  },
+  "finished_at": "2026-10-01T16:20:40.447961+00:00"
+}

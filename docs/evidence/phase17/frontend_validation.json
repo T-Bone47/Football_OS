@@ -1,0 +1,283 @@
+{
+  "generated_at": "2026-10-01T16:14:40.696Z",
+  "results": [
+    {
+      "viewport": "desktop",
+      "page": "operations",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "main": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 OPERATIONS Live operations Signed in as UI Validator \u00b7 ADMIN Sign out SYSTEM HEALTH Each component is probed on request (database query, Redis PING, storage write/delete, provider probes). Overall DEGRADED \u00b7 environment developmen"
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "page": "data-ops",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "providers": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage PROVIDER CONNECTIVITY Latest real probe per provider and resource. A provide"
+        },
+        "runs": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage INGESTION RUNS Every execution with its outcome, latency, records and Bronze"
+        },
+        "snapshots": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage BRONZE SNAPSHOTS Content-addressed raw payloads with request metadata and li"
+        },
+        "freshness": {
+          "loading_left": true,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage FRESHNESS PROPAGATION Source \u2192 Bronze \u2192 Silver \u2192 Feature \u2192 Model \u2192 Intellige"
+        },
+        "quality": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage DATA QUALITY DataQualityReports for Bronze payloads and Silver scopes. Check"
+        },
+        "failed": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage FAILED AND BLOCKED JOBS Jobs that did not reach Silver, with the recorded re"
+        },
+        "coverage": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage COMPETITION COVERAGE AND PROVIDER CAPABILITY LIVE_AVAILABLE means verified b"
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "page": "model-ops",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "registry": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD MODEL REGISTRY Only registered models can serve. ACTIVE requires live outcomes and a human promotion; nothi"
+        },
+        "health": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD LIVE MODEL HEALTH LiveModelHealthSnapshot from the immutable inference log. VOLUME 666 live 15 REFUSAL RATE"
+        },
+        "calibration": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 1,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD LIVE CALIBRATION Only predictions logged before kickoff count as live. NOT_ENOUGH_LIVE_OUTCOMES \u2014 0 of 100 "
+        },
+        "drift": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 1,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD DRIFT (LIVE) PSI between the earlier and later half of served inputs. DRIFT recommends retraining through t"
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "page": "operations",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "main": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 OPERATIONS Live operations Signed in as UI Validator \u00b7 ADMIN Sign out SYSTEM HEALTH Each component is probed on request (database query, Redis PING, storage write/delete, provider probes). Overall DEGRADED \u00b7 environment developmen"
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "page": "data-ops",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "providers": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage PROVIDER CONNECTIVITY Latest real probe per provider and resource. A provide"
+        },
+        "runs": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage INGESTION RUNS Every execution with its outcome, latency, records and Bronze"
+        },
+        "snapshots": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage BRONZE SNAPSHOTS Content-addressed raw payloads with request metadata and li"
+        },
+        "freshness": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage FRESHNESS PROPAGATION Source \u2192 Bronze \u2192 Silver \u2192 Feature \u2192 Model \u2192 Intellige"
+        },
+        "quality": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage DATA QUALITY DataQualityReports for Bronze payloads and Silver scopes. Check"
+        },
+        "failed": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage FAILED AND BLOCKED JOBS Jobs that did not reach Silver, with the recorded re"
+        },
+        "coverage": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Signed in as UI Validator \u00b7 ADMIN Sign out Providers Ingestion runs Snapshots Freshness Quality & conflicts Failed jobs Coverage COMPETITION COVERAGE AND PROVIDER CAPABILITY LIVE_AVAILABLE means verified b"
+        }
+      }
+    },
+    {
+      "viewport": "mobile",
+      "page": "model-ops",
+      "console_errors": [
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+        "console: Failed to load resource: net::ERR_CERT_AUTHORITY_INVALID",
+        "console: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+      ],
+      "tabs": {
+        "registry": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD MODEL REGISTRY Only registered models can serve. ACTIVE requires live outcomes and a human promotion; nothi"
+        },
+        "health": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 0,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD LIVE MODEL HEALTH LiveModelHealthSnapshot from the immutable inference log. VOLUME 666 live 15 REFUSAL RATE"
+        },
+        "calibration": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 1,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD LIVE CALIBRATION Only predictions logged before kickoff count as live. NOT_ENOUGH_LIVE_OUTCOMES \u2014 0 of 100 "
+        },
+        "drift": {
+          "loading_left": false,
+          "error_states": 0,
+          "empty_states": 1,
+          "horizontal_overflow_px": 0,
+          "contains_legacy_fabrication": false,
+          "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 MODEL OPS Model operations Signed in as UI Validator \u00b7 ADMIN Sign out Registry & deployment Health Calibration Drift & OOD DRIFT (LIVE) PSI between the earlier and later half of served inputs. DRIFT recommends retraining through t"
+        }
+      }
+    },
+    {
+      "viewport": "desktop",
+      "page": "data-ops (no token)",
+      "token_form_shown": true,
+      "shows_any_table": false,
+      "sample": "FOOTBALL INTELLIGENCE OS Search players, clubs, actions \u2318K PHASE 17 \u00b7 DATA OPS Data operations Operations API token Issued by an administrator (POST /api/v1/ops/users). Kept in this tab's session stor"
+    },
+    {
+      "viewport": "desktop",
+      "page": "model-ops (forged token)",
+      "rejected_message": true,
+      "shows_any_table": false
+    }
+  ],
+  "console_error_attribution": "All console errors are failed loads of third-party resources referenced by the template's index.html (ap.emergent.sh analytics script, assets.emergent.sh, fonts.googleapis.com/fonts.gstatic.com), blocked or TLS-intercepted by this sandbox's egress proxy. No application error was logged.",
+  "setup": {
+    "bundle": "yarn build (CRA/craco) of this commit, served with SPA fallback on :3000",
+    "api": "uvicorn app.main:app on :8000 against fios_p17_live",
+    "browser": "Playwright 1.56 Chromium",
+    "auth": "admin bearer token injected into sessionStorage; a no-token and a forged-token run included"
+  }
+}

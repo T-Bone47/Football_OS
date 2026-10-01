@@ -1,0 +1,34 @@
+/* Phase 17 operations consoles. Uses the app's existing design tokens. */
+.ops-page { padding: 24px; max-width: 1400px; margin: 0 auto; min-width: 0; }
+.ops-header { margin-bottom: 14px; }
+.ops-header h1 { font-size: 22px; margin: 4px 0 0; color: var(--text); }
+.ops-identity { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 12px; margin-bottom: 16px; }
+.ops-section { border: 1px solid var(--line); border-radius: 4px; background: var(--surface); padding: 16px; margin-bottom: 16px; min-width: 0; }
+.ops-section-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; }
+.ops-section-head h2 { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-strong); margin: 0; }
+.ops-section-head p { color: var(--muted); font-size: 12px; margin: 4px 0 0; max-width: 780px; }
+.ops-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.ops-tile { border: 1px solid var(--line); border-radius: 4px; padding: 12px; background: var(--surface-elev); min-width: 0; }
+.ops-tile .label { color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.ops-tile .value { color: var(--text); font-size: 18px; margin-top: 6px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ops-tile .detail { color: var(--muted); font-size: 11.5px; margin-top: 6px; overflow-wrap: anywhere; }
+.ops-state { padding: 18px; color: var(--muted); font-size: 12.5px; border: 1px dashed var(--line); border-radius: 4px; }
+.ops-error { color: var(--danger); border-color: var(--danger); }
+.ops-empty { text-align: center; }
+.ops-muted { color: var(--muted); font-size: 12px; }
+.ops-error-text { color: var(--danger); font-size: 12px; }
+.ops-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; overflow-wrap: anywhere; }
+.ops-link-button { background: none; border: 0; color: var(--cyan); cursor: pointer; font: inherit; padding: 0 4px; }
+.ops-token-form { max-width: 520px; display: grid; gap: 8px; }
+.ops-token-form label { color: var(--text); font-weight: 600; }
+.ops-token-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ops-token-row input { flex: 1 1 240px; min-width: 0; background: var(--surface-elev); border: 1px solid var(--line-strong); color: var(--text); padding: 8px 10px; border-radius: 4px; }
+.ops-banner { border: 1px solid var(--amber); color: var(--amber); background: rgba(230, 181, 102, 0.06); border-radius: 4px; padding: 10px 12px; font-size: 12px; margin-bottom: 16px; }
+.ops-kv { display: grid; grid-template-columns: minmax(120px, max-content) 1fr; gap: 4px 12px; font-size: 12px; }
+.ops-kv dt { color: var(--muted); }
+.ops-kv dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .ops-page { padding: 16px; }
+  .ops-section { padding: 12px; }
+  .ops-kv { grid-template-columns: 1fr; }
+}

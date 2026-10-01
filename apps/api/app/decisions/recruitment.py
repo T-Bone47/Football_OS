@@ -104,9 +104,11 @@ class RecruitmentTargetEngine:
             stmt = (
                 select(Player)
                 .options(
-                    selectinload(Player.season_stats),
+                    # Player has no direct club relationship; the current club
+                    # comes from season stats (Phase 17 fix: this used to load
+                    # Player.club, which does not exist, and raised on every call).
+                    selectinload(Player.season_stats).selectinload(PlayerSeasonStats.club),
                     selectinload(Player.role_profiles),
-                    selectinload(Player.club),
                 )
                 .limit(100)
             )
@@ -136,6 +138,9 @@ class RecruitmentTargetEngine:
             age = age or 24.0
 
             club_obj = getattr(p, "club", None)
+            if club_obj is None and getattr(p, "season_stats", None):
+                latest_stat = max(p.season_stats, key=lambda st: st.created_at or datetime.min.replace(tzinfo=timezone.utc))
+                club_obj = latest_stat.club
             club_name = getattr(club_obj, "name", None) or (p.get("club_name") if isinstance(p, dict) else "Free Agent")
             club_id = getattr(club_obj, "id", None) or (p.get("club_id") if isinstance(p, dict) else None)
 

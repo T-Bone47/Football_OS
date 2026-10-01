@@ -1,0 +1,50 @@
+{
+  "generated_at": "2026-10-01T15:59:37.129112+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "started_at": "2026-10-01T15:59:34.485747+00:00",
+  "executions": [
+    {
+      "job": "api_football_transfers",
+      "schedule_class": "DAILY",
+      "provider": "api-football",
+      "resource": "transfers",
+      "params": {
+        "team": 42
+      },
+      "job_id": "cdcd8364-f93a-4c85-ba72-1d02f9a6fa4d",
+      "status": "FAILED",
+      "started_at": "2026-10-01T15:59:34.654299+00:00",
+      "finished_at": "2026-10-01T15:59:37.092090+00:00",
+      "latency_ms": 2437.8,
+      "records": null,
+      "errors": [
+        "ProviderNetworkError: ProxyError: 403 Forbidden"
+      ],
+      "snapshot_sha256": null
+    }
+  ],
+  "skipped": [
+    {
+      "job": "statsbomb_competitions_index",
+      "reason": "not due (last run 2026-10-01T15:48:08.802147+00:00)"
+    },
+    {
+      "job": "statsbomb_season_matches",
+      "reason": "not due (last run 2026-10-01T15:56:09.630058+00:00)"
+    },
+    {
+      "job": "statsbomb_match_lineups",
+      "reason": "ON_DEMAND jobs are never scheduled"
+    },
+    {
+      "job": "statsbomb_match_events",
+      "reason": "ON_DEMAND jobs are never scheduled"
+    },
+    {
+      "job": "api_football_fixtures",
+      "reason": "LIVE job needs an AVAILABLE probe for api-football"
+    }
+  ],
+  "reaped_stale_jobs": [],
+  "finished_at": "2026-10-01T15:59:37.127671+00:00"
+}

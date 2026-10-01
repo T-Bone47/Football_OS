@@ -1,0 +1,181 @@
+{
+  "generated_at": "2026-10-01T15:59:27.701598+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "reports": {
+    "Premier League 2015": {
+      "scope": "silver:statsbomb:13dabd8a-51f1-4e69-9851-2cf0a5272103",
+      "overall": "PASS",
+      "records_examined": 380,
+      "snapshot_sha256": null,
+      "created_at": "2026-10-01T15:59:27.583037+00:00",
+      "checks": [
+        {
+          "name": "referential_integrity",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "Silver match with no Bronze snapshot (orphan)",
+          "evaluated": true
+        },
+        {
+          "name": "duplicate_detection",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "duplicate fixture",
+          "evaluated": true
+        },
+        {
+          "name": "temporal_validation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "FINISHED match dated in the future",
+          "evaluated": true
+        },
+        {
+          "name": "score_event_reconciliation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "8 matches with events reconciled against final score",
+          "evaluated": true
+        },
+        {
+          "name": "lineup_completeness",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "380 matches with lineups; fewer than 22 players",
+          "evaluated": true
+        },
+        {
+          "name": "identity_consistency",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "provider id mapped to more than one canonical entity",
+          "evaluated": true
+        },
+        {
+          "name": "null_checks",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "canonical entity with empty name",
+          "evaluated": true
+        }
+      ]
+    },
+    "FIFA World Cup 2022": {
+      "scope": "silver:statsbomb:3ceaeb3d-b29f-47b0-a438-77627616e48e",
+      "overall": "PASS",
+      "records_examined": 64,
+      "snapshot_sha256": null,
+      "created_at": "2026-10-01T15:59:27.669319+00:00",
+      "checks": [
+        {
+          "name": "referential_integrity",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "Silver match with no Bronze snapshot (orphan)",
+          "evaluated": true
+        },
+        {
+          "name": "duplicate_detection",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "duplicate fixture",
+          "evaluated": true
+        },
+        {
+          "name": "temporal_validation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "FINISHED match dated in the future",
+          "evaluated": true
+        },
+        {
+          "name": "score_event_reconciliation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "8 matches with events reconciled against final score",
+          "evaluated": true
+        },
+        {
+          "name": "lineup_completeness",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "64 matches with lineups; fewer than 22 players",
+          "evaluated": true
+        },
+        {
+          "name": "identity_consistency",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "provider id mapped to more than one canonical entity",
+          "evaluated": true
+        },
+        {
+          "name": "null_checks",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "canonical entity with empty name",
+          "evaluated": true
+        }
+      ]
+    },
+    "1. Bundesliga 2023": {
+      "scope": "silver:statsbomb:adbfabc1-5fd9-4b20-8f9e-18c0b463b9b6",
+      "overall": "PASS",
+      "records_examined": 34,
+      "snapshot_sha256": null,
+      "created_at": "2026-10-01T15:59:27.685000+00:00",
+      "checks": [
+        {
+          "name": "referential_integrity",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "Silver match with no Bronze snapshot (orphan)",
+          "evaluated": true
+        },
+        {
+          "name": "duplicate_detection",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "duplicate fixture",
+          "evaluated": true
+        },
+        {
+          "name": "temporal_validation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "FINISHED match dated in the future",
+          "evaluated": true
+        },
+        {
+          "name": "score_event_reconciliation",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "8 matches with events reconciled against final score",
+          "evaluated": true
+        },
+        {
+          "name": "lineup_completeness",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "34 matches with lineups; fewer than 22 players",
+          "evaluated": true
+        },
+        {
+          "name": "identity_consistency",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "provider id mapped to more than one canonical entity",
+          "evaluated": true
+        },
+        {
+          "name": "null_checks",
+          "status": "PASS",
+          "affected_records": 0,
+          "detail": "canonical entity with empty name",
+          "evaluated": true
+        }
+      ]
+    }
+  },
+  "finished_at": "2026-10-01T15:59:27.701559+00:00"
+}

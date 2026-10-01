@@ -1,8 +1,12 @@
-# NOT executed here (no CI runner in this sandbox) — verify on first push.
+# Production deployment gate (Phase 17 §47). Every job is required: a failed
+# critical gate blocks deployment. Gates that are not configured in this
+# repository (static typing) are listed as such rather than faked.
 name: CI
 on: [push, pull_request]
+
 jobs:
-  test:
+  backend:
+    name: backend · migrations, tests, replay, adversarial
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -17,17 +21,55 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
+      PG_ADMIN_URL: postgresql://fios:fios@localhost:5432/postgres
+      PGPASSWORD: fios
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: pip install -r requirements.txt
-      - name: Run migrations
-        run: alembic upgrade head
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt ruff pip-audit
+      - name: Lint (Phase 17 code)
+        run: ruff check --select E9,F apps/api/app/phase17 apps/api/app/api/routes_phase17.py tools/phase17 tests/unit/test_phase17_*.py tests/integration/test_phase17_*.py tests/integration/phase17_support.py tests/integration/conftest.py
+      - name: Typing
+        run: echo "NOT_CONFIGURED - no type checker is configured for this repository"
+      - name: Migrations (upgrade, downgrade, re-upgrade)
         env:
           DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
-      - name: Run tests
-        run: pytest -v
+        run: |
+          alembic upgrade head
+          alembic downgrade 0013
+          alembic upgrade head
+      - name: Unit tests (includes API contract tests)
+        run: pytest tests/unit -q
+      - name: Integration, replay and adversarial tests (real PostgreSQL)
+        run: pytest tests/integration -q
+      - name: Dependency audit
+        run: pip-audit -r requirements.txt --progress-spinner off
+      - name: Secret scan
+        run: python tools/phase17/secret_scan.py && python -c "import json,sys; d=json.load(open('docs/evidence/phase17/secret_scan.json')); sys.exit(1 if d['total_findings'] else 0)"
+
+  frontend:
+    name: frontend · production build and audit
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Football_OS-frontend/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: corepack enable && yarn install --frozen-lockfile --network-timeout 600000
+      - name: Production build
+        run: yarn build
         env:
-          TEST_DATABASE_URL: postgresql+asyncpg://fios:fios@localhost:5432/fios_test
+          REACT_APP_BACKEND_URL: https://api.example.invalid
+      - name: Dependency audit (high and critical)
+        run: yarn audit --level high --groups dependencies

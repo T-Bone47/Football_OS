@@ -16,11 +16,14 @@ from app.api.routes_phase13 import router as phase13_router
 from app.api.routes_phase14 import router as phase14_router
 from app.api.routes_phase15 import router as phase15_router
 from app.api.routes_phase16 import router as phase16_router
+from app.api.routes_phase17 import router as phase17_router
 from app.config import get_settings
 from app.db.session import engine, get_session
 from app.decisions.copilot import orchestrate_copilot_decision
 
 from app.observability.correlation import CorrelationIdMiddleware
+from app.phase17.environments import enforce_startup_policy
+from app.phase17.telemetry import LatencyTelemetryMiddleware
 from app.observability.system_health import (
     check_application_health,
     check_data_health,
@@ -29,13 +32,19 @@ from app.observability.system_health import (
 )
 
 settings = get_settings()
+# Phase 17 §2/§46: staging and production refuse to start with development
+# defaults, wildcard CORS or non-durable snapshot storage.
+environment_audit = enforce_startup_policy(settings)
 
 app = FastAPI(title="Football Intelligence OS", version="0.1.0")
 
+app.add_middleware(LatencyTelemetryMiddleware)
 app.add_middleware(CorrelationIdMiddleware)
+# Phase 17 (reconnaissance R17): origins come from CORS_ALLOWED_ORIGINS. The
+# previous list included "*" together with allow_credentials=True.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "*"],
+    allow_origins=[o.strip() for o in settings.cors_allowed_origins.split(",") if o.strip()],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -51,6 +60,7 @@ app.include_router(phase13_router)
 app.include_router(phase14_router)
 app.include_router(phase15_router)
 app.include_router(phase16_router)
+app.include_router(phase17_router)
 
 
 

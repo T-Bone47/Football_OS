@@ -46,6 +46,11 @@ from app.normalization.transformers import (
     transform_api_football_statistics,
     transform_api_football_teams,
 )
+from app.normalization.statsbomb_transformers import (
+    transform_statsbomb_events,
+    transform_statsbomb_lineups,
+    transform_statsbomb_matches,
+)
 from app.market.normalizer import (
     assess_transfer_quality,
     transform_api_football_transfers,
@@ -374,7 +379,10 @@ class NormalizationService:
         payload: dict[str, Any],
         snapshot_id: uuid.UUID | None = None,
     ) -> list[Match]:
-        normalized_fixtures = transform_api_football_fixtures(payload)
+        if provider == "statsbomb":
+            normalized_fixtures = transform_statsbomb_matches(payload)
+        else:
+            normalized_fixtures = transform_api_football_fixtures(payload)
         matches: list[Match] = []
 
         club_cache: dict[str, uuid.UUID] = {}
@@ -592,7 +600,10 @@ class NormalizationService:
         snapshot_id: uuid.UUID | None = None,
         default_fixture_id: str | None = None,
     ) -> list[MatchEvent]:
-        normalized_events = transform_api_football_events(payload, fixture_id=default_fixture_id)
+        if provider == "statsbomb":
+            normalized_events = transform_statsbomb_events(payload, fixture_id=default_fixture_id)
+        else:
+            normalized_events = transform_api_football_events(payload, fixture_id=default_fixture_id)
         events: list[MatchEvent] = []
 
         match_cache: dict[str, Match | None] = {}
@@ -702,7 +713,10 @@ class NormalizationService:
         snapshot_id: uuid.UUID | None = None,
         default_fixture_id: str | None = None,
     ) -> list[MatchLineup]:
-        normalized_lineups = transform_api_football_lineups(payload, fixture_id=default_fixture_id)
+        if provider == "statsbomb":
+            normalized_lineups = transform_statsbomb_lineups(payload, fixture_id=default_fixture_id)
+        else:
+            normalized_lineups = transform_api_football_lineups(payload, fixture_id=default_fixture_id)
         lineups: list[MatchLineup] = []
 
         match_cache: dict[str, Match | None] = {}
@@ -1107,7 +1121,9 @@ class NormalizationService:
         endpoint = run.endpoint
         fixture_param = None
         if run.parameters and isinstance(run.parameters, dict):
-            fixture_param = run.parameters.get("fixture") or run.parameters.get("id")
+            fixture_param = (
+                run.parameters.get("fixture") or run.parameters.get("id") or run.parameters.get("match_id")
+            )
         str_fixture_param = str(fixture_param) if fixture_param is not None else None
 
         if endpoint == "teams":
@@ -1118,7 +1134,7 @@ class NormalizationService:
                 provider_name, payload, snapshot_id=snapshot.id
             )
             return {"entity": "players", "count": len(players), "snapshot_id": str(snapshot_id)}
-        elif endpoint in ("fixtures", "fixtures_round", "fixture"):
+        elif endpoint in ("fixtures", "fixtures_round", "fixture", "matches"):
             matches = await self.normalize_fixtures_payload(
                 provider_name, payload, snapshot_id=snapshot.id
             )

@@ -31,6 +31,19 @@ class Settings(BaseSettings):
     football_data_token: str | None = None
     football_data_base_url: str = "https://api.football-data.org/v4"
 
+    # Phase 17: settings production must set explicitly (see
+    # app.phase17.environments). Comma-separated; never "*" outside
+    # development/test because credentials are allowed.
+    cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173"
+    model_artifact_dir: str = "./data/models"
+    # Notification channels are only enabled when configured. IN_APP is
+    # always available because it is just a database row.
+    notification_webhook_url: str | None = None
+    notification_smtp_url: str | None = None
+    provider_probe_timeout_s: float = 15.0
+    # Per-user API budget for mutating ops endpoints (requests per minute).
+    api_rate_limit_per_minute: int = 120
+
 
 @lru_cache
 def get_settings() -> Settings:

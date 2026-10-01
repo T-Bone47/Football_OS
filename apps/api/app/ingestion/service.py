@@ -57,7 +57,9 @@ class IngestionService:
 
         run.status = IngestionStatus.RUNNING
         run.started_at = datetime.now(timezone.utc)
-        await self._session.flush()
+        # Commit RUNNING before the network call so a worker that dies
+        # mid-request leaves a visible, reapable run instead of nothing.
+        await self._session.commit()
 
         if self._capabilities is not None:
             supported = await self._capabilities.supports(provider_name, resource)
@@ -88,7 +90,14 @@ class IngestionService:
         finally:
             await provider.close()
 
-        sha256, storage_location = await self._store.save(provider_name, resource, raw)
+        try:
+            sha256, storage_location = await self._store.save(provider_name, resource, raw)
+        except Exception as exc:  # noqa: BLE001 — storage outage must land as FAILED, never leave the run RUNNING
+            run.status = IngestionStatus.FAILED
+            run.error = f"SnapshotStoreError: {type(exc).__name__}: {exc}"
+            run.finished_at = datetime.now(timezone.utc)
+            await self._session.commit()
+            return run
         validation_status, validation_errors = validate_snapshot(provider_name, resource, raw.content)
 
         snapshot = DataSnapshot(
@@ -98,6 +107,10 @@ class IngestionService:
             validation_status=validation_status,
             validation_errors=validation_errors,
             size_bytes=len(raw.content),
+            provider_retrieved_at=raw.retrieved_at,
+            http_status=raw.status_code,
+            content_type=raw.content_type,
+            source_url=raw.source_url,
         )
         self._session.add(snapshot)
 

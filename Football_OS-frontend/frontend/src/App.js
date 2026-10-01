@@ -24,6 +24,8 @@ import RecruitmentProjectsPage from "@/pages/RecruitmentProjectsPage";
 import WatchlistsPage from "@/pages/WatchlistsPage";
 import ScenariosPage from "@/pages/ScenariosPage";
 import OperationsPage from "@/pages/OperationsPage";
+import DataOpsPage from "@/pages/DataOpsPage";
+import ModelOpsPage from "@/pages/ModelOpsPage";
 import GlobalOperationsPage from "@/pages/GlobalOperationsPage";
 import ContinuousIntelligencePage from "@/pages/ContinuousIntelligencePage";
 import DecisionLabPage from "@/pages/DecisionLabPage";
@@ -149,6 +151,8 @@ function AppRouter() {
       <Route path="/scenarios" element={<ProtectedRoute>{() => withShell(<ScenariosPage />)}</ProtectedRoute>} />
       <Route path="/operations" element={<ProtectedRoute>{() => withShell(<OperationsPage />)}</ProtectedRoute>} />
       <Route path="/operations/global" element={<ProtectedRoute>{() => withShell(<GlobalOperationsPage />)}</ProtectedRoute>} />
+      <Route path="/data-ops" element={<ProtectedRoute>{() => withShell(<DataOpsPage />)}</ProtectedRoute>} />
+      <Route path="/model-ops" element={<ProtectedRoute>{() => withShell(<ModelOpsPage />)}</ProtectedRoute>} />
       <Route path="/intelligence/continuous" element={<ProtectedRoute>{() => withShell(<ContinuousIntelligencePage />)}</ProtectedRoute>} />
       <Route path="/decision-lab" element={<ProtectedRoute>{() => withShell(<DecisionLabPage />)}</ProtectedRoute>} />
       <Route path="/outcome-intelligence" element={<ProtectedRoute>{() => withShell(<OutcomeIntelligencePage />)}</ProtectedRoute>} />

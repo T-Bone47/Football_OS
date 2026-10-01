@@ -20,7 +20,9 @@ target_metadata = Base.metadata
 
 def _sync_url() -> str:
     url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://fios:fios@localhost:5432/fios")
-    return url.replace("+asyncpg", "")
+    # Name the sync driver explicitly: SQLAlchemy >= 2.1 resolves a bare
+    # "postgresql://" to psycopg (v3), but requirements.txt ships psycopg2.
+    return url.replace("+asyncpg", "+psycopg2")
 
 
 def run_migrations_offline() -> None:

@@ -62,23 +62,27 @@ class ProviderOrchestrator:
         self._seed_default_capabilities()
 
     def _seed_default_capabilities(self) -> None:
+        # Phase 17 (reconnaissance R11): these seeds used to be AVAILABLE with
+        # no request ever made. They are now UNVERIFIED; live states come from
+        # recorded probes (GET /api/v1/ops/providers). Rate limits here are
+        # local budgets, not provider-published quotas.
         # 1. StatsBomb
         self.register_capability(
             provider_name="statsbomb",
             resource="competitions",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=120,
         )
         self.register_capability(
             provider_name="statsbomb",
             resource="matches",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=120,
         )
         self.register_capability(
             provider_name="statsbomb",
             resource="events",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=120,
         )
 
@@ -86,19 +90,19 @@ class ProviderOrchestrator:
         self.register_capability(
             provider_name="api_football",
             resource="transfers",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=30,
         )
         self.register_capability(
             provider_name="api_football",
             resource="fixtures",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=30,
         )
         self.register_capability(
             provider_name="api_football",
             resource="injuries",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=30,
         )
 
@@ -106,13 +110,13 @@ class ProviderOrchestrator:
         self.register_capability(
             provider_name="football_data_org",
             resource="fixtures",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=10,
         )
         self.register_capability(
             provider_name="football_data_org",
             resource="standings",
-            status=ProviderCapabilityStatus.AVAILABLE,
+            status=ProviderCapabilityStatus.UNVERIFIED,
             rate_limit_per_minute=10,
         )
 
@@ -208,8 +212,16 @@ class ProviderOrchestrator:
         primary_fetcher: Any = None,
         secondary_fetcher: Any = None,
     ) -> FailoverResolution:
-        pf = primary_fetcher or (lambda: {"status": "ok", "resource": resource, "competition": competition})
-        sf = secondary_fetcher or (lambda: {"status": "ok", "resource": resource, "competition": competition})
+        # Phase 17: a missing fetcher used to return an invented
+        # {"status": "ok"} payload that was hashed and returned as provider
+        # data. A missing fetcher now means "no data from this provider".
+        def _no_fetcher(name: str):
+            def fetch() -> Any:
+                raise LookupError(f"no fetcher supplied for provider '{name}'")
+            return fetch
+
+        pf = primary_fetcher or _no_fetcher(primary_provider)
+        sf = secondary_fetcher or _no_fetcher(secondary_provider)
         return self.execute_failover_fetch(
             resource=resource,
             competition=competition,

@@ -37,18 +37,33 @@ from app.phase10.watchlists import (
 class TestOperationalIngestion:
     """Tests for Phase 10 §2 & §3 ingestion lifecycle and run management."""
 
-    def test_ingestion_cycle_completes_all_stages(self):
-        """Operational ingestion executes all 11 lifecycle stages."""
+    # Phase 17 correction: these two tests previously asserted that a cycle
+    # with no payload succeeded through 11 stages. That success was built on
+    # an invented fixture (reconnaissance R4). They now assert the truthful
+    # behaviour: no payload -> FAILED, and only executed stages are listed.
+    VALID_PAYLOAD = {"response": [{"fixture": {"id": 868547, "date": "2023-08-11T19:00:00+00:00"}}]}
+
+    def test_ingestion_cycle_without_payload_fails_without_fabrication(self):
+        """No payload: the cycle fails and invents nothing."""
         run = operational_pipeline.execute_cycle(dry_run=True)
+        assert run.status == IngestionRunStatus.FAILED
+        assert "NO_PROVIDER_PAYLOAD" in run.error_summary
+        assert run.records_seen == 0
+        assert run.stages_completed == []
+        assert run.impact_summary["status"] == "UNVERIFIED"
+
+    def test_ingestion_cycle_lists_only_executed_stages(self):
+        """A supplied payload is validated; unexecuted stages are not claimed."""
+        run = operational_pipeline.execute_cycle(payload=self.VALID_PAYLOAD, dry_run=True)
         assert run.status == IngestionRunStatus.SUCCESS
-        assert len(run.stages_completed) == 11
-        assert "authentication_verified" in run.stages_completed
-        assert "validation_gates_passed" in run.stages_completed
-        assert "decision_impact_evaluated" in run.stages_completed
+        assert run.stages_completed == ["payload_received", "payload_hashed", "validation_gates_passed"]
+        for claimed in ("authentication_verified", "silver_normalized", "features_refreshed", "model_readiness_confirmed"):
+            assert claimed not in run.stages_completed
+        assert "silver_normalization" in run.impact_summary["stages_not_executed"]
 
     def test_run_telemetry_schema(self):
         """Every run exposes complete required telemetry fields (§3)."""
-        run = operational_pipeline.execute_cycle(dry_run=True)
+        run = operational_pipeline.execute_cycle(payload=self.VALID_PAYLOAD, dry_run=True)
         d = run.to_dict()
         required_keys = [
             "ingestion_run_id", "provider", "resource", "requested_at",

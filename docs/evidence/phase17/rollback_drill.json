@@ -1,0 +1,95 @@
+{
+  "generated_at": "2026-10-01T16:16:09.008938+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "started_at": "2026-10-01T16:15:58.856817+00:00",
+  "application_rollback": {
+    "previous_commit": "eb2ad0d",
+    "checks": {
+      "/health/ready": {
+        "status": 200,
+        "rows": null
+      },
+      "/api/v1/players?limit=5": {
+        "status": 200,
+        "rows": 5
+      },
+      "/api/v1/matches?limit=5": {
+        "status": 200,
+        "rows": 5
+      },
+      "/api/v1/competitions": {
+        "status": 200,
+        "rows": 3
+      }
+    },
+    "passed": true
+  },
+  "migration_rollback": {
+    "before": {
+      "matches": 478,
+      "match_lineups": 18275,
+      "match_events": 360,
+      "players": 1802,
+      "clubs": 70,
+      "data_snapshots": 527,
+      "ingestion_runs": 535,
+      "ops_job_runs": 537,
+      "ops_inference_log": 666,
+      "ops_audit_events": 55,
+      "_alembic": "0014"
+    },
+    "after_downgrade": {
+      "matches": 478,
+      "match_lineups": 18275,
+      "match_events": 360,
+      "players": 1802,
+      "clubs": 70,
+      "data_snapshots": 527,
+      "ingestion_runs": 535,
+      "ops_job_runs": null,
+      "ops_inference_log": null,
+      "ops_audit_events": null,
+      "_alembic": "0013"
+    },
+    "after_reupgrade": {
+      "matches": 478,
+      "match_lineups": 18275,
+      "match_events": 360,
+      "players": 1802,
+      "clubs": 70,
+      "data_snapshots": 527,
+      "ingestion_runs": 535,
+      "ops_job_runs": 0,
+      "ops_inference_log": 0,
+      "ops_audit_events": 0,
+      "_alembic": "0014"
+    },
+    "downgrade_exit": 0,
+    "upgrade_exit": 0,
+    "seconds": 1.7,
+    "canonical_data_preserved": true,
+    "operational_evidence_lost_on_downgrade": {
+      "ops_job_runs": 537,
+      "ops_inference_log": 666,
+      "ops_audit_events": 55
+    },
+    "policy": "Do not downgrade 0014 in production: it drops immutable operational evidence. Roll application code back (N-1 runs on the N schema) and forward-fix migrations.",
+    "passed": true
+  },
+  "model_rollback": {
+    "demote": {
+      "status": "DEMOTED",
+      "model_id": "calibrated_multinomial_logit_v1",
+      "from": "SHADOW",
+      "to": "REGISTERED"
+    },
+    "second_demote_http": 409,
+    "audit_event_recorded": true,
+    "passed": true
+  },
+  "configuration_rollback": {
+    "status": "NOT_TESTED",
+    "reason": "no deployed configuration store exists; templates are versioned in git (deploy/env)"
+  },
+  "finished_at": "2026-10-01T16:16:09.008860+00:00"
+}

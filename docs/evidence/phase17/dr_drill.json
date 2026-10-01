@@ -1,0 +1,59 @@
+{
+  "generated_at": "2026-10-01T16:06:03.836581+00:00",
+  "environment": "claude-code-cloud-sandbox (development)",
+  "started_at": "2026-10-01T16:05:57.301671+00:00",
+  "source_database": "fios_p17_live",
+  "restore_database": "fios_p17_restore",
+  "postgres_backup": {
+    "seconds": 0.3,
+    "bytes": 1826000,
+    "sha256": "ae21a67525e5faec1b88a443ea8953e1151574fafb28fbf1b1a95a1cffa1b547"
+  },
+  "postgres_restore": {
+    "seconds": 1.03,
+    "exit_code": 0,
+    "stderr_tail": ""
+  },
+  "postgres_verification": {
+    "seconds": 0.12,
+    "tables": 47,
+    "rows_total": 27212,
+    "row_count_mismatches": {},
+    "audit_chain_source": {
+      "valid": true,
+      "events_checked": 48,
+      "head_hash": "3ea815bf4aa54c0bdea8161dc70a97b196e81661dc9905a48373ace23f718e11"
+    },
+    "audit_chain_restored": {
+      "valid": true,
+      "events_checked": 48,
+      "head_hash": "3ea815bf4aa54c0bdea8161dc70a97b196e81661dc9905a48373ace23f718e11"
+    },
+    "decision_hashes_equal": true,
+    "model_registry_equal": true,
+    "immutability_triggers_restored": [
+      "ops_audit_events_immutable",
+      "ops_decisions_immutable",
+      "ops_inference_log_immutable"
+    ],
+    "migration_head_restored": "0014",
+    "passed": true
+  },
+  "bronze": {
+    "files": 506,
+    "archive_bytes": 7758779,
+    "backup_seconds": 4.28,
+    "restore_seconds": 0.31,
+    "hash_mismatches": [],
+    "passed": true
+  },
+  "configuration": {
+    "files": 20,
+    "manifest_sha256": "249452d01bc85667ede5b352f685059a1a9744af3492449dde68929b03c1a5af",
+    "secrets_backed_up": false,
+    "note": ".env is excluded; production secrets belong to the secret manager's own backup"
+  },
+  "measured_recovery_time_seconds": 1.76,
+  "scope_note": "Measured on a single local PostgreSQL 16 instance and local disk in the sandbox. Object storage (S3/MinIO) restore is NOT_TESTED: no object store is reachable here.",
+  "finished_at": "2026-10-01T16:06:03.725729+00:00"
+}

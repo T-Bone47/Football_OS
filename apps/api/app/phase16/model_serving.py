@@ -8,6 +8,7 @@ Rules:
 - Champion / Challenger isolation: Shadow challenger outputs never overwrite production decisions.
 """
 
+from collections.abc import Callable
 from datetime import datetime, timezone
 import hashlib
 from typing import Any
@@ -41,8 +42,9 @@ class PredictionServingResponse(BaseModel):
     calculation_version: str
     deployment_mode: str  # ACTIVE_CHAMPION, CANARY, SHADOW_CHALLENGER
     input_digest: str
-    predicted_value: float
-    confidence_interval: tuple[float, float]
+    # None whenever no prediction was produced (MODEL_UNAVAILABLE / OOD).
+    predicted_value: float | None
+    confidence_interval: tuple[float, float] | None
     is_ood: bool
     data_status: str
     served_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -51,13 +53,26 @@ class PredictionServingResponse(BaseModel):
 class ModelServingEngine:
     """Manages active model serving, canary traffic splitting, and shadow execution."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo_models: bool = False) -> None:
         self._models: dict[str, ModelServingProfile] = {}
         self._champion_by_domain: dict[str, str] = {}
         self._shadow_challengers: dict[str, str] = {}
-        self._seed_production_models()
+        self._predictors: dict[str, Callable[[dict[str, Any]], float]] = {}
+        if seed_demo_models:
+            self._seed_demo_models()
 
-    def _seed_production_models(self) -> None:
+    def register_predictor(self, model_key: str, predictor: Callable[[dict[str, Any]], float]) -> None:
+        """Attach the callable that actually scores inputs for a registered
+        model. A model without a predictor cannot serve."""
+        if model_key not in self._models:
+            raise KeyError(f"Cannot attach predictor: model '{model_key}' is not registered.")
+        self._predictors[model_key] = predictor
+
+    def _seed_demo_models(self) -> None:
+        # Phase 17 (reconnaissance R8/R20): these profiles describe models that
+        # do not exist as artifacts. They are kept only as opt-in fixtures for
+        # exercising pinning/shadow mechanics; the production singleton never
+        # loads them.
         # Champion: Valuation Engine
         val_champ = ModelServingProfile(
             model_id="valuation_ml_v1",
@@ -136,45 +151,39 @@ class ModelServingEngine:
 
         input_digest = hashlib.sha256(str(sorted(input_data.items())).encode("utf-8")).hexdigest()
 
-        # Deterministic dummy scoring grounded in input
-        base_score = float(input_data.get("base_metric", 50.0))
-        prod_val = round(base_score * 1.05, 3)
+        def score(model_key: str, model: ModelServingProfile, mode: str, ood: bool, status_ok: str) -> PredictionServingResponse:
+            predictor = self._predictors.get(model_key)
+            value: float | None = None
+            if ood:
+                status = "OUT_OF_DISTRIBUTION"  # never served, whatever the profile's ood_policy says
+            elif predictor is None:
+                status = "MODEL_UNAVAILABLE"
+            else:
+                value = round(float(predictor(input_data)), 3)
+                status = status_ok
+            return PredictionServingResponse(
+                prediction_id=f"{'pred' if mode == 'ACTIVE_CHAMPION' else 'shadow'}_{model.model_id}_{input_digest[:8]}",
+                model_id=model.model_id,
+                model_version=model.model_version,
+                feature_version=model.feature_set_version,
+                dataset_version=model.dataset_version,
+                calculation_version=model.calculation_version,
+                deployment_mode=mode,
+                input_digest=input_digest,
+                predicted_value=value,
+                confidence_interval=None,
+                is_ood=ood,
+                data_status=status,
+            )
 
-        prod_resp = PredictionServingResponse(
-            prediction_id=f"pred_{champ_model.model_id}_{input_digest[:8]}",
-            model_id=champ_model.model_id,
-            model_version=champ_model.model_version,
-            feature_version=champ_model.feature_set_version,
-            dataset_version=champ_model.dataset_version,
-            calculation_version=champ_model.calculation_version,
-            deployment_mode="ACTIVE_CHAMPION",
-            input_digest=input_digest,
-            predicted_value=prod_val,
-            confidence_interval=(round(prod_val * 0.92, 3), round(prod_val * 1.08, 3)),
-            is_ood=is_ood,
-            data_status=data_status,
-        )
+        prod_resp = score(champ_key, champ_model, "ACTIVE_CHAMPION", is_ood, data_status)
 
-        # Shadow execution
         shadow_resp = None
         chall_key = self._shadow_challengers.get(domain)
         if chall_key and chall_key in self._models:
             chall_model = self._models[chall_key]
-            chall_val = round(base_score * 1.04, 3)
-            shadow_resp = PredictionServingResponse(
-                prediction_id=f"shadow_{chall_model.model_id}_{input_digest[:8]}",
-                model_id=chall_model.model_id,
-                model_version=chall_model.model_version,
-                feature_version=chall_model.feature_set_version,
-                dataset_version=chall_model.dataset_version,
-                calculation_version=chall_model.calculation_version,
-                deployment_mode="SHADOW_CHALLENGER",
-                input_digest=input_digest,
-                predicted_value=chall_val,
-                confidence_interval=(round(chall_val * 0.94, 3), round(chall_val * 1.06, 3)),
-                is_ood=(competition not in chall_model.supported_competitions),
-                data_status="SHADOW_EVALUATION",
-            )
+            shadow_resp = score(chall_key, chall_model, "SHADOW_CHALLENGER",
+                                competition not in chall_model.supported_competitions, "SHADOW_EVALUATION")
 
         return prod_resp, shadow_resp
 

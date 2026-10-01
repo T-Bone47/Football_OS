@@ -18,6 +18,11 @@ from app.market.readiness import evaluate_market_readiness
 from app.market.valuation import evaluate_temporal_baseline
 from app.market.dataset import ValuationDatasetBuilder
 
+pytestmark = pytest.mark.skipif(
+    not Path("data/bronze/open-transfers").exists(),
+    reason="NOT_TESTED: requires Bronze evidence at 'data/bronze/open-transfers', which .gitignore excludes and the repository never contained (docs/PHASE_17_RECONNAISSANCE.md R1/R21). Runs wherever the files exist.",
+)
+
 
 def test_phase_4_1d_bronze_dataset_completion():
     """Verifies that all bronze snapshots in data/bronze/open-transfers load successfully

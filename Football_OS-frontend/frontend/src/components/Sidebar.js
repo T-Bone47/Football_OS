@@ -46,6 +46,8 @@ const groups = [
   ]},
   { label: "System", items: [
     { label: "Live operations", path: "/operations", icon: Server },
+    { label: "Data operations", path: "/data-ops", icon: Database },
+    { label: "Model operations", path: "/model-ops", icon: Activity },
     { label: "Global operations", path: "/operations/global", icon: Globe },
     { label: "Continuous learning", path: "/intelligence/continuous", icon: RefreshCw },
     { label: "Data quality", path: "/system/data-quality", icon: Database },

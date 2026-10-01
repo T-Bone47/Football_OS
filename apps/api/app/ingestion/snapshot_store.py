@@ -34,6 +34,11 @@ class LocalFilesystemSnapshotStore:
         target_dir = self._root / provider / resource
         target_dir.mkdir(parents=True, exist_ok=True)
         target_path = target_dir / f"{digest}.json"
-        if not target_path.exists():
-            target_path.write_bytes(response.content)
+        # Phase 17: an existing file is only trusted if it still hashes to its
+        # name. A corrupted copy is replaced by the freshly fetched bytes
+        # (which do hash to the name), so re-fetching heals Bronze.
+        if not target_path.exists() or hashlib.sha256(target_path.read_bytes()).hexdigest() != digest:
+            tmp = target_path.with_suffix(".json.tmp")
+            tmp.write_bytes(response.content)
+            tmp.replace(target_path)
         return digest, str(target_path)

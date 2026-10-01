@@ -9,3 +9,4 @@ data/bronze/**
 node_modules/
 .DS_Store
 *.log
+dump.rdb

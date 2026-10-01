@@ -97,11 +97,15 @@ class AuthorizationError(PermissionError):
 class ProjectAndAuthManager:
     """Authoritative backend repository for users, projects, and permissions."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = True) -> None:
         self._users: dict[str, UserProfile] = {}
         self._projects: dict[str, RecruitmentProject] = {}
         self._watchlists: dict[str, ProductionWatchlist] = {}
-        self._seed_default_users_and_projects()
+        # Phase 17 (reconnaissance R10): demo users/projects are fixtures for
+        # development and tests. The singleton never seeds them in staging or
+        # production; real identities live in ops_users (app.phase17.auth).
+        if seed_demo:
+            self._seed_default_users_and_projects()
 
     def _seed_default_users_and_projects(self) -> None:
         # Default Admin & Scout
@@ -317,5 +321,9 @@ _GLOBAL_PROJECT_AUTH_MANAGER: ProjectAndAuthManager | None = None
 def get_project_auth_manager() -> ProjectAndAuthManager:
     global _GLOBAL_PROJECT_AUTH_MANAGER
     if _GLOBAL_PROJECT_AUTH_MANAGER is None:
-        _GLOBAL_PROJECT_AUTH_MANAGER = ProjectAndAuthManager()
+        from app.config import get_settings
+        from app.phase17.environments import is_hardened, resolve_environment
+
+        hardened = is_hardened(resolve_environment(get_settings().environment))
+        _GLOBAL_PROJECT_AUTH_MANAGER = ProjectAndAuthManager(seed_demo=not hardened)
     return _GLOBAL_PROJECT_AUTH_MANAGER

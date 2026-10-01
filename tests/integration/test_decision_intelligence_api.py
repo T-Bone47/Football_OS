@@ -21,7 +21,8 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.db.base import Base
 from app.db.session import get_session
 from app.main import app
-from app.normalization.schemas import NormalizedClub, NormalizedPlayer, NormalizedPlayerStats
+from app.db.models.canonical import PlayerSeasonStats
+from app.normalization.schemas import NormalizedClub, NormalizedPlayer
 from app.normalization.service import NormalizationService
 
 
@@ -63,7 +64,6 @@ async def decision_client(postgres_url):
                 name="Martin Odegaard",
                 nationality="Norway",
                 primary_position="Midfielder",
-                age=25,
             ),
         )
         p2 = await service.upsert_player(
@@ -73,7 +73,6 @@ async def decision_client(postgres_url):
                 name="Declan Rice",
                 nationality="England",
                 primary_position="Midfielder",
-                age=25,
             ),
         )
         p3 = await service.upsert_player(
@@ -83,7 +82,6 @@ async def decision_client(postgres_url):
                 name="Bukayo Saka",
                 nationality="England",
                 primary_position="Attacker",
-                age=23,
             ),
         )
         p1.club_id = club.id
@@ -94,35 +92,16 @@ async def decision_client(postgres_url):
         season = await service.get_or_create_season("2023", 2023, 2024)
         comp_season = await service.get_or_create_competition_season(comp.id, season.id)
 
-        await service.upsert_player_season_stats(
-            "api-football",
-            NormalizedPlayerStats(
-                player_provider_id="201",
-                competition_name="Premier League",
-                season_label="2023",
-                matches_played=30,
-                minutes_played=2500,
-                goals=8,
-                assists=10,
-            ),
-            p1.id,
-            comp_season.id,
-        )
-        await service.upsert_player_season_stats(
-            "api-football",
-            NormalizedPlayerStats(
-                player_provider_id="202,"
-                "Declan Rice",
-                competition_name="Premier League",
-                season_label="2023",
-                matches_played=32,
-                minutes_played=2700,
-                goals=6,
-                assists=7,
-            ),
-            p2.id,
-            comp_season.id,
-        )
+        # Phase 17: the original call used a NormalizationService method and
+        # NormalizedPlayerStats fields that never existed in this repository.
+        session.add(PlayerSeasonStats(player_id=p1.id, club_id=club.id, competition_season_id=comp_season.id,
+                                      appearances=30, lineups=30,
+                                      minutes=2500, goals=8, assists=10))
+        # Phase 17: the original call used a NormalizationService method and
+        # NormalizedPlayerStats fields that never existed in this repository.
+        session.add(PlayerSeasonStats(player_id=p2.id, club_id=club.id, competition_season_id=comp_season.id,
+                                      appearances=32, lineups=32,
+                                      minutes=2700, goals=6, assists=7))
         await session.commit()
 
         # Cache IDs

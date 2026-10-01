@@ -1,0 +1,300 @@
+{
+  "GET /api/v1/ops/alerts": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/audit": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:limit"
+    ]
+  },
+  "GET /api/v1/ops/audit/verify": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/capabilities": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/competitions/readiness": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/decisions/{decision_id}/provenance": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:decision_id*"
+    ]
+  },
+  "GET /api/v1/ops/field-validation": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/freshness/{competition_season_id}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:competition_season_id*"
+    ]
+  },
+  "GET /api/v1/ops/incidents": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/inference": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:limit",
+      "query:status",
+      "query:subject_id"
+    ]
+  },
+  "GET /api/v1/ops/inference/{inference_id}/provenance": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:inference_id*"
+    ]
+  },
+  "GET /api/v1/ops/ingestion/jobs": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:limit"
+    ]
+  },
+  "GET /api/v1/ops/ingestion/snapshots": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:limit"
+    ]
+  },
+  "GET /api/v1/ops/matches/{match_id}/state": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:match_id*"
+    ]
+  },
+  "GET /api/v1/ops/me": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/models": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/models/calibration": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:mode"
+    ]
+  },
+  "GET /api/v1/ops/models/drift": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:mode"
+    ]
+  },
+  "GET /api/v1/ops/models/health": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/notifications/channels": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/projects": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/projects/{project_id}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:project_id*"
+    ]
+  },
+  "GET /api/v1/ops/providers": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/quality/reports": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "query:limit"
+    ]
+  },
+  "GET /api/v1/ops/retention": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/schedules": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/system/status": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/telemetry/latency": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "GET /api/v1/ops/usage": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/alerts/{alert_id}/{action}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:action*",
+      "path:alert_id*"
+    ]
+  },
+  "POST /api/v1/ops/copilot": {
+    "body": "CopilotQuery",
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/features/refresh/{competition_season_id}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:competition_season_id*"
+    ]
+  },
+  "POST /api/v1/ops/inference/match/{match_id}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:match_id*",
+      "query:as_of",
+      "query:mode"
+    ]
+  },
+  "POST /api/v1/ops/inference/{inference_id}/outcome": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:inference_id*"
+    ]
+  },
+  "POST /api/v1/ops/ingestion/jobs": {
+    "body": "IngestionJobRequest",
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/models/{model_id}/demote": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:model_id*"
+    ]
+  },
+  "POST /api/v1/ops/models/{model_id}/promote": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:model_id*"
+    ]
+  },
+  "POST /api/v1/ops/projects": {
+    "body": "ProjectCreate",
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/projects/{project_id}/decisions": {
+    "body": "DecisionCreate",
+    "params": [
+      "header:Idempotency-Key",
+      "header:authorization",
+      "path:project_id*"
+    ]
+  },
+  "POST /api/v1/ops/projects/{project_id}/watchlists": {
+    "body": "WatchlistCreate",
+    "params": [
+      "header:authorization",
+      "path:project_id*"
+    ]
+  },
+  "POST /api/v1/ops/providers/probe": {
+    "body": null,
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/research/dataset": {
+    "body": "ResearchDatasetRequest",
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/users": {
+    "body": "UserCreate",
+    "params": [
+      "header:authorization"
+    ]
+  },
+  "POST /api/v1/ops/watchlists/{watchlist_id}/evaluate": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:watchlist_id*"
+    ]
+  },
+  "POST /api/v1/ops/watchlists/{watchlist_id}/items": {
+    "body": "WatchlistItemCreate",
+    "params": [
+      "header:authorization",
+      "path:watchlist_id*"
+    ]
+  }
+}

@@ -1,0 +1,8 @@
+# Never send local secrets or data into a Docker build context (Phase 17 §46).
+.env
+.env.*
+!.env.example
+data/
+.git/
+**/node_modules/
+**/__pycache__/

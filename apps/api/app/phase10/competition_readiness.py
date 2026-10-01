@@ -41,6 +41,10 @@ class CompetitionEvidenceProfile:
     engine_readiness: dict[str, str] = field(default_factory=dict)
     evidence_checklist: list[str] = field(default_factory=list)
     limitations: list[str] = field(default_factory=list)
+    # Phase 17 (reconnaissance R7): these profiles are hand-written constants,
+    # not counts read from the database. Evidence-backed readiness is
+    # GET /api/v1/ops/competitions/readiness.
+    evidence_basis: str = "DECLARED_PROFILE_NOT_DB_VERIFIED"
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

@@ -104,3 +104,5 @@ class ProviderCapabilityStatus(str, Enum):
     RATE_LIMITED = "RATE_LIMITED"
     AUTH_REQUIRED = "AUTH_REQUIRED"
     DEPRECATED = "DEPRECATED"
+    # Phase 17: the default for a capability no live request has confirmed.
+    UNVERIFIED = "UNVERIFIED"

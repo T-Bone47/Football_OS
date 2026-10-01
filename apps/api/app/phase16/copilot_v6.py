@@ -77,20 +77,19 @@ class CopilotV6Dispatcher:
             )
 
         # 3. WHICH_COMPETITIONS_READY
+        # Phase 17 (reconnaissance R7): this branch used to return a hardcoded
+        # table claiming four leagues PRODUCTION_READY at confidence 0.98. V6
+        # has no database access, so it now says it cannot verify the answer.
         elif "competition" in q_lower and ("ready" in q_lower or "production-ready" in q_lower):
-            ev = [
-                {"competition": "EPL", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "La_Liga", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Bundesliga", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Serie_A", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Ligue_1", "readiness": "DATA_AVAILABLE", "tier": 1, "note": "Calibration pending"},
-            ]
             return self._build_resp(
                 query=query,
                 family="WHICH_COMPETITIONS_READY",
-                summary="4 of 5 tier-1 European competitions are certified PRODUCTION_READY. Ligue 1 is DATA_AVAILABLE with calibration in progress.",
-                ev=ev,
-                conf=0.98,
+                summary="UNVERIFIED: Copilot V6 has no evidence source for competition readiness. "
+                        "Use GET /api/v1/ops/competitions/readiness or Copilot V7 (POST /api/v1/ops/copilot).",
+                ev=[],
+                conf=0.0,
+                data_status="UNVERIFIED",
+                grounded=False,
             )
 
         # 4. DECISIONS_REQUIRING_REVIEW
@@ -159,7 +158,18 @@ class CopilotV6Dispatcher:
                 conf=0.88,
             )
 
-    def _build_resp(self, query: str, family: str, summary: str, ev: list[dict[str, Any]], conf: float) -> CopilotV6Response:
+    def _build_resp(
+        self,
+        query: str,
+        family: str,
+        summary: str,
+        ev: list[dict[str, Any]],
+        conf: float,
+        data_status: str = "IN_MEMORY_PHASE16_STATE",
+        grounded: bool = True,
+    ) -> CopilotV6Response:
+        # Phase 17: V6 reads Phase 16's in-process engines, not live
+        # telemetry, so it no longer labels its answers LIVE_TELEMETRY.
         clean_summary = CausalityGuardrail.sanitize_text(summary)
         non_causal = CausalityGuardrail.generate_statement(
             metric="operational system state",
@@ -172,9 +182,9 @@ class CopilotV6Dispatcher:
             summary_answer=clean_summary,
             evidence_items=ev,
             confidence=conf,
-            data_status="LIVE_TELEMETRY",
+            data_status=data_status,
             non_causal_statement=non_causal,
-            audit_trace={"tool_grounded": True, "causality_audited": True},
+            audit_trace={"tool_grounded": grounded, "causality_audited": True},
         )
 
 

@@ -1,11 +1,9 @@
 """Phase 10 — Operational Ingestion Pipeline & Run Management (§2, §3).
 
-Implements controlled recurring ingestion lifecycle:
-  Provider → authentication → capability check → rate limiting → raw snapshot
-  → SHA-256 → validation → Bronze → normalization → identity resolution
-  → Silver → feature refresh → model readiness → decision impact.
-
-Preserves immutable Bronze snapshots and records complete execution telemetry.
+Validates caller-supplied payloads against the Phase 9 quality gates and
+records the run. It performs no provider request and writes nothing to
+Bronze; see execute_cycle() for the Phase 17 correction. Real ingestion is
+app.phase17.live_ingestion (POST /api/v1/ops/ingestion/jobs).
 """
 from __future__ import annotations
 
@@ -67,49 +65,49 @@ class OperationalIngestionPipeline:
         payload: dict[str, Any] | None = None,
         dry_run: bool = False,
     ) -> IngestionCycleRecord:
-        """Executes a full controlled ingestion cycle across all 11 lifecycle steps."""
+        """Validates a caller-supplied payload against the Phase 9 quality gates.
+
+        Phase 17 correction (reconnaissance R4): this cycle used to invent an
+        API-Football fixture when no payload was given, write it into the
+        provider's Bronze namespace, and report normalization, feature
+        refresh and model readiness stages it never ran. It now:
+        - refuses to run without a payload (no synthetic data, ever);
+        - never writes a caller-supplied payload into provider Bronze storage,
+          because a caller is not the provider;
+        - lists only the stages it actually executed.
+        Real provider ingestion is POST /api/v1/ops/ingestion/jobs.
+        """
         cycle = IngestionCycleRecord(
             provider=provider,
             resource=resource,
             status=IngestionRunStatus.RUNNING,
         )
+        not_executed = [
+            "provider_authentication", "provider_request", "bronze_persistence", "silver_normalization",
+            "identity_resolution", "feature_refresh", "model_readiness", "decision_impact",
+        ]
+        cycle.impact_summary = {"status": "UNVERIFIED", "stages_not_executed": not_executed}
+
+        if payload is None:
+            cycle.status = IngestionRunStatus.FAILED
+            cycle.validation_status = "NOT_RUN"
+            cycle.error_summary = (
+                "NO_PROVIDER_PAYLOAD: this pipeline only validates a supplied payload and never "
+                "generates data. Use POST /api/v1/ops/ingestion/jobs for real provider ingestion."
+            )
+            cycle.completed_at = datetime.now(timezone.utc).isoformat()
+            self._history.append(cycle)
+            return cycle
 
         try:
-            # 1. Authentication check
-            cycle.stages_completed.append("authentication_verified")
-
-            # 2. Capability verification
-            cycle.stages_completed.append("capabilities_checked")
-
-            # 3. Rate-limit enforcement
-            cycle.stages_completed.append("rate_limit_applied")
-
-            # 4. Raw Snapshot Generation & SHA-256
-            sample = payload or {
-                "results": 1,
-                "response": [
-                    {
-                        "fixture": {
-                            "id": 1035999,
-                            "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                            "status": {"short": "FT"},
-                        },
-                        "teams": {
-                            "home": {"id": 10, "name": "Arsenal"},
-                            "away": {"id": 20, "name": "Chelsea"},
-                        },
-                        "goals": {"home": 2, "away": 1},
-                    }
-                ],
-            }
-            raw_bytes = json.dumps(sample, sort_keys=True).encode("utf-8")
+            cycle.stages_completed.append("payload_received")
+            raw_bytes = json.dumps(payload, sort_keys=True).encode("utf-8")
             sha256 = hashlib.sha256(raw_bytes).hexdigest()
             cycle.checksum = sha256
-            cycle.snapshot_id = f"snap_{sha256[:12]}"
-            cycle.stages_completed.append("raw_snapshot_hashed")
+            cycle.snapshot_id = f"unpersisted_{sha256[:12]}"
+            cycle.stages_completed.append("payload_hashed")
 
-            # 5. Validation Gates
-            items = sample.get("response", [])
+            items = payload.get("response", []) if isinstance(payload, dict) else []
             cycle.records_seen = len(items)
 
             validation_records = [
@@ -143,36 +141,7 @@ class OperationalIngestionPipeline:
             cycle.records_rejected = 0
             cycle.validation_status = "PASSED"
             cycle.stages_completed.append("validation_gates_passed")
-
-            # 6. Immutable Bronze Persistence check (simulate saving or verify path)
-            snapshot_path = self.data_root / "bronze" / provider / resource / f"{sha256}.json"
-            if not dry_run and not snapshot_path.exists():
-                snapshot_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(snapshot_path, "wb") as f:
-                    f.write(raw_bytes)
-            cycle.stages_completed.append("bronze_persisted_immutable")
-
-            # 7. Normalization (Silver)
-            cycle.stages_completed.append("silver_normalized")
-
-            # 8. Identity Resolution (No silent merge)
-            cycle.stages_completed.append("identity_resolved_canonical")
-
-            # 9. Feature Refresh
-            cycle.stages_completed.append("features_refreshed")
-
-            # 10. Model Readiness
-            cycle.stages_completed.append("model_readiness_confirmed")
-
-            # 11. Decision Impact Analysis
-            cycle.impact_summary = {
-                "features_updated": ["elo_rating", "recent_goal_differential"],
-                "affected_entities": ["Arsenal", "Chelsea"],
-                "decisions_impacted_count": 0,
-                "watchlist_alerts_generated": 1,
-            }
-            cycle.stages_completed.append("decision_impact_evaluated")
-
+            # Validation of a supplied payload is all this cycle does.
             cycle.status = IngestionRunStatus.SUCCESS
             cycle.completed_at = datetime.now(timezone.utc).isoformat()
 
