@@ -1,4 +1,12 @@
 {
+  "DELETE /api/v1/ops/projects/{project_id}/members/{member_id}": {
+    "body": null,
+    "params": [
+      "header:authorization",
+      "path:member_id*",
+      "path:project_id*"
+    ]
+  },
   "GET /api/v1/ops/alerts": {
     "body": null,
     "params": [
@@ -260,6 +268,13 @@
     "body": "DecisionCreate",
     "params": [
       "header:Idempotency-Key",
+      "header:authorization",
+      "path:project_id*"
+    ]
+  },
+  "POST /api/v1/ops/projects/{project_id}/members": {
+    "body": "MemberAdd",
+    "params": [
       "header:authorization",
       "path:project_id*"
     ]

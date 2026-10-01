@@ -159,3 +159,37 @@ async def test_oidc_rejections(api, p17_session, idp):
         assert r.status_code == 401, name
     r = await api.get("/api/auth/me", headers={"Authorization": f"Bearer {idp(sub='never-provisioned')}"})
     assert r.status_code == 403
+
+
+# ------------------------------------------------------------- project members
+async def test_project_membership_controls_access(api, p17_session):
+    owner, oh = await _user(p17_session, OpsRole.ANALYST, "Org A")
+    colleague, ch = await _user(p17_session, OpsRole.SCOUT, "Org A")
+    outsider, xh = await _user(p17_session, OpsRole.ADMIN, "Org B")
+    pid = (await api.post("/api/v1/ops/projects", headers=oh, json={"name": "Private CB search"})).json()["id"]
+
+    # private: invisible to a colleague and to another organization's admin (no enumeration)
+    assert (await api.get(f"/api/v1/ops/projects/{pid}", headers=ch)).status_code == 404
+    assert (await api.get(f"/api/v1/ops/projects/{pid}", headers=xh)).status_code == 404
+    # no cross-organization sharing
+    r = await api.post(f"/api/v1/ops/projects/{pid}/members", headers=oh,
+                       json={"user_id": str(outsider.id), "member_role": "VIEWER"})
+    assert r.status_code == 404
+
+    # VIEWER member: can read, cannot modify, cannot manage membership
+    await api.post(f"/api/v1/ops/projects/{pid}/members", headers=oh,
+                   json={"user_id": str(colleague.id), "member_role": "VIEWER"})
+    assert (await api.get(f"/api/v1/ops/projects/{pid}", headers=ch)).status_code == 200
+    assert pid in [p["id"] for p in (await api.get("/api/v1/ops/projects", headers=ch)).json()]
+    assert (await api.post(f"/api/v1/ops/projects/{pid}/watchlists", headers=ch, json={"name": "w"})).status_code == 403
+    assert (await api.post(f"/api/v1/ops/projects/{pid}/members", headers=ch,
+                           json={"user_id": str(colleague.id), "member_role": "EDITOR"})).status_code == 403
+
+    # EDITOR member: can modify
+    await api.post(f"/api/v1/ops/projects/{pid}/members", headers=oh,
+                   json={"user_id": str(colleague.id), "member_role": "EDITOR"})
+    assert (await api.post(f"/api/v1/ops/projects/{pid}/watchlists", headers=ch, json={"name": "w"})).status_code == 201
+
+    # removal restores privacy
+    assert (await api.delete(f"/api/v1/ops/projects/{pid}/members/{colleague.id}", headers=oh)).status_code == 204
+    assert (await api.get(f"/api/v1/ops/projects/{pid}", headers=ch)).status_code == 404

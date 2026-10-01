@@ -185,26 +185,34 @@ def require(permission: str):
     return dep
 
 
-def can_view_project(user: OpsUser, project: Project) -> bool:
+def can_view_project(user: OpsUser, project: Project, member_role: str | None = None) -> bool:
     if project.organization_id != user.organization_id:
-        return False
+        return False  # membership never crosses an organization boundary
     if project.owner_user_id == user.id or user.role == OpsRole.ADMIN.value:
         return True
-    return project.visibility == "ORGANIZATION"
+    return project.visibility == "ORGANIZATION" or member_role in ("VIEWER", "EDITOR")
 
 
-def can_edit_project(user: OpsUser, project: Project) -> bool:
+def can_edit_project(user: OpsUser, project: Project, member_role: str | None = None) -> bool:
     if project.organization_id != user.organization_id:
         return False
-    return project.owner_user_id == user.id or user.role == OpsRole.ADMIN.value
+    return project.owner_user_id == user.id or user.role == OpsRole.ADMIN.value or member_role == "EDITOR"
+
+
+async def member_role_for(session: AsyncSession, user: OpsUser, project_id: uuid.UUID) -> str | None:
+    from app.db.models.operations import ProjectMember
+
+    return (await session.execute(select(ProjectMember.member_role).where(
+        ProjectMember.project_id == project_id, ProjectMember.user_id == user.id))).scalar_one_or_none()
 
 
 async def load_project_for(session: AsyncSession, user: OpsUser, project_id: uuid.UUID, edit: bool = False) -> Project:
     project = await session.get(Project, project_id)
-    if project is None or not can_view_project(user, project):
+    role = await member_role_for(session, user, project_id) if project is not None else None
+    if project is None or not can_view_project(user, project, role):
         raise HTTPException(status_code=404, detail="project not found")
-    if edit and not can_edit_project(user, project):
-        raise HTTPException(status_code=403, detail="only the owner or an ADMIN may modify this project")
+    if edit and not can_edit_project(user, project, role):
+        raise HTTPException(status_code=403, detail="only the owner, an EDITOR member or an ADMIN may modify this project")
     return project
 
 

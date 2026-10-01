@@ -399,3 +399,111 @@ class FieldValidationRecord(Base):
     error: Mapped[str | None] = mapped_column(Text)
     outcome: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = _created()
+
+
+# --------------------------------------------------------------------------
+# Phase 18 (migration 0018): remaining operational state in PostgreSQL (R12)
+# --------------------------------------------------------------------------
+class ProjectMember(Base):
+    """Explicit sharing of a project with a user in the same organization."""
+
+    __tablename__ = "ops_project_members"
+    __table_args__ = (UniqueConstraint("project_id", "user_id", name="uq_project_member"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ops_projects.id", ondelete="CASCADE"), nullable=False,
+                                                  index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ops_users.id", ondelete="CASCADE"), nullable=False, index=True)
+    member_role: Mapped[str] = mapped_column(String(16), nullable=False)  # VIEWER | EDITOR
+    added_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("ops_users.id", ondelete="RESTRICT"), nullable=False)
+    created_at: Mapped[datetime] = _created()
+
+
+class WorkerTask(Base):
+    """Durable job queue. A task is claimed with a lease; a worker that dies
+    mid-task loses the lease and the task is retried. The idempotency key
+    makes enqueueing the same logical job twice a no-op."""
+
+    __tablename__ = "ops_worker_tasks"
+    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_worker_task_idempotency"),)
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    job_type: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    parameters: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    status: Mapped[str] = mapped_column(String(24), nullable=False, index=True)  # QUEUED|RUNNING|SUCCESS|RETRY_SCHEDULED|DEAD
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    not_before: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(256), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    input_snapshot: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    output_snapshot: Mapped[dict | None] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(Text)
+    worker_id: Mapped[str | None] = mapped_column(String(128))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = _created()
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class ScheduledJob(Base):
+    """A recurring job definition read by the worker's scheduler."""
+
+    __tablename__ = "ops_scheduled_jobs"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    job_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    parameters: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    interval_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    created_at: Mapped[datetime] = _created()
+
+
+class WorkerHeartbeat(Base):
+    __tablename__ = "ops_worker_heartbeats"
+
+    worker_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    tasks_completed: Mapped[int] = mapped_column(Integer, nullable=False)
+    tasks_failed: Mapped[int] = mapped_column(Integer, nullable=False)
+    hostname: Mapped[str] = mapped_column(String(256), nullable=False)
+    code_version: Mapped[str | None] = mapped_column(String(64))
+
+
+class FreshnessRecord(Base):
+    """Freshness of one layer of one competition-season, as measured at
+    computed_at (from snapshot/provider timestamps, never asserted)."""
+
+    __tablename__ = "ops_freshness_records"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    competition_season_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("competition_seasons.id", ondelete="CASCADE"), nullable=False, index=True)
+    layer: Mapped[str] = mapped_column(String(64), nullable=False)
+    observed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    age_hours: Mapped[float | None] = mapped_column(Float)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    basis: Mapped[str] = mapped_column(String(128), nullable=False)
+    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("ops_worker_tasks.id", ondelete="SET NULL"))
+
+
+class OperationalMetric(Base):
+    """A measured value over a window (latency percentiles, request and error
+    counts, inference volume...). Only written from real measurements."""
+
+    __tablename__ = "ops_operational_metrics"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    metric: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    labels: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    value: Mapped[float] = mapped_column(Float, nullable=False)
+    unit: Mapped[str] = mapped_column(String(32), nullable=False)
+    sample_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    window_end: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    source: Mapped[str] = mapped_column(String(64), nullable=False)
+    recorded_at: Mapped[datetime] = _created()

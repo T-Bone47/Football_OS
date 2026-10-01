@@ -391,9 +391,59 @@ def _project(p: Project) -> dict[str, Any]:
 
 @router.get("/projects")
 async def list_projects(user: OpsUser = Depends(READ), session: AsyncSession = Depends(get_session)) -> list[dict[str, Any]]:
-    rows = (await session.execute(select(Project).where(Project.organization_id == user.organization_id))).scalars().all()
+    from app.db.models.operations import ProjectMember
     from app.phase17.auth import can_view_project
-    return [_project(p) for p in rows if can_view_project(user, p)]
+
+    rows = (await session.execute(select(Project).where(Project.organization_id == user.organization_id))).scalars().all()
+    roles = dict((await session.execute(select(ProjectMember.project_id, ProjectMember.member_role)
+                                        .where(ProjectMember.user_id == user.id))).all())
+    return [_project(p) for p in rows if can_view_project(user, p, roles.get(p.id))]
+
+
+class MemberAdd(BaseModel):
+    user_id: uuid.UUID
+    member_role: str = Field(pattern="^(VIEWER|EDITOR)$")
+
+
+@router.post("/projects/{project_id}/members", status_code=201)
+async def add_project_member(project_id: uuid.UUID, body: MemberAdd, user: OpsUser = Depends(require("project:write")),
+                             session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    from app.db.models.operations import ProjectMember
+
+    p = await load_project_for(session, user, project_id, edit=True)
+    if p.owner_user_id != user.id and user.role != OpsRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="only the owner or an ADMIN manages membership")
+    member = await session.get(OpsUser, body.user_id)
+    if member is None or member.organization_id != user.organization_id:
+        raise HTTPException(status_code=404, detail="user not found")  # no cross-organization sharing
+    existing = (await session.execute(select(ProjectMember).where(
+        ProjectMember.project_id == p.id, ProjectMember.user_id == member.id))).scalar_one_or_none()
+    if existing:
+        existing.member_role = body.member_role
+    else:
+        session.add(ProjectMember(project_id=p.id, user_id=member.id, member_role=body.member_role, added_by=user.id))
+    await append_event(session, "PROJECT_MEMBER_SET", str(user.id), str(p.id),
+                       {"member": str(member.id), "role": body.member_role})
+    await session.commit()
+    return {"project_id": str(p.id), "user_id": str(member.id), "member_role": body.member_role}
+
+
+@router.delete("/projects/{project_id}/members/{member_id}", status_code=204)
+async def remove_project_member(project_id: uuid.UUID, member_id: uuid.UUID,
+                                user: OpsUser = Depends(require("project:write")),
+                                session: AsyncSession = Depends(get_session)) -> None:
+    from app.db.models.operations import ProjectMember
+
+    p = await load_project_for(session, user, project_id, edit=True)
+    if p.owner_user_id != user.id and user.role != OpsRole.ADMIN.value:
+        raise HTTPException(status_code=403, detail="only the owner or an ADMIN manages membership")
+    row = (await session.execute(select(ProjectMember).where(
+        ProjectMember.project_id == p.id, ProjectMember.user_id == member_id))).scalar_one_or_none()
+    if row is None:
+        raise HTTPException(status_code=404, detail="not a member")
+    await session.delete(row)
+    await append_event(session, "PROJECT_MEMBER_REMOVED", str(user.id), str(p.id), {"member": str(member_id)})
+    await session.commit()
 
 
 @router.post("/projects", status_code=201)

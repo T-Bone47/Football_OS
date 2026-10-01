@@ -52,6 +52,8 @@ def migrated_database_url() -> str:
 
 
 TABLES_TO_RESET = [
+    "ops_project_members", "ops_freshness_records", "ops_operational_metrics", "ops_worker_tasks",
+    "ops_scheduled_jobs", "ops_worker_heartbeats",
     "ops_field_validation", "ops_incidents", "ops_notifications", "ops_alerts", "ops_watchlist_items",
     "ops_watchlists", "ops_decisions", "ops_projects", "ops_users", "ops_organizations", "ops_outcomes",
     "ops_inference_log", "ops_model_registry", "ops_feature_refresh", "ops_quality_reports", "ops_job_runs",
