@@ -141,7 +141,7 @@ async def resolve_principal(authorization: str | None, session: AsyncSession) ->
         try:
             user = (await session.execute(select(OpsUser).where(
                 OpsUser.oidc_issuer == claims["iss"], OpsUser.oidc_subject == str(claims["sub"])))).scalar_one_or_none()
-        except (SQLAlchemyError, OSError) as exc:
+        except (SQLAlchemyError, OSError, RuntimeError) as exc:
             raise HTTPException(status_code=503, detail="authentication backend unavailable") from exc
         if user is None:
             raise HTTPException(status_code=403, detail="identity verified but not provisioned in this platform")
@@ -150,8 +150,9 @@ async def resolve_principal(authorization: str | None, session: AsyncSession) ->
     else:
         try:
             user = (await session.execute(select(OpsUser).where(OpsUser.token_sha256 == hash_token(token)))).scalar_one_or_none()
-        except (SQLAlchemyError, OSError) as exc:
-            # Fail closed, and say why: the token could not be checked.
+        except (SQLAlchemyError, OSError, RuntimeError) as exc:
+            # Fail closed, and say why: the token could not be checked (a
+            # driver/event-loop failure is a backend failure too, never a 500).
             raise HTTPException(status_code=503, detail="authentication backend unavailable") from exc
         if user is None or not user.is_active:
             raise _unauthorized("invalid or revoked token")

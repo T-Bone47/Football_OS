@@ -78,6 +78,38 @@ def probe_storage(settings: Settings) -> dict[str, Any]:
                 "degraded_mode": "ingestion runs fail with SnapshotStoreError; Silver is not touched"}
 
 
+async def worker_status(session: AsyncSession, now: datetime) -> dict:
+    """From ops_worker_heartbeats and ops_worker_tasks only. A worker is
+    alive when it was seen within 4 heartbeat intervals."""
+    from app.db.models.operations import WorkerHeartbeat, WorkerTask
+    from app.worker.runner import HEARTBEAT_INTERVAL_S
+
+    try:
+        beats = (await session.execute(select(WorkerHeartbeat))).scalars().all()
+        dead = (await session.execute(select(func.count()).select_from(WorkerTask).where(
+            WorkerTask.status == "DEAD"))).scalar_one()
+        backlog = (await session.execute(select(func.count()).select_from(WorkerTask).where(
+            WorkerTask.status.in_(["QUEUED", "RETRY_SCHEDULED"]), WorkerTask.not_before <= now))).scalar_one()
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "UNKNOWN", "error": type(exc).__name__}
+    alive_after = now - timedelta(seconds=4 * HEARTBEAT_INTERVAL_S)
+    alive = [b for b in beats if b.last_seen_at >= alive_after]
+    workers = [{"worker_id": b.worker_id, "last_seen_at": b.last_seen_at.isoformat(), "alive": b in alive,
+                "tasks_completed": b.tasks_completed, "tasks_failed": b.tasks_failed, "code_version": b.code_version}
+               for b in sorted(beats, key=lambda b: b.last_seen_at, reverse=True)[:10]]
+    if not beats:
+        status = H.UNAVAILABLE.value
+    elif not alive:
+        status = H.UNAVAILABLE.value
+    elif dead:
+        status = H.DEGRADED.value
+    else:
+        status = H.HEALTHY.value
+    return {"status": status, "alive_workers": len(alive), "known_workers": len(beats), "due_backlog": backlog,
+            "dead_tasks": dead, "workers": workers,
+            "detail": None if beats else "no worker has ever sent a heartbeat (python -m app.worker)"}
+
+
 async def system_status(session: AsyncSession, engine: AsyncEngine, settings: Settings) -> dict[str, Any]:
     now = datetime.now(timezone.utc)
     db = await probe_database(engine)
@@ -112,8 +144,8 @@ async def system_status(session: AsyncSession, engine: AsyncEngine, settings: Se
         components["providers"] = {"status": "UNKNOWN", "reason": "database unavailable; probe history unreadable"}
         components["jobs"] = {"status": "UNKNOWN"}
         components["model_serving"] = {"status": "UNKNOWN"}
-    components["scheduler_worker"] = {"status": H.NOT_CONFIGURED.value,
-                                      "detail": "no long-running worker process exists (apps/worker absent); jobs run on demand or via tools/phase17_scheduler.py"}
+    components["scheduler_worker"] = await worker_status(session, now) if session is not None else {
+        "status": "UNKNOWN", "reason": "database unavailable; heartbeats unreadable"}
 
     statuses = [c.get("status") for c in components.values() if isinstance(c, dict)]
     provider_states = [v.get("status") for v in components["providers"].values() if isinstance(v, dict)]

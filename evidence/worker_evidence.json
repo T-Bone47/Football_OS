@@ -1,0 +1,210 @@
+{
+  "command": "scripts/evidence/worker_evidence.py",
+  "environment": {
+    "app_environment": "development",
+    "execution_context": "claude-code-cloud-sandbox",
+    "host": "vm",
+    "platform": "Linux-6.18.44-fc-v50-x86_64-with-glibc2.39",
+    "python": "3.11.15"
+  },
+  "evidence": "worker_evidence",
+  "git_commit": "6d66165667e7fc8c32a7c3b1ad4af91b6d17b94d+uncommitted-changes",
+  "inputs": {
+    "database": "fios_p18_worker"
+  },
+  "outputs": {
+    "heartbeats": [
+      {
+        "code_version": "6d66165",
+        "tasks_completed": 9,
+        "tasks_failed": 0,
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "code_version": "6d66165",
+        "tasks_completed": 1,
+        "tasks_failed": 0,
+        "worker_id": "vm:9661:1a7089"
+      }
+    ],
+    "kill_drill": {
+      "recovered": true,
+      "task": {
+        "attempts": 2,
+        "error": null,
+        "id": "43a3bdd9-e7ce-4a32-80fd-d774d204ba63",
+        "job_type": "metrics_flush",
+        "output_keys": [
+          "groups",
+          "window_end",
+          "window_start"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9661:1a7089"
+      }
+    },
+    "process_a": {
+      "elapsed_s": 6.3,
+      "returncode": 0,
+      "tick_log": "scheduled=['provider_probe', 'freshness_refresh', 'model_health', 'drift_monitoring', 'alert_evaluation', 'metrics_flush', 'feature_refresh', 'statsbomb_competitions_index', 'api_football_fixtures'] ran=[('provider_probe', 'SUCCESS'), ('freshness_refresh', 'SUCCESS'), ('model_health', 'SUCCESS'), ('drift_monitoring', 'SUCCESS'), ('alert_evaluation', 'SUCCESS'), ('metrics_flush', 'SUCCESS'), ('feature_refresh', 'SUCCESS'), ('scheduled_ingestion', 'SUCCESS'), ('scheduled_ingestion', 'BLOCKED')]"
+    },
+    "process_b_killed": {
+      "claimed_task": "43a3bdd9-e7ce-4a32-80fd-d774d204ba63",
+      "returncode": 137
+    },
+    "process_c": {
+      "elapsed_s": 1.1,
+      "returncode": 0,
+      "tick_log": "scheduled=[] ran=[('metrics_flush', 'SUCCESS')]"
+    },
+    "tasks": [
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "8bb4e661-7c12-42f4-94bd-b59e0ec5ff1b",
+        "job_type": "provider_probe",
+        "output_keys": [
+          "probes"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "abab552e-7a14-484a-95bc-a52aba6b6e4a",
+        "job_type": "freshness_refresh",
+        "output_keys": [
+          "records_written"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "d15654a8-9c06-40e5-a32a-3bd09bfe8a2d",
+        "job_type": "model_health",
+        "output_keys": [
+          "by_evidence_mode",
+          "by_status",
+          "computed_at",
+          "confidence_histogram",
+          "domain",
+          "inference_volume",
+          "latency_ms",
+          "live_calibration",
+          "live_inference_volume",
+          "missing_feature_rate",
+          "ood_rate",
+          "refusal_rate",
+          "status"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "678fe460-33b3-4db5-9150-d11b766d597a",
+        "job_type": "drift_monitoring",
+        "output_keys": [
+          "current_n",
+          "evidence_mode",
+          "minimum_per_window",
+          "reference_n",
+          "retrain_recommended",
+          "status"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "76bae5b8-d240-4369-a582-980c7ab7c784",
+        "job_type": "alert_evaluation",
+        "output_keys": [
+          "alerts_triggered",
+          "insufficient_data",
+          "items_evaluated"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "6eff0b39-2148-4136-942d-f07bfc1f5061",
+        "job_type": "metrics_flush",
+        "output_keys": [
+          "groups",
+          "window_end",
+          "window_start"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "fd03d760-5029-4739-a25c-e410073538d4",
+        "job_type": "feature_refresh",
+        "output_keys": [
+          "competition_seasons"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "2b5d709c-1f6d-4c15-b86e-65aa7a75c4ff",
+        "job_type": "scheduled_ingestion",
+        "output_keys": [
+          "job_id",
+          "records",
+          "snapshot_sha256",
+          "status"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 1,
+        "error": null,
+        "id": "0864a584-fdc9-4999-8e26-778fc36028f0",
+        "job_type": "scheduled_ingestion",
+        "output_keys": [
+          "reason",
+          "status"
+        ],
+        "status": "BLOCKED",
+        "worker_id": "vm:9647:771861"
+      },
+      {
+        "attempts": 2,
+        "error": null,
+        "id": "43a3bdd9-e7ce-4a32-80fd-d774d204ba63",
+        "job_type": "metrics_flush",
+        "output_keys": [
+          "groups",
+          "window_end",
+          "window_start"
+        ],
+        "status": "SUCCESS",
+        "worker_id": "vm:9661:1a7089"
+      }
+    ],
+    "worker_health": {
+      "alive_workers": 2,
+      "dead_tasks": 0,
+      "due_backlog": 0,
+      "known_workers": 2,
+      "status": "HEALTHY"
+    }
+  },
+  "sha256": "dbb633b86f0ce33312b2c33e03e4852952d2b6cb0eab3ac9c4e1de92636e4cd8",
+  "status": "VERIFIED",
+  "timestamp": "2026-10-01T18:55:18.750539+00:00"
+}

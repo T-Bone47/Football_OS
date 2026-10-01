@@ -38,7 +38,7 @@ jobs:
       - name: Install the locked dependency set
         run: pip install -r requirements-dev.txt -c requirements.lock
       - name: Lint (Phase 17 code)
-        run: ruff check --select E9,F apps/api/app/phase17 apps/api/app/api/routes_phase17.py tools/phase17 tests/unit/test_phase17_*.py tests/integration/test_phase17_*.py tests/integration/test_phase18_*.py tests/integration/phase17_support.py tests/integration/conftest.py apps/api/app/decisions apps/api/app/squad apps/api/app/ml apps/api/app/auth_gate.py apps/api/app/market/risk.py scripts/evidence tests/unit/test_phase18_*.py
+        run: ruff check --select E9,F apps/api/app/phase17 apps/api/app/api/routes_phase17.py tools/phase17 tests/unit/test_phase17_*.py tests/integration/test_phase17_*.py tests/integration/test_phase18_*.py tests/integration/phase17_support.py tests/integration/conftest.py apps/api/app/decisions apps/api/app/squad apps/api/app/ml apps/api/app/worker apps/api/app/phase17/system_health.py apps/api/app/auth_gate.py apps/api/app/market/risk.py scripts/evidence tests/unit/test_phase18_*.py
       - name: Typing
         run: echo "NOT_CONFIGURED - no type checker is configured for this repository"
       - name: Migrations (upgrade, downgrade, re-upgrade)

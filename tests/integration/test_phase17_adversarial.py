@@ -349,7 +349,9 @@ async def test_adv_19_fake_operational_status(p17_session, tmp_path):
     good = await system_status(p17_session, p17_session.test_engine,
                                Settings(_env_file=None, snapshot_storage_path=str(tmp_path / "ok")))
     assert good["components"]["database"]["status"] == "HEALTHY"
-    assert good["components"]["scheduler_worker"]["status"] == "NOT_CONFIGURED"  # no worker exists: not "HEALTHY"
+    # Phase 18: the worker is reported from heartbeats; none has run, so not "HEALTHY".
+    assert good["components"]["scheduler_worker"]["status"] == "UNAVAILABLE"
+    assert good["components"]["scheduler_worker"]["known_workers"] == 0
     blocker = tmp_path / "file"
     blocker.write_text("x")
     bad_store = await system_status(p17_session, p17_session.test_engine,
