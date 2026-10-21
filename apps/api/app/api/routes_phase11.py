@@ -13,7 +13,7 @@ Exposes REST endpoints for:
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
@@ -222,7 +222,7 @@ def list_drift_alerts(competition_id: str | None = None) -> list[dict[str, Any]]
 @router.get("/reports/cross-competition/{competition_id}")
 def get_cross_competition_report(
     competition_id: str,
-    format: str = Query("json", enum=["json", "markdown"]),
+    format: Literal["json", "markdown"] = Query("json"),
 ) -> Any:
     rep = generate_cross_competition_report(competition_id)
     if format == "markdown":

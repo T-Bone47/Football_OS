@@ -3,7 +3,11 @@
 alembic>=1.13
 asyncpg>=0.29
 boto3>=1.34
-fastapi>=0.115
+# Verified stack: fastapi 0.133.1 / pydantic 2.13.4 / sqlalchemy 2.0.52 (Python 3.12).
+# The upper bounds keep CI on the range this code is tested against: FastAPI 0.157
+# removed the undocumented `Query(enum=...)` passthrough, so an unbounded
+# `fastapi>=` made the build depend on the day it ran.
+fastapi>=0.115,<0.140
 greenlet>=3.0            # required by SQLAlchemy's asyncio extension
 httpx>=0.27
 joblib>=1.3              # model artifacts (loaded only after SHA-256 verification)
@@ -13,12 +17,12 @@ pandas>=2.0
 pandera>=0.20
 psutil>=5.9
 psycopg2-binary>=2.9     # Alembic runs on the sync driver; the app runs on asyncpg
-pydantic>=2.7
+pydantic>=2.7,<3
 pydantic-settings>=2.4
 PyJWT>=2.7               # bearer-token verification (app.security)
 scikit-learn>=1.5
 scipy>=1.10
 shap>=0.45
-sqlalchemy>=2.0.30
+sqlalchemy>=2.0.30,<2.1
 tenacity>=8.2
 uvicorn[standard]>=0.30
