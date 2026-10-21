@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models.canonical import (
@@ -27,6 +28,14 @@ from app.db.models.canonical import (
 )
 
 from app.db.models.provenance import DataSnapshot, IngestionRun
+from app.db.models.expansion import (
+    CompetitionIdentity,
+    FieldProvenance,
+    PlayerAlias,
+    PlayerClubMembership,
+    SourceConflict,
+)
+from app.identity.names import name_key
 from app.normalization.schemas import (
     NormalizedClub,
     NormalizedFixture,
@@ -40,6 +49,7 @@ from app.normalization.schemas import (
 from app.normalization.transformers import (
     transform_api_football_events,
     transform_api_football_fixtures,
+    transform_api_football_leagues,
     transform_api_football_lineups,
     transform_api_football_players,
     transform_api_football_player_statistics,
@@ -61,8 +71,11 @@ class NormalizationService:
     async def get_or_create_competition(
         self, name: str, country: str, code: str | None = None, comp_type: str = "LEAGUE"
     ) -> Competition:
-        stmt = select(Competition).where(
-            Competition.name == name, Competition.country == country
+        stmt = (
+            select(Competition)
+            .where(Competition.name == name, Competition.country == country)
+            .order_by(Competition.created_at.asc(), Competition.id.asc())
+            .limit(1)
         )
         comp = (await self._session.execute(stmt)).scalar_one_or_none()
         if comp is None:
@@ -147,6 +160,119 @@ class NormalizationService:
     async def upsert_player(
         self, provider: str, norm_player: NormalizedPlayer
     ) -> Player:
+        player, _ = await self.upsert_player_with_status(provider, norm_player)
+        return player
+
+    async def _record_field_provenance(
+        self,
+        *,
+        entity_type: str,
+        entity_id: uuid.UUID,
+        field_name: str,
+        provider: str,
+        provider_entity_id: str | None,
+        value: Any,
+        transformation: str | None = None,
+        confidence: float = 1.0,
+    ) -> None:
+        """Record which provider supplied a canonical field, and what it supplied.
+
+        This is the field-level provenance the platform previously lacked: the record
+        level (``data_snapshots``) said where a payload came from, but not which
+        provider supplied *this* value.
+        """
+        if value is None:
+            return
+        existing = (
+            await self._session.execute(
+                select(FieldProvenance).where(
+                    FieldProvenance.entity_type == entity_type,
+                    FieldProvenance.entity_id == entity_id,
+                    FieldProvenance.field_name == field_name,
+                    FieldProvenance.provider == provider,
+                )
+            )
+        ).scalar_one_or_none()
+        payload = {"value": value, "transformation": transformation}
+        if existing is None:
+            self._session.add(
+                FieldProvenance(
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    field_name=field_name,
+                    provider=provider,
+                    provider_entity_id=provider_entity_id,
+                    source_value=payload,
+                    transformation=transformation,
+                    confidence=confidence,
+                )
+            )
+            return
+        existing.source_value = payload
+        existing.transformation = transformation
+        existing.confidence = confidence
+        if provider_entity_id:
+            existing.provider_entity_id = provider_entity_id
+        existing.retrieved_at = datetime.now(timezone.utc)
+
+    async def _record_field_conflict(
+        self,
+        *,
+        entity_type: str,
+        entity_id: uuid.UUID,
+        field_name: str,
+        canonical_value: Any,
+        provider: str,
+        provider_value: Any,
+    ) -> None:
+        """Record a provider disagreement instead of silently overwriting the value.
+
+        The canonical value is kept (the first authoritative source wins for that field)
+        and the conflict is preserved for review.
+        """
+        if canonical_value is None or provider_value is None:
+            return
+        if str(canonical_value) == str(provider_value):
+            return
+        existing = (
+            await self._session.execute(
+                select(SourceConflict).where(
+                    SourceConflict.entity_type == entity_type,
+                    SourceConflict.entity_id == entity_id,
+                    SourceConflict.field_name == field_name,
+                )
+            )
+        ).scalar_one_or_none()
+        candidates = {
+            "canonical": canonical_value,
+            provider: provider_value,
+        }
+        if existing is None:
+            self._session.add(
+                SourceConflict(
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    field_name=field_name,
+                    candidates=candidates,
+                    status="OPEN",
+                    resolution="canonical value retained; conflict recorded for review",
+                )
+            )
+            return
+        merged = dict(existing.candidates or {})
+        merged.update(candidates)
+        existing.candidates = merged
+        existing.status = "OPEN"
+
+    async def upsert_player_with_status(
+        self, provider: str, norm_player: NormalizedPlayer
+    ) -> tuple[Player, bool]:
+        """Upsert one provider player and report whether a canonical row was created.
+
+        The canonical row keeps the provider spelling; every other observed spelling is
+        stored as an alias so a later provider can be matched without rewriting the
+        original name.
+        """
         # Check identity registry (§21 Identity Resolution)
         id_stmt = select(PlayerIdentity).where(
             PlayerIdentity.provider == provider,
@@ -159,11 +285,24 @@ class NormalizationService:
             player = (await self._session.execute(player_stmt)).scalar_one()
             if norm_player.primary_position and not player.primary_position:
                 player.primary_position = norm_player.primary_position
+            if norm_player.secondary_position and not player.secondary_position:
+                player.secondary_position = norm_player.secondary_position
             if norm_player.height_cm and not player.height_cm:
                 player.height_cm = norm_player.height_cm
             if norm_player.weight_kg and not player.weight_kg:
                 player.weight_kg = norm_player.weight_kg
-            return player
+            if norm_player.date_of_birth and not player.date_of_birth:
+                player.date_of_birth = norm_player.date_of_birth
+            if norm_player.nationality and not player.nationality:
+                player.nationality = norm_player.nationality
+            if norm_player.photo_url and not player.photo_url:
+                player.photo_url = norm_player.photo_url
+            player.name_normalized = name_key(norm_player.name)
+            player.last_synced_at = datetime.now(timezone.utc)
+            self._apply_completeness(player)
+            await self._record_aliases(player, provider, norm_player)
+            await self._record_player_provenance(player, provider, norm_player)
+            return player, False
 
         player = Player(
             name=norm_player.name,
@@ -174,10 +313,19 @@ class NormalizationService:
             height_cm=norm_player.height_cm,
             weight_kg=norm_player.weight_kg,
             primary_position=norm_player.primary_position,
+            secondary_position=norm_player.secondary_position,
             photo_url=norm_player.photo_url,
+            display_name=norm_player.name,
+            name_normalized=name_key(norm_player.name),
+            active_status=norm_player.active_status or "UNKNOWN",
+            country_of_birth=norm_player.country_of_birth,
+            preferred_foot=norm_player.preferred_foot,
+            identity_confidence=1.0,
+            last_synced_at=datetime.now(timezone.utc),
         )
         self._session.add(player)
         await self._session.flush()
+        self._apply_completeness(player)
 
         identity = PlayerIdentity(
             player_id=player.id,
@@ -188,7 +336,179 @@ class NormalizationService:
         )
         self._session.add(identity)
         await self._session.flush()
-        return player
+        await self._record_aliases(player, provider, norm_player)
+        await self._record_player_provenance(player, provider, norm_player)
+        return player, True
+
+    async def _record_player_provenance(
+        self, player: Player, provider: str, norm_player: NormalizedPlayer
+    ) -> None:
+        """Field-level provenance for the canonical player profile."""
+        fields = {
+            "name": (norm_player.name, "PROVIDER_NAME"),
+            "date_of_birth": (norm_player.date_of_birth, "ISO_DATE"),
+            "nationality": (norm_player.nationality, None),
+            "primary_position": (norm_player.primary_position, "PROVIDER_POSITION"),
+            "height_cm": (norm_player.height_cm, "CM"),
+            "weight_kg": (norm_player.weight_kg, "KG"),
+            "photo_url": (norm_player.photo_url, None),
+        }
+        for field_name, (value, transformation) in fields.items():
+            if value is None:
+                continue
+            await self._record_field_provenance(
+                entity_type="player",
+                entity_id=player.id,
+                field_name=field_name,
+                provider=provider,
+                provider_entity_id=norm_player.provider_id,
+                value=str(value) if not isinstance(value, (int, float)) else value,
+                transformation=transformation,
+            )
+            canonical_value = getattr(player, field_name, None)
+            if canonical_value is not None and str(canonical_value) != str(value):
+                await self._record_field_conflict(
+                    entity_type="player",
+                    entity_id=player.id,
+                    field_name=field_name,
+                    canonical_value=canonical_value,
+                    provider=provider,
+                    provider_value=value,
+                )
+
+    @staticmethod
+    def _apply_completeness(player: Player) -> None:
+        """Share of tracked profile fields that are actually known."""
+        tracked = (
+            player.date_of_birth,
+            player.nationality,
+            player.primary_position,
+            player.height_cm,
+            player.weight_kg,
+            player.photo_url,
+            player.club_id,
+            player.first_name if player.last_name else None,
+        )
+        known = sum(1 for value in tracked if value is not None)
+        player.data_completeness = round(known / len(tracked), 4)
+
+    async def _record_aliases(
+        self, player: Player, provider: str, norm_player: NormalizedPlayer
+    ) -> None:
+        """Persist every observed spelling for this player (idempotent)."""
+        seen: set[str] = set()
+        for alias in norm_player.aliases or []:
+            cleaned = str(alias).strip()
+            if not cleaned or cleaned == player.name or cleaned in seen:
+                continue
+            seen.add(cleaned)
+            existing = (
+                await self._session.execute(
+                    select(PlayerAlias).where(
+                        PlayerAlias.player_id == player.id,
+                        PlayerAlias.provider == provider,
+                        PlayerAlias.alias == cleaned,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing is None:
+                self._session.add(
+                    PlayerAlias(
+                        player_id=player.id,
+                        alias=cleaned,
+                        alias_type="SOURCE_NAME",
+                        provider=provider,
+                        provider_entity_id=norm_player.provider_id,
+                        confidence=1.0,
+                    )
+                )
+            else:
+                existing.last_seen_at = datetime.now(timezone.utc)
+
+    async def upsert_player_season_stats(
+        self,
+        provider: str,
+        norm_stat: NormalizedPlayerStats,
+        player_id: uuid.UUID,
+        competition_season_id: uuid.UUID,
+        snapshot_id: uuid.UUID | None = None,
+    ) -> PlayerSeasonStats:
+        """Upsert one player-season statistics row for a canonical player.
+
+        This is the public, single-row entry point used when a caller already
+        knows the canonical player and competition-season (fixtures, backfills
+        and the decision-intelligence integration suite). The bulk ingestion
+        path resolves the same rows inside `normalize_players_payload`.
+        """
+        club_id: uuid.UUID | None = None
+        if norm_stat.provider_club_id:
+            club_stmt = select(ClubIdentity).where(
+                ClubIdentity.provider == provider,
+                ClubIdentity.provider_club_id == norm_stat.provider_club_id,
+            )
+            identity = (await self._session.execute(club_stmt)).scalar_one_or_none()
+            if identity is not None:
+                club_id = identity.club_id
+
+        stat_stmt = select(PlayerSeasonStats).where(
+            PlayerSeasonStats.player_id == player_id,
+            PlayerSeasonStats.club_id == club_id,
+            PlayerSeasonStats.competition_season_id == competition_season_id,
+        )
+        existing = (await self._session.execute(stat_stmt)).scalar_one_or_none()
+
+        if existing is not None:
+            existing.appearances = norm_stat.appearances
+            existing.lineups = norm_stat.lineups
+            existing.minutes = norm_stat.minutes
+            existing.position = norm_stat.position
+            existing.rating = norm_stat.rating
+            existing.goals = norm_stat.goals
+            existing.assists = norm_stat.assists
+            existing.conceded = norm_stat.conceded
+            existing.raw_stats = norm_stat.raw_stats
+            existing.snapshot_id = snapshot_id
+            row = existing
+        else:
+            row = PlayerSeasonStats(
+                player_id=player_id,
+                club_id=club_id,
+                competition_season_id=competition_season_id,
+                snapshot_id=snapshot_id,
+                appearances=norm_stat.appearances,
+                lineups=norm_stat.lineups,
+                minutes=norm_stat.minutes,
+                position=norm_stat.position,
+                rating=norm_stat.rating,
+                goals=norm_stat.goals,
+                assists=norm_stat.assists,
+                conceded=norm_stat.conceded,
+                raw_stats=norm_stat.raw_stats,
+            )
+            self._session.add(row)
+        await self._session.flush()
+
+        # Field-level provenance: which provider supplied each metric.
+        for metric, value in (
+            ("appearances", norm_stat.appearances),
+            ("lineups", norm_stat.lineups),
+            ("minutes", norm_stat.minutes),
+            ("goals", norm_stat.goals),
+            ("assists", norm_stat.assists),
+            ("conceded", norm_stat.conceded),
+        ):
+            if value is None:
+                continue
+            await self._record_field_provenance(
+                entity_type="player_season_stat",
+                entity_id=row.id,
+                field_name=metric,
+                provider=provider,
+                provider_entity_id=norm_stat.provider_player_id,
+                value=value,
+                transformation="PROVIDER_SEASON_STAT",
+            )
+        return row
 
     async def normalize_teams_payload(
         self, provider: str, payload: dict[str, Any]
@@ -201,18 +521,113 @@ class NormalizationService:
         await self._session.commit()
         return clubs
 
+    async def normalize_competitions_payload(
+        self, provider: str, payload: dict[str, Any]
+    ) -> list[tuple[Competition, list[Season]]]:
+        """Normalize API-Football /leagues into Competition/Season/CompetitionSeason.
+
+        The canonical schema keeps season-level dates and the current flag on
+        competition_seasons, not on seasons (seasons are shared across
+        competitions and unique by name).
+        """
+        normalized_results = transform_api_football_leagues(payload)
+        results: list[tuple[Competition, list[Season]]] = []
+
+        for norm_comp, norm_seasons in normalized_results:
+            comp = await self.get_or_create_competition(
+                name=norm_comp.name,
+                country=norm_comp.country,
+                code=norm_comp.code,
+                comp_type=norm_comp.type,
+            )
+
+            # Record the provider's competition id against the canonical competition
+            # so later season-level payloads resolve to the right league.
+            existing_identity = (
+                await self._session.execute(
+                    select(CompetitionIdentity).where(
+                        CompetitionIdentity.provider == provider,
+                        CompetitionIdentity.provider_competition_id == norm_comp.provider_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_identity is None:
+                self._session.add(
+                    CompetitionIdentity(
+                        competition_id=comp.id,
+                        provider=provider,
+                        provider_competition_id=norm_comp.provider_id,
+                        confidence=1.0,
+                        resolution_method="DIRECT_PROVIDER_ID",
+                    )
+                )
+            else:
+                existing_identity.last_seen_at = datetime.now(timezone.utc)
+                if existing_identity.competition_id != comp.id:
+                    # A placeholder competition was created before the provider
+                    # catalogue was known. The real competition replaces it, and the
+                    # placeholder is retired when nothing else references it.
+                    placeholder = (
+                        await self._session.execute(
+                            select(Competition).where(Competition.id == existing_identity.competition_id)
+                        )
+                    ).scalar_one_or_none()
+                    if placeholder is not None and placeholder.name.startswith("Provider competition "):
+                        await self._retire_placeholder_competition(placeholder)
+                    existing_identity.competition_id = comp.id
+
+            seasons: list[Season] = []
+            for norm_season in norm_seasons:
+                season = await self.get_or_create_season(
+                    name=norm_season.name,
+                    start_year=norm_season.start_year,
+                    end_year=norm_season.end_year,
+                )
+                comp_season = await self.get_or_create_competition_season(
+                    competition_id=comp.id, season_id=season.id
+                )
+                comp_season.start_date = norm_season.start_date
+                comp_season.end_date = norm_season.end_date
+                comp_season.is_current = norm_season.is_current
+                seasons.append(season)
+
+            results.append((comp, seasons))
+
+        await self._session.commit()
+        return results
+
     async def normalize_players_payload(
         self,
         provider: str,
         payload: dict[str, Any],
         snapshot_id: uuid.UUID | None = None,
-    ) -> list[Player]:
+        return_stats: bool = False,
+    ) -> list[Player] | tuple[list[Player], dict[str, int]]:
         normalized_players, stats_list = transform_api_football_players(payload)
         players: list[Player] = []
+        raw_records = payload.get("response", []) if isinstance(payload, dict) else []
+        raw_count = len(raw_records) if isinstance(raw_records, list) else 0
+        unique_provider_ids = {np.provider_id for np in normalized_players}
+        counters: dict[str, int] = {
+            "records_seen": raw_count,
+            "records_parsed": len(normalized_players),
+            "records_rejected": max(0, raw_count - len(normalized_players)),
+            "records_deduplicated": max(0, len(normalized_players) - len(unique_provider_ids)),
+            "players_inserted": 0,
+            "players_updated": 0,
+            "season_stats_inserted": 0,
+            "season_stats_updated": 0,
+            "memberships_written": 0,
+            "records_failed": 0,
+        }
 
         player_map: dict[str, Player] = {}
         for np in normalized_players:
-            player = await self.upsert_player(provider, np)
+            player, created = await self.upsert_player_with_status(provider, np)
+            if created:
+                counters["players_inserted"] += 1
+            else:
+                counters["players_updated"] += 1
             player_map[np.provider_id] = player
             players.append(player)
 
@@ -220,6 +635,13 @@ class NormalizationService:
         club_lookup: dict[str, uuid.UUID] = {}
         # Cache competition_season lookups
         comp_season_lookup: dict[tuple[str, int], uuid.UUID] = {}
+        # Best (most recent, then most played) club evidence per player, used
+        # to maintain Player.club_id without inventing a club when none exists.
+        best_club: dict[str, tuple[tuple[int, int, int], uuid.UUID]] = {}
+        # Time-aware registration rows: (player_id, club_id, competition_season_id,
+        # source_record_id, season_year).
+        membership_rows: list[tuple[uuid.UUID, uuid.UUID | None, uuid.UUID, str, int]] = []
+        latest_season_by_player: dict[uuid.UUID, int] = {}
 
         for stat in stats_list:
             player = player_map.get(stat.provider_player_id)
@@ -240,14 +662,23 @@ class NormalizationService:
                         club_id = id_row.club_id
                         club_lookup[stat.provider_club_id] = club_id
 
+            if club_id is not None:
+                evidence = (
+                    stat.season_year,
+                    stat.appearances or 0,
+                    stat.minutes or 0,
+                )
+                previous = best_club.get(stat.provider_player_id)
+                if previous is None or evidence > previous[0]:
+                    best_club[stat.provider_player_id] = (evidence, club_id)
+
             comp_key = (stat.provider_league_id, stat.season_year)
             if comp_key in comp_season_lookup:
                 comp_season_id = comp_season_lookup[comp_key]
             else:
-                comp = await self.get_or_create_competition(
-                    name=f"League {stat.provider_league_id}" if stat.provider_league_id != "39" else "Premier League",
-                    country="England" if stat.provider_league_id == "39" else "Unknown",
-                    code="EPL" if stat.provider_league_id == "39" else None,
+                comp = await self.resolve_competition(
+                    provider=provider,
+                    provider_league_id=stat.provider_league_id,
                 )
                 season = await self.get_or_create_season(
                     name=str(stat.season_year),
@@ -279,6 +710,7 @@ class NormalizationService:
                 existing_stat.conceded = stat.conceded
                 existing_stat.raw_stats = stat.raw_stats
                 existing_stat.snapshot_id = snapshot_id
+                counters["season_stats_updated"] += 1
             else:
                 new_stat = PlayerSeasonStats(
                     player_id=player.id,
@@ -296,9 +728,197 @@ class NormalizationService:
                     raw_stats=stat.raw_stats,
                 )
                 self._session.add(new_stat)
+                counters["season_stats_inserted"] += 1
+                # The row needs its generated id before the provenance can point at it.
+                await self._session.flush()
+
+            # Field-level provenance for the season statistics: which provider
+            # supplied this minute value, for this competition-season.
+            stat_row = existing_stat if existing_stat is not None else new_stat
+            for metric, value in (
+                ("appearances", stat.appearances),
+                ("lineups", stat.lineups),
+                ("minutes", stat.minutes),
+                ("goals", stat.goals),
+                ("assists", stat.assists),
+                ("conceded", stat.conceded),
+            ):
+                if value is None:
+                    continue
+                await self._record_field_provenance(
+                    entity_type="player_season_stat",
+                    entity_id=stat_row.id,
+                    field_name=metric,
+                    provider=provider,
+                    provider_entity_id=stat.provider_player_id,
+                    value=value,
+                    transformation="PROVIDER_SEASON_STAT",
+                )
+
+            membership_rows.append(
+                (
+                    player.id,
+                    club_id,
+                    comp_season_id,
+                    f"{provider}:player:{stat.provider_player_id}:team:{stat.provider_club_id or 'none'}"
+                    f":league:{stat.provider_league_id}:season:{stat.season_year}",
+                    stat.season_year,
+                )
+            )
+            if stat.season_year > latest_season_by_player.get(player.id, -1):
+                latest_season_by_player[player.id] = stat.season_year
+
+        # Only fill a missing current club; never overwrite a known association
+        # with evidence from an older season.
+        for provider_player_id, (_, club_id) in best_club.items():
+            player = player_map.get(provider_player_id)
+            if player is not None and player.club_id is None:
+                player.club_id = club_id
+
+        # Time-aware club memberships: one row per (player, club, competition-season)
+        # registration, so a later club never erases an earlier one.
+        for player_id, club_id, comp_season_id, source_record_id, season_year in membership_rows:
+            existing_membership = (
+                await self._session.execute(
+                    select(PlayerClubMembership).where(
+                        PlayerClubMembership.source_provider == provider,
+                        PlayerClubMembership.source_record_id == source_record_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if existing_membership is not None:
+                existing_membership.club_id = club_id
+                existing_membership.competition_season_id = comp_season_id
+                existing_membership.provenance = {"season_year": season_year}
+                continue
+            self._session.add(
+                PlayerClubMembership(
+                    player_id=player_id,
+                    club_id=club_id,
+                    competition_season_id=comp_season_id,
+                    membership_type="REGISTRATION",
+                    is_current=False,
+                    source_provider=provider,
+                    source_record_id=source_record_id,
+                    provenance={"season_year": season_year},
+                )
+            )
+            counters["memberships_written"] += 1
+
+        # The newest observed season per player marks the current registration.
+        for player_id, season_year in latest_season_by_player.items():
+            await self._session.execute(
+                select(PlayerClubMembership).where(
+                    PlayerClubMembership.player_id == player_id,
+                    PlayerClubMembership.source_provider == provider,
+                )
+            )
+            memberships = (
+                await self._session.execute(
+                    select(PlayerClubMembership).where(
+                        PlayerClubMembership.player_id == player_id,
+                        PlayerClubMembership.source_provider == provider,
+                    )
+                )
+            ).scalars().all()
+            for membership in memberships:
+                recorded = (membership.provenance or {}).get("season_year")
+                membership.is_current = recorded == season_year
 
         await self._session.commit()
+        if return_stats:
+            return players, counters
         return players
+
+    async def _retire_placeholder_competition(self, placeholder: Competition) -> None:
+        """Delete a placeholder competition that nothing else references.
+
+        A placeholder exists only because the provider catalogue had not been
+        ingested for that competition yet. It is removed only when no statistics,
+        membership or fixture points at it, so no canonical evidence is lost.
+        """
+        from app.db.models.canonical import Match, PlayerSeasonStats
+        from app.db.models.expansion import PlayerClubMembership
+
+        season_rows = (
+            await self._session.execute(
+                select(func.count(PlayerSeasonStats.id)).where(
+                    PlayerSeasonStats.competition_season_id.in_(
+                        select(CompetitionSeason.id).where(
+                            CompetitionSeason.competition_id == placeholder.id
+                        )
+                    )
+                )
+            )
+        ).scalar() or 0
+        memberships = (
+            await self._session.execute(
+                select(func.count(PlayerClubMembership.id)).where(
+                    PlayerClubMembership.competition_season_id.in_(
+                        select(CompetitionSeason.id).where(
+                            CompetitionSeason.competition_id == placeholder.id
+                        )
+                    )
+                )
+            )
+        ).scalar() or 0
+        fixtures = (
+            await self._session.execute(
+                select(func.count(Match.id)).where(
+                    Match.competition_season_id.in_(
+                        select(CompetitionSeason.id).where(
+                            CompetitionSeason.competition_id == placeholder.id
+                        )
+                    )
+                )
+            )
+        ).scalar() or 0
+        if season_rows or memberships or fixtures:
+            return
+        await self._session.delete(placeholder)
+
+    async def resolve_competition(
+        self, provider: str, provider_league_id: str
+    ) -> Competition:
+        """Resolve a provider competition id onto a canonical competition.
+
+        The mapping lives in `competition_identities`. When the provider catalogue has
+        not been ingested for that competition yet, a clearly-marked placeholder
+        competition is created and mapped, so the provider id is never lost and a
+        later catalogue ingestion can complete the name and country.
+        """
+        identity = (
+            await self._session.execute(
+                select(CompetitionIdentity).where(
+                    CompetitionIdentity.provider == provider,
+                    CompetitionIdentity.provider_competition_id == provider_league_id,
+                )
+            )
+        ).scalar_one_or_none()
+        if identity is not None:
+            competition = (
+                await self._session.execute(
+                    select(Competition).where(Competition.id == identity.competition_id)
+                )
+            ).scalar_one()
+            return competition
+
+        competition = await self.get_or_create_competition(
+            name=f"Provider competition {provider_league_id}",
+            country="Unknown",
+            comp_type="LEAGUE",
+        )
+        self._session.add(
+            CompetitionIdentity(
+                competition_id=competition.id,
+                provider=provider,
+                provider_competition_id=provider_league_id,
+                confidence=1.0,
+                resolution_method="DIRECT_PROVIDER_ID",
+            )
+        )
+        await self._session.flush()
+        return competition
 
     async def _resolve_or_create_club(
         self,
@@ -1113,11 +1733,26 @@ class NormalizationService:
         if endpoint == "teams":
             clubs = await self.normalize_teams_payload(provider_name, payload)
             return {"entity": "clubs", "count": len(clubs), "snapshot_id": str(snapshot_id)}
+        elif endpoint in ("leagues", "competitions"):
+            comps = await self.normalize_competitions_payload(provider_name, payload)
+            return {
+                "entity": "competitions",
+                "count": len(comps),
+                "snapshot_id": str(snapshot_id),
+            }
         elif endpoint == "players":
-            players = await self.normalize_players_payload(
-                provider_name, payload, snapshot_id=snapshot.id
+            players, counters = await self.normalize_players_payload(
+                provider_name,
+                payload,
+                snapshot_id=snapshot.id,
+                return_stats=True,
             )
-            return {"entity": "players", "count": len(players), "snapshot_id": str(snapshot_id)}
+            return {
+                "entity": "players",
+                "count": len({player.id for player in players}),
+                "snapshot_id": str(snapshot_id),
+                **counters,
+            }
         elif endpoint in ("fixtures", "fixtures_round", "fixture"):
             matches = await self.normalize_fixtures_payload(
                 provider_name, payload, snapshot_id=snapshot.id

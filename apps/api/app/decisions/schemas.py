@@ -35,6 +35,7 @@ class HardConstraintResult(BaseModel):
     passed: bool
     checks: dict[str, bool] = Field(default_factory=dict)
     exclusion_reasons: list[str] = Field(default_factory=list)
+    unevaluated_checks: list[str] = Field(default_factory=list)
 
 
 class DimensionPerformance(BaseModel):
@@ -74,15 +75,19 @@ class DimensionSimilarity(BaseModel):
 
 
 class DimensionMarket(BaseModel):
-    """Market valuation, comparables, and budget feasibility."""
+    """Market valuation, comparables, and budget feasibility.
+
+    The monetary fields are optional on purpose: when no canonical valuation exists
+    the value is unknown (null), never zero and never a cohort-average guess.
+    """
     model_config = ConfigDict(extra="ignore")
 
-    estimated_value_eur: float = Field(..., ge=0.0)
-    fee_range_low_eur: float = Field(..., ge=0.0)
-    fee_range_high_eur: float = Field(..., ge=0.0)
+    estimated_value_eur: float | None = Field(default=None, ge=0.0)
+    fee_range_low_eur: float | None = Field(default=None, ge=0.0)
+    fee_range_high_eur: float | None = Field(default=None, ge=0.0)
     budget_eur: float | None = None
-    affordability_status: str = "AFFORDABLE"  # AFFORDABLE, BUDGET_STRETCH, BEYOND_BUDGET
-    value_opportunity_index: float = 1.0  # >1.0 indicates market discount/opportunity
+    affordability_status: str = "UNAVAILABLE"  # AFFORDABLE, BUDGET_STRETCH, BEYOND_BUDGET, UNAVAILABLE
+    value_opportunity_index: float | None = 1.0  # >1.0 indicates market discount/opportunity
     comparable_transfers_count: int = 0
 
 
@@ -94,7 +99,7 @@ class DimensionRisk(BaseModel):
     risk_level: str = "MEDIUM"  # LOW, MEDIUM, HIGH, CRITICAL
     performance_risk: float = Field(..., ge=0.0, le=1.0)
     adaptation_risk: float = Field(..., ge=0.0, le=1.0)
-    financial_risk: float = Field(..., ge=0.0, le=1.0)
+    financial_risk: float | None = Field(default=None, ge=0.0, le=1.0)
     availability_risk: float = Field(..., ge=0.0, le=1.0)
     key_risk_drivers: list[str] = Field(default_factory=list)
 
@@ -150,6 +155,8 @@ class MultiDimensionalCandidateAssessment(BaseModel):
     squad_impact: DimensionSquadImpact
     prediction_impact: DimensionPredictionImpact | None = None
     confidence: ConfidenceDecomposition
+    evidence_status: str = "MEASURED"  # MEASURED | INSUFFICIENT_DATA
+    evidence_notes: list[str] = Field(default_factory=list)
 
     why_matches: list[str] = Field(default_factory=list)
     where_differs: list[str] = Field(default_factory=list)

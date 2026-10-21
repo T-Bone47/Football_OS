@@ -22,6 +22,7 @@ Guarantees:
 """
 from __future__ import annotations
 
+from app.demo import demo_data_allowed
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -96,9 +97,10 @@ class ParetoSquadAlternative:
 class SquadConstructionEngineV2:
     """Constructs squads via constrained optimization and evaluates Pareto trade-offs."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._alternatives: dict[str, list[ParetoSquadAlternative]] = {}
-        self._seed_default_alternatives()
+        if seed_demo:
+            self._seed_default_alternatives()
 
     def _seed_default_alternatives(self) -> None:
         # Seed Pareto Frontier for Arsenal Summer 2027 CB Project
@@ -195,5 +197,5 @@ class SquadConstructionEngineV2:
         return [f for f in frontier if f.total_net_spend_eur <= budget_ceiling_eur or f.total_net_spend_eur == 0] or frontier
 
 
-squad_construction_engine = SquadConstructionEngineV2()
+squad_construction_engine = SquadConstructionEngineV2(seed_demo=demo_data_allowed())
 squad_construction_engine_v2 = squad_construction_engine

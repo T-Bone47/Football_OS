@@ -1,130 +1,185 @@
-"""System Health & Operations Diagnostic Engine (Phase 8 Section 14).
+"""System Health & Operations Diagnostic Engine (Phase 8 Section 14) - measured, or UNKNOWN.
 
 Distinguishes:
-1. APPLICATION HEALTH (Process uptime, memory, event loop responsiveness)
-2. DATA HEALTH (Freshness, missingness, schema drift, provenance integrity)
-3. MODEL HEALTH (Model registration, calibration status, release gate compliance, inference availability)
+1. LIVENESS  (the process answers; says nothing about data or models)
+2. READINESS (required infrastructure - the database - is reachable)
+3. DATA HEALTH (row counts, schema version and last successful ingestion, as measured)
+4. MODEL HEALTH (registered artifacts, hash integrity, release status)
 
-A healthy API does NOT imply healthy analytical data or calibrated models.
+Every value here is measured or reported as None/UNKNOWN. Nothing is hard-coded to "HEALTHY"
+(R5/R6); a healthy API does NOT imply healthy data or validated models.
 """
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import os
+import threading
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
 try:
     import psutil
 except ImportError:
     psutil = None
-from typing import Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.observability.model_governance import governance_registry
+from app.observability.status import DEGRADED, NOT_CONFIGURED, OK, UNAVAILABLE, UNKNOWN, aggregate_status
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+async def _scalar(session: AsyncSession, sql: str) -> Any:
+    """One scalar query; None (after rollback) when it cannot be answered."""
+    try:
+        return (await session.execute(text(sql))).scalar()
+    except Exception:
+        await session.rollback()
+        return None
 
 
 async def check_application_health() -> dict[str, Any]:
-    """Inspects API server process, resource footprint, and runtime health."""
-    pid = os.getpid()
-    mem_rss = 0.0
-    cpu = 0.0
-    threads = 1
+    """Liveness: the process is up and the event loop answered. Resource figures are None if unmeasured."""
+    mem_rss_mb: float | None = None
+    cpu_percent: float | None = None
     if psutil is not None:
         try:
-            process = psutil.Process(pid)
-            mem_info = process.memory_info()
-            mem_rss = round(mem_info.rss / (1024 * 1024), 2)
-            cpu = process.cpu_percent(interval=None)
-            threads = process.num_threads()
+            process = psutil.Process(os.getpid())
+            mem_rss_mb = round(process.memory_info().rss / (1024 * 1024), 2)
+            cpu_percent = process.cpu_percent(interval=None)
         except Exception:
             pass
-
     return {
-        "status": "HEALTHY",
+        "status": "ALIVE",
         "service": "Football Intelligence OS",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "pid": pid,
-        "memory_rss_mb": mem_rss,
-        "cpu_percent": cpu,
-        "open_threads": threads,
+        "timestamp": _now(),
+        "pid": os.getpid(),
+        "memory_rss_mb": mem_rss_mb,
+        "cpu_percent": cpu_percent,
+        "open_threads": threading.active_count(),
     }
+
+
+def _storage_component() -> dict[str, Any]:
+    settings = get_settings()
+    if settings.snapshot_storage_backend != "local":
+        return {"status": UNKNOWN, "backend": settings.snapshot_storage_backend, "detail": "remote storage is not probed"}
+    path = Path(settings.snapshot_storage_path)
+    if path.is_dir():
+        writable = os.access(path, os.W_OK)
+        return {"status": OK if writable else UNAVAILABLE, "backend": "local", "writable": writable}
+    return {"status": UNKNOWN, "backend": "local", "detail": "snapshot directory does not exist yet (created on first write)"}
 
 
 async def check_readiness(session: AsyncSession | None = None) -> dict[str, Any]:
-    """Validates that underlying infrastructure dependencies (Database, Storage) are reachable."""
-    db_status = "UNKNOWN"
-    db_latency_ms = None
-
+    """Required dependency = the database. Without a session the answer is UNKNOWN, never READY."""
+    db: dict[str, Any] = {"status": UNKNOWN, "latency_ms": None}
     if session is not None:
+        started = datetime.now(timezone.utc)
         try:
-            start = datetime.now(timezone.utc)
             await session.execute(text("SELECT 1"))
-            elapsed = (datetime.now(timezone.utc) - start).total_seconds() * 1000.0
-            db_status = "READY"
-            db_latency_ms = round(elapsed, 2)
+            db = {"status": OK, "latency_ms": round((datetime.now(timezone.utc) - started).total_seconds() * 1000.0, 2)}
         except Exception as exc:
-            db_status = f"UNREACHABLE: {str(exc)}"
-
+            await session.rollback()
+            db = {"status": UNAVAILABLE, "latency_ms": None, "error": type(exc).__name__}  # no message: it can embed the DSN
+    storage = _storage_component()
+    overall = {"database": db["status"]}
     return {
-        "status": "READY" if db_status in ("READY", "UNKNOWN") else "DEGRADED",
-        "database": {
-            "status": db_status,
-            "latency_ms": db_latency_ms,
-        },
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "status": {OK: "READY", UNAVAILABLE: "NOT_READY"}.get(aggregate_status(overall), "UNKNOWN"),
+        "database": db,
+        "snapshot_storage": storage,
+        "checked_at": _now(),
     }
 
 
+def _valuation_artifacts() -> tuple[list[dict[str, Any]], str | None]:
+    """Hash-verified view of the registered valuation artifacts."""
+    try:
+        from app.market.ml.artifact_integrity import ArtifactIntegrityError, artifact_path, verify_artifact
+        from app.market.ml.registry import get_valuation_registry
+
+        registry = get_valuation_registry()
+        manifest = registry._load_manifest()
+        rows = []
+        for model_id, entry in manifest.get("models", {}).items():
+            try:
+                verify_artifact(artifact_path(registry.base_dir, model_id), entry.get("artifact_sha256"))
+                integrity = "VERIFIED"
+            except ArtifactIntegrityError as exc:
+                integrity = exc.code
+            status = entry.get("status", "UNKNOWN")
+            rows.append({
+                "model_id": model_id,
+                "domain": "valuation",
+                "active": model_id == manifest.get("active_model_id"),
+                "release_status": status,
+                "integrity": integrity,
+                "serving_allowed": integrity == "VERIFIED" and status == "MODEL_VALIDATED",
+                "blocking_reasons": list(entry.get("blocking_reasons", [])),
+            })
+        return rows, None
+    except Exception as exc:  # registry unreadable / ML dependency missing
+        return [], type(exc).__name__
+
+
 async def check_model_health() -> dict[str, Any]:
-    """Inspects authoritative model registry, calibration metrics, and artifact existence."""
-    models = governance_registry.list_all_models()
-    total_models = len(models)
-    validated_models = sum(1 for m in models if m.get("status") == "MODEL_VALIDATED")
-
-    all_healthy = total_models > 0 and validated_models == total_models
-
+    """Registered artifacts + integrity + release status. 'HEALTHY' is never asserted without evidence."""
+    artifacts, error = _valuation_artifacts()
+    if error is not None:
+        status = UNKNOWN
+    elif not artifacts:
+        status = UNAVAILABLE
+    else:
+        status = OK if all(a["serving_allowed"] for a in artifacts) else DEGRADED
+    records = governance_registry.list_all_models()
     return {
-        "status": "HEALTHY" if all_healthy else "DEGRADED",
-        "total_models_registered": total_models,
-        "validated_models_count": validated_models,
-        "active_engines": {
-            "valuation": "GBR_ValuationEngine_v1.0",
-            "match_prediction": "BivariatePoisson_v1",
-            "tactical_fit": "TacticalFitCalculator_v1.0",
-            "risk": "TransferRiskEngine_v2",
-            "similarity": "RoleSimilarity_v2",
-        },
-        "models": models,
-        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "status": status,
+        "artifacts": artifacts,
+        "artifact_registry_error": error,
+        "governance_records": records,
+        "governance_records_validated": sum(1 for r in records if r.get("status") == "MODEL_VALIDATED"),
+        "note": "Only the valuation domain has a trained artifact; other domains have no validated model.",
+        "checked_at": _now(),
     }
 
 
 async def check_data_health(session: AsyncSession | None = None) -> dict[str, Any]:
-    """Evaluates canonical table row counts, provenance presence, and data freshness."""
-    stats: dict[str, Any] = {
-        "canonical_players_count": 0,
-        "canonical_matches_count": 0,
-        "canonical_transfers_count": 0,
-        "provenance_coverage_rate": 1.0,
-        "data_freshness_status": "FRESH",
+    """Measured row counts, schema version and last successful ingestion; None when unmeasurable."""
+    metrics: dict[str, Any] = {
+        "canonical_players_count": None,
+        "canonical_matches_count": None,
+        "canonical_transfers_count": None,
+        "last_successful_ingestion_at": None,
+        "last_successful_ingestion_age_hours": None,
+        "provenance_coverage_rate": None,  # not measured here
     }
+    schema_version: str | None = None
+    if session is None:
+        return {"status": UNKNOWN, "metrics": metrics, "schema_version": None, "checked_at": _now()}
 
-    if session is not None:
-        try:
-            p_cnt = (await session.execute(text("SELECT COUNT(*) FROM players"))).scalar() or 0
-            m_cnt = (await session.execute(text("SELECT COUNT(*) FROM matches"))).scalar() or 0
-            t_cnt = (await session.execute(text("SELECT COUNT(*) FROM transfers"))).scalar() or 0
-            stats["canonical_players_count"] = p_cnt
-            stats["canonical_matches_count"] = m_cnt
-            stats["canonical_transfers_count"] = t_cnt
-        except Exception:
-            # When running without DB connection
-            stats["database_telemetry"] = "OFFLINE"
+    metrics["canonical_players_count"] = await _scalar(session, "SELECT COUNT(*) FROM players")
+    metrics["canonical_matches_count"] = await _scalar(session, "SELECT COUNT(*) FROM matches")
+    metrics["canonical_transfers_count"] = await _scalar(session, "SELECT COUNT(*) FROM transfers")
+    schema_version = await _scalar(session, "SELECT version_num FROM alembic_version")
+    last_ok = await _scalar(session, "SELECT MAX(finished_at) FROM ingestion_runs WHERE status = 'SUCCESS'")
+    if last_ok is not None:
+        if last_ok.tzinfo is None:
+            last_ok = last_ok.replace(tzinfo=timezone.utc)
+        metrics["last_successful_ingestion_at"] = last_ok.isoformat()
+        metrics["last_successful_ingestion_age_hours"] = round((datetime.now(timezone.utc) - last_ok).total_seconds() / 3600.0, 2)
 
-    return {
-        "status": "HEALTHY",
-        "metrics": stats,
-        "schema_version": "0013",
-        "zero_fabrication_policy": "ENFORCED",
-        "checked_at": datetime.now(timezone.utc).isoformat(),
-    }
+    counts = [metrics["canonical_players_count"], metrics["canonical_matches_count"], metrics["canonical_transfers_count"]]
+    if all(c is None for c in counts):
+        status = UNAVAILABLE
+    elif any(c is None for c in counts):
+        status = DEGRADED
+    elif sum(counts) == 0:
+        status = DEGRADED  # reachable but empty
+    else:
+        status = OK if metrics["last_successful_ingestion_at"] is not None else UNKNOWN
+    return {"status": status, "metrics": metrics, "schema_version": schema_version, "checked_at": _now()}

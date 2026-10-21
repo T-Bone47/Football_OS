@@ -163,7 +163,8 @@ class MatchPredictionService:
             )
             explanation = PredictionExplanation(
                 summary="Insufficient historical fixture data available prior to kickoff. "
-                        "Probabilities reflect global historical league outcome distribution.",
+                        "Probabilities are a fixed prior (typical top-flight outcome frequencies), not derived from "
+                        "ingested data; expected goals are fixed league-average placeholders.",
                 key_factors=[],
                 home_strengths=[],
                 away_strengths=[],
@@ -191,9 +192,10 @@ class MatchPredictionService:
             xg = self.goal_engine.compute_expected_goals(h_att, h_def, a_att, a_def)
             goal_dist = self.goal_engine.generate_scoreline_distribution(xg)
 
+            calibrated = active_meta.status == "MODEL_VALIDATED" and active_meta.calibration_method != "NONE"
             cal_info = CalibrationInfo(
-                status="CALIBRATED",
-                method=active_meta.calibration_method,
+                status="CALIBRATED" if calibrated else "RAW",
+                method=active_meta.calibration_method if calibrated else "NONE",
                 brier_score=active_meta.metrics.get("brier_score"),
                 expected_calibration_error=active_meta.metrics.get("ece"),
             )

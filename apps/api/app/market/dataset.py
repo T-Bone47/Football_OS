@@ -21,6 +21,7 @@ from app.db.models.canonical import (
     PlayerSeasonStats,
     Transfer,
 )
+from app.market.dimension_scores import dimension_scores_by_dimension
 from app.market.taxonomy import DataQualityStatus, TransferFeeStatus
 from app.market.valuation import BaselineValuationEngine
 from app.roles.registry import map_position_to_group
@@ -55,7 +56,7 @@ class ValuationTrainingRow(BaseModel):
     role_archetype: str | None = None
     observed_minutes_as_of: int = 0
     performance_rating_avg: float | None = None
-    contribution_scores: dict[str, float] = Field(default_factory=dict)
+    contribution_scores: dict[str, float | None] = Field(default_factory=dict)
     intelligence_score: float | None = None
 
     # Provenance
@@ -303,7 +304,12 @@ class ValuationDatasetBuilder:
                 .limit(1)
             )
             contrib_snap = (await session.execute(contrib_stmt)).scalar_one_or_none()
-            contrib_scores = contrib_snap.contribution_scores if contrib_snap else {}
+            # The snapshot column is `dimension_scores`; reading
+            # `contribution_scores` raised AttributeError and broke the whole
+            # valuation training-set build.
+            contrib_scores = dimension_scores_by_dimension(
+                contrib_snap.dimension_scores if contrib_snap else {}
+            )
 
             # 4. Join intelligence snapshot strictly <= transfer_cutoff_dt
             intel_stmt = (
@@ -324,7 +330,9 @@ class ValuationDatasetBuilder:
                 .where(PlayerSeasonStats.player_id == t.player_id)
             )
             stats = list((await session.execute(stats_stmt)).scalars().all())
-            obs_minutes = sum(s.minutes for s in stats)
+            # A season row whose minutes the provider never reported contributes
+            # nothing: the sum is over observed minutes only.
+            obs_minutes = sum((s.minutes or 0) for s in stats)
             ratings = [s.rating for s in stats if s.rating is not None]
             avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else None
 

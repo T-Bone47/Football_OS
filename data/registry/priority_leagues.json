@@ -1,0 +1,55 @@
+{
+  "registry_id": "api-football-priority-leagues",
+  "updated_at": "2026-10-21",
+  "notes": [
+    "Mandatory coverage targets for the database expansion. The provider competition ids are API-Football league ids; the seasons are discovered from the provider catalogue at run time, not hardcoded here.",
+    "The list is configuration, not code: point the planner at another file to change the priority leagues."
+  ],
+  "competitions": [
+    {
+      "key": "premier-league",
+      "provider": "api-football",
+      "provider_competition_id": "39",
+      "name": "Premier League",
+      "country": "England",
+      "priority": 1,
+      "default_seasons": [2023]
+    },
+    {
+      "key": "la-liga",
+      "provider": "api-football",
+      "provider_competition_id": "140",
+      "name": "La Liga",
+      "country": "Spain",
+      "priority": 2,
+      "default_seasons": [2023]
+    },
+    {
+      "key": "bundesliga",
+      "provider": "api-football",
+      "provider_competition_id": "78",
+      "name": "Bundesliga",
+      "country": "Germany",
+      "priority": 3,
+      "default_seasons": [2023]
+    },
+    {
+      "key": "serie-a",
+      "provider": "api-football",
+      "provider_competition_id": "135",
+      "name": "Serie A",
+      "country": "Italy",
+      "priority": 4,
+      "default_seasons": [2023]
+    },
+    {
+      "key": "ligue-1",
+      "provider": "api-football",
+      "provider_competition_id": "61",
+      "name": "Ligue 1",
+      "country": "France",
+      "priority": 5,
+      "default_seasons": [2023]
+    }
+  ]
+}

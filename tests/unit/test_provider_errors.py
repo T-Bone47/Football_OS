@@ -6,18 +6,38 @@ from app.providers.errors import (
     ProviderAuthorizationError,
     ProviderBadRequestError,
     ProviderNetworkError,
+    ProviderPlanLimitError,
     ProviderRateLimitError,
     ProviderServerError,
     ProviderUnavailableError,
     classify_http_status_error,
     classify_transport_error,
 )
+from app.providers.api_football import ApiFootballProvider
 
 
 def _status_error(status: int, headers: dict | None = None) -> httpx.HTTPStatusError:
     request = httpx.Request("GET", "https://example.test")
     response = httpx.Response(status, request=request, headers=headers or {})
     return httpx.HTTPStatusError("boom", request=request, response=response)
+
+
+def test_api_football_page_limit_is_classified_as_a_plan_limit():
+    provider = ApiFootballProvider(client=httpx.AsyncClient())
+    response = httpx.Response(
+        200,
+        json={
+            "errors": {
+                "plan": (
+                    "Free plans are limited to a maximum value of 3 for the "
+                    "Page parameter"
+                )
+            }
+        },
+    )
+    with pytest.raises(ProviderPlanLimitError) as exc_info:
+        provider._raise_if_envelope_has_errors(response)
+    assert exc_info.value.page_max == 3
 
 
 @pytest.mark.parametrize(

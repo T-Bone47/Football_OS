@@ -2,108 +2,132 @@ import uuid
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.db.base import Base
 from app.db.session import get_session
 from app.main import app
 from app.normalization.service import NormalizationService
+from app.normalization.schemas import NormalizedClub
 
 
 @pytest_asyncio.fixture
-async def app_client(postgres_url):
-    engine = create_async_engine(postgres_url)
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-    except Exception as exc:
-        pytest.skip(f"fios_test not reachable: {exc}")
+async def match_client(integration_session):
+    """Client with seeded match data (clubs, competitions, matches)."""
+    service = NormalizationService(integration_session)
 
-    Session = async_sessionmaker(engine, expire_on_commit=False)
-
-    async def override_get_session():
-        async with Session() as s:
-            yield s
-
-    app.dependency_overrides[get_session] = override_get_session
+    # Create clubs
+    club_mci = await service.upsert_club(
+        "api-football",
+        NormalizedClub(
+            provider_id="50",
+            name="Manchester City",
+            code="MCI",
+            country="England",
+            venue_name="Etihad Stadium",
+        ),
+    )
+    club_ars = await service.upsert_club(
+        "api-football",
+        NormalizedClub(
+            provider_id="42",
+            name="Arsenal",
+            code="ARS",
+            country="England",
+            venue_name="Emirates Stadium",
+        ),
+    )
+    club_liv = await service.upsert_club(
+        "api-football",
+        NormalizedClub(
+            provider_id="40",
+            name="Liverpool",
+            code="LIV",
+            country="England",
+            venue_name="Anfield",
+        ),
+    )
+    club_che = await service.upsert_club(
+        "api-football",
+        NormalizedClub(
+            provider_id="49",
+            name="Chelsea",
+            code="CHE",
+            country="England",
+            venue_name="Stamford Bridge",
+        ),
+    )
+    await integration_session.commit()
 
     # Seed 2 fixtures: one finished, one scheduled
-    async with Session() as session:
-        service = NormalizationService(session)
-        payload = {
-            "response": [
-                {
-                    "fixture": {
-                        "id": 1001,
-                        "referee": "Michael Oliver",
-                        "timezone": "UTC",
-                        "date": "2026-09-20T12:30:00+00:00",
-                        "venue": {"name": "Etihad Stadium", "city": "Manchester"},
-                        "status": {"short": "FT", "long": "Match Finished"},
-                    },
-                    "league": {
-                        "id": 39,
-                        "name": "Premier League",
-                        "country": "England",
-                        "season": 2026,
-                        "round": "Regular Season - 5",
-                    },
-                    "teams": {
-                        "home": {"id": 50, "name": "Manchester City", "winner": True},
-                        "away": {"id": 42, "name": "Arsenal", "winner": False},
-                    },
-                    "goals": {"home": 2, "away": 1},
-                    "score": {
-                        "halftime": {"home": 1, "away": 0},
-                        "fulltime": {"home": 2, "away": 1},
-                        "extratime": {"home": None, "away": None},
-                        "penalty": {"home": None, "away": None},
-                    },
+    payload = {
+        "response": [
+            {
+                "fixture": {
+                    "id": 1001,
+                    "referee": "Michael Oliver",
+                    "timezone": "UTC",
+                    "date": "2026-09-20T12:30:00+00:00",
+                    "venue": {"name": "Etihad Stadium", "city": "Manchester"},
+                    "status": {"short": "FT", "long": "Match Finished"},
                 },
-                {
-                    "fixture": {
-                        "id": 1002,
-                        "referee": "Anthony Taylor",
-                        "timezone": "UTC",
-                        "date": "2026-09-20T15:00:00+00:00",
-                        "venue": {"name": "Anfield", "city": "Liverpool"},
-                        "status": {"short": "NS", "long": "Not Started"},
-                    },
-                    "league": {
-                        "id": 39,
-                        "name": "Premier League",
-                        "country": "England",
-                        "season": 2026,
-                        "round": "Regular Season - 5",
-                    },
-                    "teams": {
-                        "home": {"id": 40, "name": "Liverpool", "winner": None},
-                        "away": {"id": 49, "name": "Chelsea", "winner": None},
-                    },
-                    "goals": {"home": None, "away": None},
-                    "score": {
-                        "halftime": {"home": None, "away": None},
-                        "fulltime": {"home": None, "away": None},
-                        "extratime": {"home": None, "away": None},
-                        "penalty": {"home": None, "away": None},
-                    },
+                "league": {
+                    "id": 39,
+                    "name": "Premier League",
+                    "country": "England",
+                    "season": 2026,
+                    "round": "Regular Season - 5",
                 },
-            ]
-        }
-        await service.normalize_fixtures_payload("api-football", payload)
+                "teams": {
+                    "home": {"id": 50, "name": "Manchester City", "winner": True},
+                    "away": {"id": 42, "name": "Arsenal", "winner": False},
+                },
+                "goals": {"home": 2, "away": 1},
+                "score": {
+                    "halftime": {"home": 1, "away": 0},
+                    "fulltime": {"home": 2, "away": 1},
+                    "extratime": {"home": None, "away": None},
+                    "penalty": {"home": None, "away": None},
+                },
+            },
+            {
+                "fixture": {
+                    "id": 1002,
+                    "referee": "Anthony Taylor",
+                    "timezone": "UTC",
+                    "date": "2026-09-20T15:00:00+00:00",
+                    "venue": {"name": "Anfield", "city": "Liverpool"},
+                    "status": {"short": "NS", "long": "Not Started"},
+                },
+                "league": {
+                    "id": 39,
+                    "name": "Premier League",
+                    "country": "England",
+                    "season": 2026,
+                    "round": "Regular Season - 5",
+                },
+                "teams": {
+                    "home": {"id": 40, "name": "Liverpool", "winner": None},
+                    "away": {"id": 49, "name": "Chelsea", "winner": None},
+                },
+                "goals": {"home": None, "away": None},
+                "score": {
+                    "halftime": {"home": None, "away": None},
+                    "fulltime": {"home": None, "away": None},
+                    "extratime": {"home": None, "away": None},
+                    "penalty": {"home": None, "away": None},
+                },
+            },
+        ]
+    }
+    await service.normalize_fixtures_payload("api-football", payload)
+    await integration_session.commit()
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
-    app.dependency_overrides.clear()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
 
-
-async def test_list_matches(app_client):
-    res = await app_client.get("/api/v1/matches")
+async def test_list_matches(match_client):
+    res = await match_client.get("/api/v1/matches")
     assert res.status_code == 200
     data = res.json()
     assert len(data) == 2
@@ -122,37 +146,37 @@ async def test_list_matches(app_client):
     assert m_earlier["away_score"] == 1
 
 
-async def test_filter_matches_by_status(app_client):
-    res_finished = await app_client.get("/api/v1/matches?status=FINISHED")
+async def test_filter_matches_by_status(match_client):
+    res_finished = await match_client.get("/api/v1/matches?status=FINISHED")
     assert res_finished.status_code == 200
     data_finished = res_finished.json()
     assert len(data_finished) == 1
     assert data_finished[0]["provider_fixture_id"] == "1001"
 
-    res_sched = await app_client.get("/api/v1/matches?status=SCHEDULED")
+    res_sched = await match_client.get("/api/v1/matches?status=SCHEDULED")
     assert res_sched.status_code == 200
     data_sched = res_sched.json()
     assert len(data_sched) == 1
     assert data_sched[0]["provider_fixture_id"] == "1002"
 
 
-async def test_filter_matches_by_club(app_client):
+async def test_filter_matches_by_club(match_client):
     # First get matches to find Manchester City's club_id
-    res_all = await app_client.get("/api/v1/matches")
+    res_all = await match_client.get("/api/v1/matches")
     mci_club_id = res_all.json()[1]["home_club_id"]
 
-    res_mci = await app_client.get(f"/api/v1/matches?club_id={mci_club_id}")
+    res_mci = await match_client.get(f"/api/v1/matches?club_id={mci_club_id}")
     assert res_mci.status_code == 200
     data_mci = res_mci.json()
     assert len(data_mci) == 1
     assert data_mci[0]["home_club_name"] == "Manchester City"
 
 
-async def test_get_match_detail(app_client):
-    res_all = await app_client.get("/api/v1/matches?status=FINISHED")
+async def test_get_match_detail(match_client):
+    res_all = await match_client.get("/api/v1/matches?status=FINISHED")
     match_id = res_all.json()[0]["id"]
 
-    res = await app_client.get(f"/api/v1/matches/{match_id}")
+    res = await match_client.get(f"/api/v1/matches/{match_id}")
     assert res.status_code == 200
     match = res.json()
 
@@ -189,13 +213,13 @@ async def test_get_match_detail(app_client):
     assert away_team["goals_against"] == 2
 
 
-async def test_get_match_detail_not_found(app_client):
+async def test_get_match_detail_not_found(match_client):
     random_id = uuid.uuid4()
-    res = await app_client.get(f"/api/v1/matches/{random_id}")
+    res = await match_client.get(f"/api/v1/matches/{random_id}")
     assert res.status_code == 404
     assert res.json()["detail"] == "Match not found"
 
 
-async def test_get_match_detail_invalid_uuid(app_client):
-    res = await app_client.get("/api/v1/matches/invalid-uuid-format")
+async def test_get_match_detail_invalid_uuid(match_client):
+    res = await match_client.get("/api/v1/matches/invalid-uuid-format")
     assert res.status_code == 422

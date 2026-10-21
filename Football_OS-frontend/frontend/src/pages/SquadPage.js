@@ -9,11 +9,11 @@ import { Link } from "react-router-dom";
 import {
   apiErrorMessage,
   getClubs,
-  getPlayers,
+  getPlayerPage,
   getSquadBuild,
   simulateTransfer,
 } from "@/lib/footballApi";
-import PitchHeatmap from "@/components/PitchHeatmap";
+import FormationPitch from "@/components/FormationPitch";
 
 const CONFIG = {
   builder: {
@@ -76,6 +76,11 @@ function riskColor(level) {
   }
 }
 
+function score(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${(value * 100).toFixed(0)}%`;
+}
+
 export default function SquadPage({ variant = "builder" }) {
   const config = CONFIG[variant] || CONFIG.builder;
   const Icon = config.icon;
@@ -107,12 +112,12 @@ export default function SquadPage({ variant = "builder" }) {
 
   const playersQuery = useQuery({
     queryKey: ["players-universe"],
-    queryFn: () => getPlayers({ limit: 100 }),
+    queryFn: () => getPlayerPage({ page: 1, page_size: 100, sort_by: "name" }),
   });
 
   const squad = squadQuery.data;
   const starters = squad?.positions?.filter((p) => p.starter).map((p) => p.starter) || [];
-  const allPlayers = playersQuery.data?.items || playersQuery.data || [];
+  const allPlayers = playersQuery.data?.items || [];
 
   // Handle transfer simulation
   const handleRunSimulation = async (outId = outgoingPlayerId, inId = incomingPlayerId) => {
@@ -254,7 +259,7 @@ export default function SquadPage({ variant = "builder" }) {
           <div className="data-block" style={{ padding: 14 }}>
             <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Squad Quality</span>
             <div style={{ fontSize: 24, fontWeight: 700, color: "var(--teal)", marginTop: 4 }}>
-              {(squad.squad_quality_score * 100).toFixed(0)}%
+              {score(squad.squad_quality_score)}
             </div>
             <small style={{ color: "var(--muted)", fontSize: 11 }}>Composite role + tactical fit</small>
           </div>
@@ -262,7 +267,7 @@ export default function SquadPage({ variant = "builder" }) {
           <div className="data-block" style={{ padding: 14 }}>
             <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Role Coverage</span>
             <div style={{ fontSize: 24, fontWeight: 700, color: "var(--cyan)", marginTop: 4 }}>
-              {(squad.role_coverage_score * 100).toFixed(0)}%
+              {score(squad.role_coverage_score)}
             </div>
             <small style={{ color: "var(--muted)", fontSize: 11 }}>{squad.starters_count} of {squad.positions.length} slots filled</small>
           </div>
@@ -270,7 +275,7 @@ export default function SquadPage({ variant = "builder" }) {
           <div className="data-block" style={{ padding: 14 }}>
             <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tactical Fit</span>
             <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>
-              {(squad.tactical_fit_score * 100).toFixed(0)}%
+              {score(squad.tactical_fit_score)}
             </div>
             <small style={{ color: "var(--muted)", fontSize: 11 }}>Formation {squad.formation} harmony</small>
           </div>
@@ -279,7 +284,7 @@ export default function SquadPage({ variant = "builder" }) {
             <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Depth Risk</span>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 4 }}>
               <span style={{ fontSize: 24, fontWeight: 700, color: riskColor(squad.depth_risk_level) }}>
-                {(squad.depth_risk_score * 100).toFixed(0)}%
+                {score(squad.depth_risk_score)}
               </span>
               <span className={`badge ${riskBadge(squad.depth_risk_level)}`} style={{ fontSize: 10 }}>
                 {squad.depth_risk_level}
@@ -291,7 +296,7 @@ export default function SquadPage({ variant = "builder" }) {
           <div className="data-block" style={{ padding: 14 }}>
             <span style={{ fontSize: 11, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Average Age</span>
             <div style={{ fontSize: 24, fontWeight: 700, color: "var(--text-primary)", marginTop: 4 }}>
-              {squad.average_age > 0 ? `${squad.average_age.toFixed(1)} yrs` : "—"}
+              {typeof squad.average_age === "number" && squad.average_age > 0 ? `${squad.average_age.toFixed(1)} yrs` : "—"}
             </div>
             <small style={{ color: "var(--muted)", fontSize: 11 }}>Roster demographics</small>
           </div>
@@ -321,7 +326,20 @@ export default function SquadPage({ variant = "builder" }) {
                 <span className="badge model">{squad.starters_count} STARTERS</span>
               </div>
 
-              <PitchHeatmap formation={squad.formation} caption={`${squad.formation} · Starting XI`} testId="squad-pitch" />
+              <FormationPitch
+                formation={squad.formation}
+                players={squad.positions.map((position) => (
+                  position.starter
+                    ? {
+                        ...position.starter,
+                        name: position.starter.player_name,
+                        formation_slot: position.slot_name,
+                      }
+                    : null
+                ))}
+                caption={`${squad.formation} · ${squad.starters_count} of ${squad.positions.length} slots assigned`}
+                testId="squad-pitch"
+              />
 
               {/* Starting XI List */}
               <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
@@ -363,16 +381,18 @@ export default function SquadPage({ variant = "builder" }) {
                     {p.starter && (
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "var(--teal)" }}>
-                          Fit: {(p.starter.tactical_fit_score * 100).toFixed(0)}%
+                          Fit: {score(p.starter.tactical_fit_score)}
                         </span>
-                        {p.starter.estimated_value_eur && (
+                        {p.starter.estimated_value_eur != null && (
                           <span style={{ fontFamily: "JetBrains Mono, monospace", fontSize: 11, color: "var(--muted)" }}>
                             €{(p.starter.estimated_value_eur / 1_000_000).toFixed(1)}M
                           </span>
                         )}
-                        <span className={`badge ${riskBadge(p.starter.transfer_risk_level)}`} style={{ fontSize: 9 }}>
-                          {p.starter.transfer_risk_level}
-                        </span>
+                        {p.starter.transfer_risk_level ? (
+                          <span className={`badge ${riskBadge(p.starter.transfer_risk_level)}`} style={{ fontSize: 9 }}>
+                            {p.starter.transfer_risk_level}
+                          </span>
+                        ) : null}
                       </div>
                     )}
                   </div>

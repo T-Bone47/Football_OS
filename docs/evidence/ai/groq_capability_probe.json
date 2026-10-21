@@ -1,0 +1,40 @@
+{
+  "base_url": "https://api.groq.com/openai/v1",
+  "model": "openai/gpt-oss-120b",
+  "completion_status": 200,
+  "completion_text": "",
+  "completion_usage": {
+    "queue_time": 0.353143503,
+    "prompt_tokens": 81,
+    "prompt_time": 0.037592994,
+    "completion_tokens": 32,
+    "completion_time": 0.066998519,
+    "total_tokens": 113,
+    "total_time": 0.104591513,
+    "completion_tokens_details": {
+      "reasoning_tokens": 30
+    }
+  },
+  "completion_ms": 622,
+  "stream_status": "OK",
+  "stream_text": "",
+  "stream_chunks": 0,
+  "stream_first_token_ms": null,
+  "stream_total_ms": 352,
+  "toolcall_status": 200,
+  "toolcall_message": {
+    "content": null,
+    "tool_calls": [
+      {
+        "id": "fc_d23d030f-1a63-4919-9878-4ec0577d1c27",
+        "type": "function",
+        "function": {
+          "name": "get_player_profile",
+          "arguments": "{\"query\":\"M. Akangi\"}"
+        }
+      }
+    ],
+    "finish_reason": "tool_calls"
+  },
+  "toolcall_ms": 445
+}

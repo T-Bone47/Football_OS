@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase13.decision_record_v2 import DecisionRecordV2, decision_record_store_v2
 from app.phase14.decision_realization import decision_realization_evaluator
 from app.phase14.learning_loop import decision_learning_loop_engine
@@ -75,9 +76,10 @@ class DecisionRecordV3:
 class DecisionRecordStoreV3:
     """Manages Decision Record V3 instances, preserving historical immutability."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._records: dict[str, DecisionRecordV3] = {}
-        self._seed_default_v3_records()
+        if seed_demo:
+            self._seed_default_v3_records()
 
     def get_record(self, decision_id: str) -> DecisionRecordV3 | None:
         return self._records.get(decision_id)
@@ -197,4 +199,4 @@ class DecisionRecordStoreV3:
         self._records["dec_rice_arsenal_2023"] = rice_v3
 
 
-decision_record_store_v3 = DecisionRecordStoreV3()
+decision_record_store_v3 = DecisionRecordStoreV3(seed_demo=demo_data_allowed())

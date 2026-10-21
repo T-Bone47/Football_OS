@@ -35,6 +35,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase13 import EpistemicModality
 
 
@@ -217,10 +218,11 @@ class DecisionFollowUpEvaluation:
 class DecisionRecordStoreV2:
     """Thread-safe, append-only store for immutable Decision Record V2 instances."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._records: dict[str, DecisionRecordV2] = {}
         self._follow_ups: dict[str, list[DecisionFollowUpEvaluation]] = {}
-        self._seed_default_decisions()
+        if seed_demo:
+            self._seed_default_decisions()
 
     def _seed_default_decisions(self) -> None:
         """Seeds canonical initial verified decision record."""
@@ -389,4 +391,4 @@ class DecisionRecordStoreV2:
 
 
 # Global singleton instance
-decision_record_store_v2 = DecisionRecordStoreV2()
+decision_record_store_v2 = DecisionRecordStoreV2(seed_demo=demo_data_allowed())

@@ -65,6 +65,7 @@ def evaluate_market_readiness(
     unique_clubs: set[str] = set()
     dates: list[date] = []
     seasons_set: set[str] = set()
+    competitions: set[str] = set()
 
     usable_fee_targets = 0
     pos_counts: dict[str, int] = {"GK": 0, "DEF": 0, "MID": 0, "ATT": 0}
@@ -72,7 +73,9 @@ def evaluate_market_readiness(
     age_bands: dict[str, int] = {"<21": 0, "21-24": 0, "25-28": 0, "29+": 0}
     type_counts: dict[str, int] = {"Permanent": 0, "Loan": 0, "Free": 0}
 
-    players_with_intel = 0
+    # Distinct players, not transfer rows: one player with three transfers must
+    # not count three times, which previously produced coverage above 100%.
+    players_with_intel: set[str] = set()
 
     resolved_players = 0
     resolved_clubs = 0
@@ -85,7 +88,7 @@ def evaluate_market_readiness(
             unique_players.add(str(p_id))
             resolved_players += 1
             if p_id in intel_ids:
-                players_with_intel += 1
+                players_with_intel.add(str(p_id))
 
         # Clubs
         fc = getattr(t, "from_club_id", None) or getattr(t, "from_provider_club_id", None) or getattr(t, "from_club_name", None)
@@ -101,6 +104,9 @@ def evaluate_market_readiness(
         t_date = getattr(t, "transfer_date", None)
         if t_date:
             dates.append(t_date)
+        comp = getattr(t, "competition_context", None)
+        if comp:
+            competitions.add(str(comp))
             # Estimate season e.g. 2022-2023
             yr = t_date.year
             s_str = f"{yr}-{yr+1}" if t_date.month >= 7 else f"{yr-1}-{yr}"
@@ -166,11 +172,18 @@ def evaluate_market_readiness(
     player_resolution_pct = round(resolved_players / total * 100, 1) if total > 0 else 0.0
     club_resolution_pct = round(resolved_clubs / (total * 2) * 100, 1) if total > 0 else 0.0
     fee_coverage_pct = round(known_or_reported / total * 100, 1) if total > 0 else 0.0
-    intel_cov_pct = round(players_with_intel / len(unique_players) * 100, 1) if unique_players else 0.0
+    intel_cov_pct = (
+        round(len(players_with_intel) / len(unique_players) * 100, 1)
+        if unique_players
+        else 0.0
+    )
 
     earliest = min(dates) if dates else "N/A"
     latest = max(dates) if dates else "N/A"
     temporal_span = f"{earliest} to {latest}"
+    # A dataset is only temporally usable when every row carries a date; the
+    # gate does not assert leakage-safety it has not checked.
+    temporal_keys_complete = total > 0 and len(dates) == total
 
     # Subgroup checks
     subgroup_deficits: list[str] = []
@@ -226,7 +239,8 @@ def evaluate_market_readiness(
         unique_players=len(unique_players),
         unique_clubs=len(unique_clubs),
         seasons_count=len(seasons_set),
-        competitions_count=5,  # Top 5 European leagues
+        # Measured from stored competition context, not a league assumption.
+        competitions_count=len(competitions),
         player_resolution_pct=player_resolution_pct,
         club_resolution_pct=club_resolution_pct,
         fee_coverage_pct=fee_coverage_pct,
@@ -236,7 +250,7 @@ def evaluate_market_readiness(
         subgroups=subgroups,
         subgroups_adequate=subgroups_adequate,
         licenses_sufficient=licenses_valid,
-        temporal_joins_leakage_safe=True,
+        temporal_joins_leakage_safe=temporal_keys_complete,
         phase_4_2_can_begin=can_begin,
         reasons=reasons,
         required_actions=required_actions,

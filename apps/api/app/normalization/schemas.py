@@ -52,24 +52,36 @@ class NormalizedPlayer(BaseModel):
     height_cm: int | None = None
     weight_kg: int | None = None
     primary_position: str | None = None
+    secondary_position: str | None = None
     photo_url: str | None = None
+    # Source-native spellings/aliases preserved next to the display name.
+    aliases: list[str] = []
+    country_of_birth: str | None = None
+    preferred_foot: str | None = None
+    active_status: str | None = None
 
 
 class NormalizedPlayerStats(BaseModel):
+    """Season aggregate for one player.
+
+    Every metric is optional: a metric the provider did not report is unknown
+    (null), never a defaulted zero.
+    """
+
     model_config = ConfigDict(extra="ignore")
 
     provider_player_id: str
     provider_club_id: str | None = None
     provider_league_id: str
     season_year: int
-    appearances: int = 0
-    lineups: int = 0
-    minutes: int = 0
+    appearances: int | None = None
+    lineups: int | None = None
+    minutes: int | None = None
     position: str | None = None
     rating: float | None = None
-    goals: int = 0
-    assists: int = 0
-    conceded: int = 0
+    goals: int | None = None
+    assists: int | None = None
+    conceded: int | None = None
     raw_stats: dict[str, Any] = {}
 
 

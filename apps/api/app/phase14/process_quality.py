@@ -24,6 +24,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import (
     DataSufficiencyStatus,
     DecisionProcessState,
@@ -90,10 +91,11 @@ class DivergenceDiagnostic:
 class ProcessQualityEngine:
     """Evaluates process rigor and deterministically diagnoses divergence sources."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._audits: dict[str, ProcessQualityAudit] = {}
         self._diagnostics: dict[str, DivergenceDiagnostic] = {}
-        self._seed_default_audits()
+        if seed_demo:
+            self._seed_default_audits()
 
     def audit_decision_process(
         self,
@@ -302,4 +304,4 @@ class ProcessQualityEngine:
         )
 
 
-process_quality_engine = ProcessQualityEngine()
+process_quality_engine = ProcessQualityEngine(seed_demo=demo_data_allowed())

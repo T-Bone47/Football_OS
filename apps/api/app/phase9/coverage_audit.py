@@ -45,8 +45,8 @@ class DimensionCoverage:
     date_range_start: str | None = None
     date_range_end: str | None = None
     provider: str = "UNKNOWN"
-    provenance_completeness: float = 0.0  # 0.0 – 1.0
-    missingness_rate: float = 0.0         # 0.0 – 1.0
+    provenance_completeness: float | None = None  # 0.0 – 1.0; None = not measured (never assumed)
+    missingness_rate: float | None = None         # 0.0 – 1.0; None = not measured (never assumed)
     validation_status: str = ValidationStatus.UNVALIDATED
     freshness_days: int | None = None
     coverage_quality: str = CoverageQuality.ABSENT
@@ -151,12 +151,21 @@ def _compute_file_checksum(filepath: str | Path) -> str:
 
 def _assess_quality(
     record_count: int,
-    provenance: float,
-    missingness: float,
+    provenance: float | None,
+    missingness: float | None,
 ) -> str:
-    """Determine CoverageQuality based on metrics."""
+    """Determine CoverageQuality based on metrics.
+
+    Provenance and missingness are measured or unknown. When either is unknown the rating comes from the record count
+    alone and is capped at PARTIAL: a file full of records is not thereby EXCELLENT (it used to be rated from the
+    assumed constants provenance=1.0, missingness=0.0).
+    """
     if record_count == 0:
         return CoverageQuality.ABSENT
+    if provenance is None or missingness is None:
+        if record_count >= 20:
+            return CoverageQuality.PARTIAL
+        return CoverageQuality.SPARSE if record_count >= 5 else CoverageQuality.MINIMAL
     if provenance >= 0.9 and missingness <= 0.1 and record_count >= 100:
         return CoverageQuality.EXCELLENT
     if provenance >= 0.7 and missingness <= 0.3 and record_count >= 50:
@@ -200,10 +209,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="matches",
             record_count=fixture_records,
             provider="api-football",
-            provenance_completeness=1.0 if fixture_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if fixture_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(fixture_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(fixture_records, None, None),
             file_count=fixtures_scan["file_count"],
             total_bytes=fixtures_scan["total_bytes"],
             notes=[f"Scanned from {fixtures_root}"],
@@ -221,10 +230,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="events",
             record_count=event_records,
             provider="api-football",
-            provenance_completeness=1.0 if event_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if event_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(event_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(event_records, None, None),
             file_count=events_scan["file_count"],
             total_bytes=events_scan["total_bytes"],
         )
@@ -241,10 +250,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="lineups",
             record_count=lineup_records,
             provider="api-football",
-            provenance_completeness=1.0 if lineup_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if lineup_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(lineup_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(lineup_records, None, None),
             file_count=lineups_scan["file_count"],
             total_bytes=lineups_scan["total_bytes"],
         )
@@ -269,10 +278,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="player_match_statistics",
             record_count=pstat_records,
             provider="api-football",
-            provenance_completeness=1.0 if pstat_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if pstat_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(pstat_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(pstat_records, None, None),
             file_count=pstats_scan["file_count"],
             total_bytes=pstats_scan["total_bytes"],
         )
@@ -289,10 +298,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="players",
             record_count=player_records,
             provider="api-football",
-            provenance_completeness=1.0 if player_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if player_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(player_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(player_records, None, None),
             file_count=players_scan["file_count"],
             total_bytes=players_scan["total_bytes"],
         )
@@ -309,10 +318,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="clubs",
             record_count=team_records,
             provider="api-football",
-            provenance_completeness=1.0 if team_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if team_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(team_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(team_records, None, None),
             file_count=teams_scan["file_count"],
             total_bytes=teams_scan["total_bytes"],
         )
@@ -329,10 +338,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
             dimension="competitions",
             record_count=league_records,
             provider="api-football",
-            provenance_completeness=1.0 if league_records > 0 else 0.0,
-            missingness_rate=0.0,
-            validation_status=ValidationStatus.VALIDATED if league_records > 0 else ValidationStatus.UNVALIDATED,
-            coverage_quality=_assess_quality(league_records, 1.0, 0.0),
+            provenance_completeness=None,  # not measured
+            missingness_rate=None,  # not measured
+            validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+            coverage_quality=_assess_quality(league_records, None, None),
             file_count=leagues_scan["file_count"],
             total_bytes=leagues_scan["total_bytes"],
         )
@@ -344,6 +353,29 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
         for f_info in api_transfers_scan.get("files", []):
             fp = api_transfers_root / f_info["name"]
             api_transfer_records += _count_json_records(fp)
+
+    else:
+        # No api-football bronze source: declare the expected dimensions as ABSENT (the scan measured zero
+        # files) instead of omitting them, so a consumer never mistakes a missing dimension for real coverage.
+        for dim_name, label in (
+            ("matches", "fixtures"),
+            ("events", "events"),
+            ("lineups", "lineups"),
+            ("player_match_statistics", "player-match statistics"),
+            ("players", "players"),
+            ("clubs", "teams"),
+            ("competitions", "leagues"),
+        ):
+            matrix.dimensions[dim_name] = DimensionCoverage(
+                dimension=dim_name,
+                record_count=0,
+                provider="UNKNOWN",
+                provenance_completeness=None,  # not measured
+                missingness_rate=None,  # not measured
+                validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+                coverage_quality=CoverageQuality.ABSENT,
+                notes=[f"No bronze/api-football directory found — no {label} ingested"],
+            )
 
     # ── Scan Open-Transfers Bronze ──
     open_transfers_root = bronze_root / "open-transfers"
@@ -362,10 +394,10 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
         dimension="transfers",
         record_count=total_transfer_records,
         provider=",".join(sorted(providers_found)) if providers_found else "UNKNOWN",
-        provenance_completeness=1.0 if total_transfer_records > 0 else 0.0,
-        missingness_rate=0.0,
-        validation_status=ValidationStatus.VALIDATED if total_transfer_records > 0 else ValidationStatus.UNVALIDATED,
-        coverage_quality=_assess_quality(total_transfer_records, 1.0, 0.0),
+        provenance_completeness=None,  # not measured
+        missingness_rate=None,  # not measured
+        validation_status=ValidationStatus.UNVALIDATED,  # no validation has run
+        coverage_quality=_assess_quality(total_transfer_records, None, None),
         file_count=(api_transfers_scan.get("file_count", 0) if api_football_root.exists() else 0) + open_transfers_scan["file_count"],
         total_bytes=(api_transfers_scan.get("total_bytes", 0) if api_football_root.exists() else 0) + open_transfers_scan["total_bytes"],
         notes=[
@@ -379,7 +411,7 @@ def build_coverage_matrix(data_root: str | Path) -> CoverageMatrix:
         dimension="seasons",
         record_count=0,  # Will be populated from parsed league data
         provider=",".join(sorted(providers_found)),
-        provenance_completeness=0.5,
+        provenance_completeness=None,  # not measured
         coverage_quality=CoverageQuality.PARTIAL,
         notes=["Season records are inferred from competition data, not independently stored in bronze"],
     )

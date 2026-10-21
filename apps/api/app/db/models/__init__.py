@@ -1,3 +1,3 @@
-from app.db.models import canonical, capability, provenance
+from app.db.models import canonical, capability, expansion, operational, provenance
 
-__all__ = ["canonical", "capability", "provenance"]
+__all__ = ["canonical", "capability", "expansion", "operational", "provenance"]

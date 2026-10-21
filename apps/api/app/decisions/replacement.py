@@ -15,11 +15,11 @@ from datetime import datetime, timezone
 import uuid
 from typing import Any, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.canonical import Player
+from app.db.models.canonical import Player, PlayerSeasonStats
 from app.decisions.confidence import DecisionConfidenceEngine
 from app.decisions.evidence import DecisionEvidenceGraphBuilder
 from app.decisions.hard_constraints import HardConstraintsEngine
@@ -106,15 +106,25 @@ class ReplacementDecisionEngine:
         )
 
         # 2. Fetch Candidate Universe
+        #    Only players that actually carry season evidence are candidates, and
+        #    they are ordered by observed minutes (stable name tiebreak) instead of
+        #    being an arbitrary slice of the table.
         raw_candidates = []
         if candidates_override is not None:
             raw_candidates = list(candidates_override)
         elif self.session is not None:
+            observed_minutes = func.coalesce(
+                func.sum(PlayerSeasonStats.minutes).filter(PlayerSeasonStats.minutes.isnot(None)),
+                0,
+            )
             stmt = (
                 select(Player)
+                .join(PlayerSeasonStats, PlayerSeasonStats.player_id == Player.id)
                 .options(selectinload(Player.season_stats), selectinload(Player.club))
                 .where(Player.id != request.player_id_to_replace)
-                .limit(80)
+                .group_by(Player.id)
+                .order_by(observed_minutes.desc(), Player.name.asc(), Player.id.asc())
+                .limit(max(80, request.limit * 10))
             )
             raw_candidates = list((await self.session.execute(stmt)).scalars().all())
 
@@ -143,32 +153,48 @@ class ReplacementDecisionEngine:
             club_name = getattr(club_obj, "name", None) or (p.get("club_name") if isinstance(p, dict) else "Club")
             club_id = getattr(club_obj, "id", None) or (p.get("club_id") if isinstance(p, dict) else None)
 
-            stats_list = getattr(p, "season_stats", []) or (p.get("season_stats") if isinstance(p, dict) else [])
-            raw_mins = (
-                sum((s.minutes_played or 0) for s in stats_list)
-                if stats_list
-                else (getattr(p, "minutes_played", None) or (p.get("minutes_played") if isinstance(p, dict) else 1000))
-            )
-            minutes_played = raw_mins if raw_mins is not None else 1000
-            raw_matches = (
-                sum((s.matches_played or 0) for s in stats_list)
-                if stats_list
-                else (getattr(p, "matches_played", None) or (p.get("matches_played") if isinstance(p, dict) else 12))
-            )
-            matches_count = raw_matches if raw_matches is not None else 12
+            stats_list = getattr(p, "season_stats", None) or (
+                p.get("season_stats") if isinstance(p, dict) else None
+            ) or []
+            # Unknown statistics stay unknown: no invented default sample. A caller
+            # that supplies the sample explicitly is evidence too.
+            minutes_played = sum((s.minutes or 0) for s in stats_list)
+            matches_count = sum((s.appearances or 0) for s in stats_list)
+            if not stats_list:
+                supplied_minutes = (
+                    p.get("minutes_played")
+                    if isinstance(p, dict)
+                    else getattr(p, "minutes_played", None)
+                )
+                supplied_matches = (
+                    p.get("matches_played")
+                    if isinstance(p, dict)
+                    else getattr(p, "matches_played", None)
+                )
+                if supplied_minutes is not None:
+                    minutes_played = int(supplied_minutes)
+                if supplied_matches is not None:
+                    matches_count = int(supplied_matches)
+            has_observed_sample = minutes_played > 0 or matches_count > 0
+            evidence_notes: list[str] = []
+            if not has_observed_sample:
+                evidence_notes.append(
+                    "No observed season sample: minutes and appearances are unknown, not zero-valued estimates."
+                )
 
-            # Valuation
-            base_cohort_vals = {"GK": 8_000_000.0, "DEF": 14_000_000.0, "MID": 18_000_000.0, "ATT": 22_000_000.0}
-            p_grp = map_position_to_group(pos).name if hasattr(map_position_to_group(pos), "name") else "MID"
-            base_val = base_cohort_vals.get(p_grp, 15_000_000.0)
-            age_factor = BaselineValuationEngine.get_age_adjustment(age)
-            min_factor = min(1.3, max(0.5, minutes_played / 1500.0))
+            # Valuation: the value supplied with the candidate, or the canonical
+            # record. There is no cohort-average fallback.
             p_market = getattr(p, "market", None) or (p.get("market") if isinstance(p, dict) else None)
-            est_value = (
-                getattr(p_market, "estimated_value_eur", None)
-                or round(base_val * age_factor * min_factor, -4)
-            )
-            comparables_count = max(3, int(minutes_played / 200))
+            if isinstance(p, dict):
+                provided_value = p.get("estimated_value_eur")
+                if provided_value is None and isinstance(p.get("market"), dict):
+                    provided_value = p["market"].get("estimated_value_eur")
+            else:
+                provided_value = getattr(p_market, "estimated_value_eur", None)
+            est_value = provided_value
+            if est_value is None:
+                evidence_notes.append("No canonical valuation record: market value unknown.")
+            comparables_count = 0 if est_value is None else max(0, int(minutes_played / 200))
 
             # Hard Constraints
             p_hard = getattr(p, "hard_constraints", None) or (p.get("hard_constraints") if isinstance(p, dict) else None)
@@ -253,6 +279,16 @@ class ReplacementDecisionEngine:
 
             if p_market is not None:
                 dim_market = p_market
+            elif est_value is None:
+                dim_market = DimensionMarket(
+                    estimated_value_eur=None,
+                    fee_range_low_eur=None,
+                    fee_range_high_eur=None,
+                    budget_eur=request.budget_eur,
+                    affordability_status="UNAVAILABLE",
+                    value_opportunity_index=None,
+                    comparable_transfers_count=0,
+                )
             else:
                 dim_market = DimensionMarket(
                     estimated_value_eur=est_value,
@@ -260,7 +296,7 @@ class ReplacementDecisionEngine:
                     fee_range_high_eur=round(est_value * 1.20, -4),
                     budget_eur=request.budget_eur,
                     affordability_status="AFFORDABLE" if (not request.budget_eur or est_value <= request.budget_eur) else "BUDGET_STRETCH",
-                    value_opportunity_index=round(1.05 if (age or 25) < 26 else 0.95, 2),
+                    value_opportunity_index=None,
                     comparable_transfers_count=comparables_count,
                 )
 
@@ -273,7 +309,7 @@ class ReplacementDecisionEngine:
                     risk_level="LOW" if sim_score > 0.80 else "MEDIUM",
                     performance_risk=round(1.0 - (contrib_rating / 100.0), 2),
                     adaptation_risk=0.30,
-                    financial_risk=round(min(0.7, est_value / 40_000_000.0), 2),
+                    financial_risk=round(min(0.7, est_value / 40_000_000.0), 2) if est_value is not None else None,
                     availability_risk=0.15,
                     key_risk_drivers=[],
                 )
@@ -310,7 +346,11 @@ class ReplacementDecisionEngine:
             why_matches = [
                 f"{sim_score * 100:.1f}% profile similarity to {target_name}.",
                 f"Shares primary {target_pos} zone with natural capability as {target_role}.",
-                f"Valuation estimated at €{est_value:,.0f} with {dim_risk.risk_level} risk.",
+                (
+                    f"Valuation estimated at EUR {est_value:,.0f} with {dim_risk.risk_level} risk."
+                    if est_value is not None
+                    else "Valuation unknown: no canonical valuation record for this candidate."
+                ),
             ]
             where_differs = [
                 f"Age difference: {name} is {age:.0f} y/o.",
@@ -338,6 +378,8 @@ class ReplacementDecisionEngine:
                     confidence=conf,
                     why_matches=why_matches,
                     where_differs=where_differs,
+                    evidence_status="MEASURED" if has_observed_sample else "INSUFFICIENT_DATA",
+                    evidence_notes=evidence_notes,
                 )
             )
 

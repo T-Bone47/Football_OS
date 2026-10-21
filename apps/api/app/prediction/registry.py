@@ -6,7 +6,9 @@ criteria are marked as MODEL_VALIDATED and allowed for active inference.
 """
 from __future__ import annotations
 
+import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,142 +17,118 @@ from app.prediction.schemas import ModelStatusResponse
 MODEL_REGISTRY_VERSION = "registry_v1"
 
 
+_REPO_ROOT = Path(__file__).resolve().parents[4]
+
+
 class ModelMetadata(BaseModel):
-    """Immutable model metadata record in the model registry."""
+    """Registry record for a match-prediction model.
+
+    Everything that would constitute validation evidence is optional and defaults to "unknown" (None / {}): counts,
+    periods, metrics, calibration and the temporal/leakage flags. A record may only claim MODEL_VALIDATED when the
+    registry can verify the evidence file named by evidence_ref against evidence_sha256 (PredictionModelRegistry.register).
+    """
     model_config = ConfigDict(extra="ignore")
 
     model_id: str
     model_version: str
     feature_version: str
-    dataset_version: str
+    dataset_version: str | None = None
     algorithm: str
     hyperparameters: dict[str, Any] = Field(default_factory=dict)
-    training_matches_count: int
-    validation_matches_count: int
-    test_matches_count: int
-    training_period: str
-    validation_period: str
-    test_period: str
+    training_matches_count: int | None = None
+    validation_matches_count: int | None = None
+    test_matches_count: int | None = None
+    training_period: str | None = None
+    validation_period: str | None = None
+    test_period: str | None = None
     metrics: dict[str, float] = Field(default_factory=dict)
-    calibration_method: str = "TEMPERATURE_SCALING"
+    calibration_method: str = "NONE"
     calibration_params: dict[str, Any] = Field(default_factory=dict)
-    status: str = "MODEL_VALIDATED"  # MODEL_VALIDATED, MODEL_CANDIDATE, PREDICTION_FOUNDATION_COMPLETE, MODEL_RELEASE_BLOCKED
-    temporal_validation_passed: bool = True
-    leakage_tests_passed: bool = True
-    random_seed: int = 42
+    status: str = "MODEL_UNVALIDATED"  # MODEL_VALIDATED (evidence required), MODEL_CANDIDATE, MODEL_UNVALIDATED, MODEL_RELEASE_BLOCKED
+    temporal_validation_passed: bool | None = None
+    leakage_tests_passed: bool | None = None
+    evidence_ref: str | None = None  # repo-relative path of the validation report that backs status and metrics
+    evidence_sha256: str | None = None
+    random_seed: int | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
-class PredictionModelRegistry:
-    """In-memory and persisted model registry for football match prediction models."""
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
-    def __init__(self) -> None:
+
+class PredictionModelRegistry:
+    """In-memory model registry for football match prediction models. Statuses come from evidence."""
+
+    def __init__(self, evidence_root: Path | None = None) -> None:
+        self._root = (evidence_root or _REPO_ROOT).resolve()
         self._models: dict[str, ModelMetadata] = {}
         self._active_model_id: str | None = None
-        self._init_default_models()
+        self._register_declared_specifications()
 
-    def _init_default_models(self) -> None:
-        """Initializes the baseline models and the primary calibrated ML model."""
-        # 1. Baseline 1: Empirical Frequency
-        b1 = ModelMetadata(
+    def _register_declared_specifications(self) -> None:
+        """Registers the algorithms this code implements as UNVALIDATED specifications.
+
+        There is no fitted artifact, no dataset manifest and no recorded evaluation for any of them, so no metric,
+        count, period, calibration or validation flag is claimed. (The previous version typed in MODEL_VALIDATED,
+        log-loss 0.9418, 1,520/388/400 matches, 2026-08..09 periods and passed validation flags.)
+        """
+        self.register(ModelMetadata(
             model_id="baseline_class_frequency_v1",
             model_version="1.0.0",
             feature_version="match_prediction_v1",
-            dataset_version="bronze_2026_09_20",
-            algorithm="Empirical League Frequency",
+            algorithm="Fixed class prior (typical top-flight outcome frequencies, not derived from ingested data)",
             hyperparameters={"p_home": 0.442, "p_draw": 0.260, "p_away": 0.298},
-            training_matches_count=1200,
-            validation_matches_count=350,
-            test_matches_count=400,
-            training_period="2026-08-01 to 2026-08-31",
-            validation_period="2026-09-01 to 2026-09-10",
-            test_period="2026-09-11 to 2026-09-20",
-            metrics={
-                "log_loss": 1.0582,
-                "brier_score": 0.6124,
-                "accuracy": 0.4420,
-                "macro_f1": 0.2043,
-                "ece": 0.1240,
-            },
-            calibration_method="NONE",
-            status="MODEL_CANDIDATE",
-            temporal_validation_passed=True,
-            leakage_tests_passed=True,
-        )
-        self.register(b1)
-
-        # 2. Baseline 3: Deterministic Elo
-        b3 = ModelMetadata(
+        ))
+        self.register(ModelMetadata(
             model_id="baseline_elo_deterministic_v1",
             model_version="1.0.0",
             feature_version="match_prediction_v1",
-            dataset_version="bronze_2026_09_20",
-            algorithm="Elo Logistic Match Model",
-            hyperparameters={"k_factor": 32.0, "home_advantage": 65.0, "draw_scale": 0.28},
-            training_matches_count=1200,
-            validation_matches_count=350,
-            test_matches_count=400,
-            training_period="2026-08-01 to 2026-08-31",
-            validation_period="2026-09-01 to 2026-09-10",
-            test_period="2026-09-11 to 2026-09-20",
-            metrics={
-                "log_loss": 0.9984,
-                "brier_score": 0.5742,
-                "accuracy": 0.4950,
-                "macro_f1": 0.4120,
-                "ece": 0.0860,
-            },
-            calibration_method="NONE",
-            status="MODEL_CANDIDATE",
-            temporal_validation_passed=True,
-            leakage_tests_passed=True,
-        )
-        self.register(b3)
-
-        # 3. Active Validated Model: Calibrated Multinomial Logit with Temperature Scaling
-        active_model = ModelMetadata(
+            algorithm="Deterministic Elo differential",
+            hyperparameters={"k_factor": 20.0, "home_advantage": 65.0},
+        ))
+        self.register(ModelMetadata(
             model_id="calibrated_multinomial_logit_v1",
             model_version="1.2.0",
             feature_version="match_prediction_v1",
-            dataset_version="bronze_2026_09_20",
-            algorithm="Calibrated Multinomial Logit Ensemble",
+            algorithm="Multinomial logit ensemble with hand-set weights (not fitted to a dataset; temperature is not fitted calibration)",
             hyperparameters={
-                "w_home": 0.38,
-                "w_elo": 0.85,
-                "w_points": 0.65,
-                "w_matchup": 0.50,
-                "w_rest": 0.15,
-                "temperature": 1.06,
-                "goal_model": "bivariate_poisson_dixon_coles",
+                "w_home": 0.38, "w_elo": 0.85, "w_points": 0.65, "w_matchup": 0.50, "w_rest": 0.15,
+                "temperature": 1.06, "goal_model": "bivariate_poisson_dixon_coles",
             },
-            training_matches_count=1520,
-            validation_matches_count=388,
-            test_matches_count=400,
-            training_period="2026-08-01 to 2026-08-31",
-            validation_period="2026-09-01 to 2026-09-10",
-            test_period="2026-09-11 to 2026-09-20",
-            metrics={
-                "log_loss": 0.9418,
-                "brier_score": 0.5365,
-                "accuracy": 0.5375,
-                "macro_f1": 0.4892,
-                "ece": 0.0385,
-                "goal_mae": 0.824,
-                "goal_rmse": 1.112,
-            },
-            calibration_method="TEMPERATURE_SCALING",
-            calibration_params={"temperature": 1.06, "bins": 10},
-            status="MODEL_VALIDATED",
-            temporal_validation_passed=True,
-            leakage_tests_passed=True,
-        )
-        self.register(active_model, set_active=True)
+        ), set_active=True)
+
+    def evidence_problem(self, model: ModelMetadata) -> str | None:
+        """Why this record may NOT claim MODEL_VALIDATED, or None when its evidence verifies."""
+        if not model.evidence_ref or not model.evidence_sha256:
+            return "no evidence_ref / evidence_sha256"
+        path = (self._root / model.evidence_ref).resolve()
+        if self._root not in path.parents:
+            return "evidence_ref escapes the evidence root"
+        if not path.is_file():
+            return "evidence file not found"
+        if _sha256(path) != model.evidence_sha256.lower():
+            return "evidence hash mismatch"
+        if not model.metrics:
+            return "no metrics recorded"
+        if model.temporal_validation_passed is not True or model.leakage_tests_passed is not True:
+            return "temporal and leakage validation not established"
+        return None
 
     def register(self, model: ModelMetadata, set_active: bool = False) -> None:
-        """Registers a model metadata record."""
+        """Registers a model record. MODEL_VALIDATED is refused unless its evidence verifies."""
+        if model.status == "MODEL_VALIDATED":
+            problem = self.evidence_problem(model)
+            if problem:
+                raise ValueError(f"MODEL_VALIDATED requires verifiable evidence: {problem}")
         self._models[model.model_id] = model
         if set_active:
             self._active_model_id = model.model_id
+
+    def verify_evidence(self, model_id: str) -> bool:
+        """Re-checks a registered record's evidence now (it may have been altered after registration)."""
+        model = self._models.get(model_id)
+        return model is not None and self.evidence_problem(model) is None
 
     def get_model(self, model_id: str) -> ModelMetadata | None:
         """Retrieves a model by its ID."""
@@ -167,7 +145,7 @@ class PredictionModelRegistry:
         return list(self._models.values())
 
     def get_status_response(self) -> ModelStatusResponse:
-        """Returns the public ModelStatusResponse contract for the active model."""
+        """Public status contract for the active model; whatever evidence is missing is None, never 0."""
         active = self.get_active_model()
         return ModelStatusResponse(
             active_model_id=active.model_id,
@@ -176,11 +154,11 @@ class PredictionModelRegistry:
             algorithm=active.algorithm,
             training_matches_count=active.training_matches_count,
             validation_matches_count=active.validation_matches_count,
-            log_loss=active.metrics.get("log_loss", 0.0),
-            brier_score=active.metrics.get("brier_score", 0.0),
-            accuracy=active.metrics.get("accuracy", 0.0),
-            macro_f1=active.metrics.get("macro_f1", 0.0),
-            expected_calibration_error=active.metrics.get("ece", 0.0),
+            log_loss=active.metrics.get("log_loss"),
+            brier_score=active.metrics.get("brier_score"),
+            accuracy=active.metrics.get("accuracy"),
+            macro_f1=active.metrics.get("macro_f1"),
+            expected_calibration_error=active.metrics.get("ece"),
             calibration_method=active.calibration_method,
             status=active.status,
             temporal_validation_passed=active.temporal_validation_passed,

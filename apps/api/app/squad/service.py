@@ -151,24 +151,13 @@ class SquadService:
             stmt = stmt.where(Player.id.in_(club_player_ids))
         else:
             # Fallback: top active players ordered by name
-            stmt = stmt.limit(limit)
+            stmt = stmt.order_by(Player.name.asc(), Player.id.asc()).limit(limit)
 
         res = await self.session.execute(stmt)
         players = list(res.scalars().all())
 
-        # If club_id produced no season stats records, fallback to any available players
-        if not players and club_id:
-            fallback_res = await self.session.execute(
-                select(Player)
-                .options(
-                    selectinload(Player.role_profiles),
-                    selectinload(Player.valuation_predictions),
-                    selectinload(Player.season_stats),
-                )
-                .limit(limit)
-            )
-            players = list(fallback_res.scalars().all())
-
+        # A club with no recorded squad returns an empty squad. Substituting
+        # arbitrary players from another club would be a fabricated answer.
         return players
 
     def build_player_profile(
@@ -192,7 +181,10 @@ class SquadService:
             # Get latest profile
             sorted_roles = sorted(player.role_profiles, key=lambda r: r.as_of or r.created_at, reverse=True)
             latest_role = sorted_roles[0]
-            primary_role = latest_role.primary_role
+            # PlayerRoleProfile stores the archetype in `primary_archetype`
+            # (there is no `primary_role` column); reading the wrong attribute
+            # crashed the whole squad analysis with an AttributeError.
+            primary_role = latest_role.primary_archetype
             role_conf = latest_role.archetype_confidence
 
         # Estimated Value (from latest ML prediction or fallback)

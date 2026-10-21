@@ -391,13 +391,15 @@ class TestGatingEngine:
 class TestModelRegistry:
     """Verifies registry contracts and active model retrieval."""
 
-    def test_active_model_registered_and_validated(self):
+    def test_active_model_is_registered_and_honestly_unvalidated(self):
+        """There is no fitted artifact or recorded evaluation, so the registry must not claim validation (audit R18).
+        The rules for earning MODEL_VALIDATED are in tests/unit/test_prediction_registry_evidence.py."""
         registry = PredictionModelRegistry()
         active = registry.get_active_model()
-        assert active.status == "MODEL_VALIDATED"
-        assert active.temporal_validation_passed is True
-        assert active.leakage_tests_passed is True
+        assert active.status == "MODEL_UNVALIDATED"
+        assert active.temporal_validation_passed is None
+        assert active.leakage_tests_passed is None
 
         resp = registry.get_status_response()
         assert resp.active_model_id == active.model_id
-        assert resp.status == "MODEL_VALIDATED"
+        assert resp.status == "MODEL_UNVALIDATED"

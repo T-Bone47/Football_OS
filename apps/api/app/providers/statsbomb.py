@@ -60,3 +60,50 @@ class StatsBombProvider:
     async def close(self) -> None:
         if self._owns_client:
             await self._client.aclose()
+
+    async def verify_health(self) -> dict:
+        """Verify StatsBomb connectivity."""
+        try:
+            resp = await self.fetch("competitions")
+            if resp.status_code == 200:
+                data = resp.content
+                try:
+                    import json
+                    data = json.loads(data)
+                    count = len(data) if isinstance(data, list) else 0
+                except Exception:
+                    count = 0
+                return {
+                    "status": "AVAILABLE",
+                    "provider": self.name,
+                    "model": "statsbomb-open-data",
+                    "competitions_count": count,
+                }
+            else:
+                return {
+                    "status": "DEGRADED",
+                    "provider": self.name,
+                    "model": "statsbomb-open-data",
+                    "error": f"HTTP {resp.status_code}",
+                }
+        except httpx.TimeoutException:
+            return {
+                "status": "UNAVAILABLE",
+                "provider": self.name,
+                "model": "statsbomb-open-data",
+                "error": "Timeout",
+            }
+        except httpx.TransportError as e:
+            return {
+                "status": "UNAVAILABLE",
+                "provider": self.name,
+                "model": "statsbomb-open-data",
+                "error": f"Network error: {e}",
+            }
+        except Exception as e:
+            return {
+                "status": "ERROR",
+                "provider": self.name,
+                "model": "statsbomb-open-data",
+                "error": str(e),
+            }

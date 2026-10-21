@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from typing import Any, Sequence
 import numpy as np
 
+from app.demo import demo_data_allowed
 from app.phase14 import DataSufficiencyStatus, EpistemicModality
 
 
@@ -86,10 +87,11 @@ class WindowCalibrationReport:
 class PredictionCalibrationFeedbackEngine:
     """Computes rolling calibration and scoring rules for realized predictions."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._predictions: list[PredictionRealizationRecord] = []
         self._reports: dict[str, WindowCalibrationReport] = {}
-        self._seed_realized_predictions()
+        if seed_demo:
+            self._seed_realized_predictions()
 
     def record_prediction_realization(
         self,
@@ -368,4 +370,4 @@ class PredictionCalibrationFeedbackEngine:
         self.compute_window_calibration(window_size=50, window_label="WINDOW_50")
 
 
-prediction_calibration_feedback_engine = PredictionCalibrationFeedbackEngine()
+prediction_calibration_feedback_engine = PredictionCalibrationFeedbackEngine(seed_demo=demo_data_allowed())

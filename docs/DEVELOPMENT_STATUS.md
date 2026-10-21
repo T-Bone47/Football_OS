@@ -1,5 +1,42 @@
 # Development Status
 
+## Current verified status (2026-10-11)
+
+> This section supersedes every "certified", phase and test-count claim in the historical session logs below. Evidence, tiers and the full issue register: `docs/PRODUCTION_TRUTH_AUDIT.md`.
+
+| Area | Verified state |
+|---|---|
+| Full test suite on a real stack | **Not recorded.** The earlier `564 passed` / `608 passed` claims were not reproduced (the audit sandbox had no PostgreSQL, pytest or FastAPI). Run `pytest -v` per the audit doc §7 and add a row below. |
+| Stand-in run (logic only, not pytest) | 299 passed / 25 failed / 4 skipped over the 28 files that import in the sandbox (original code: 169 / 27 / 0 over the 16 original files among them). The 25 failures are sandbox limits. |
+| Valuation model | `MODEL_RELEASE_BLOCKED` (log-MAE worse than baseline, test R² −0.0904, 24% interval coverage on >70M, 22/30 training features synthetic, training transfers unverified). Not served by the production path. |
+| Match-prediction model | **No artifact exists.** Registry metrics in `app/prediction/registry.py` are unreproduced constants. |
+| Authentication | Bearer-JWT verification on every router; fail-closed when `AUTH_JWT_SECRET` is unset. Identity service mints tokens and enforces a sign-in allowlist. End-to-end flow untested. |
+| Persistence | Phase 9–16 operational state is **process-local in memory** (lost on restart). Only ingestion provenance tables (migrations 0001–0013) are in PostgreSQL. |
+| Health/readiness | Measured or `UNKNOWN`; nothing is hard-coded `HEALTHY`. Competition readiness is `NOT_ASSESSED` until an evidence-derived assessor exists. |
+| Data | `data/bronze` is not in the repository; tests that need it skip with a reason. Hand-authored transfer data is `UNVERIFIED`. |
+
+## Session 2 status (stopped early at the owner's request, 2026-10-11)
+
+Plan and ledger: `docs/superpowers/plans/production-truth-stages-1-5.md`. Evidence tiers as in `docs/PRODUCTION_TRUTH_AUDIT.md`.
+
+| Stage | State |
+|---|---|
+| 1. Real test environment | **BLOCKED in the audit sandbox** (no network: pypi/yarn/github DNS fail; no pytest, PostgreSQL, Docker, Yarn). Nothing installed, migrated or built. `tools/verify_environment.sh` runs the whole sequence in one command on a real machine and writes `docs/verification/`; the sandbox record is `docs/verification/2026-10-11-sandbox.md` (all steps BLOCKED, with the real errors). |
+| 2. Production-truth fixes | Done (see audit register): static ORM/migration parity checker (33 drifts measured and fixed by migration 0014); Phase 10 truth (no seeds or invented defaults, tri-state constraints, hash-chained decision records, owner/org scoping, truthful reports/scenarios/alerts/copilot, UI forms); Phase 13/14 seeds opt-in and routers demo-only; evidence-derived match-prediction registry; unmeasured Phase 9 coverage; Phases 9-certificate/11/12/10-lifecycle demo-only; token lifecycle (jti/iat, max TTL, rotation, revocation); ADR-0004 + gateway config; frontend contract test. |
+| 3. Persistence | **Partial, unverified.** Migration 0015, ORM models, in-memory and PostgreSQL stores, backend factory with a production guard are written; the shared store contract passes for the in-memory store. **Manager wiring is NOT done**: `tests/unit/test_persistence_wiring.py` is intentionally RED. Nothing is persisted yet by default. |
+| 4. ML rebuild on verified data | **Not started / BLOCKED** (no network, no verifiable sources, no lightgbm, no database). The valuation model stays MODEL_RELEASE_BLOCKED; there is no match-prediction artifact. |
+| 5. End-to-end proof | **Not started / BLOCKED** (needs stages 1, 3 and 4). |
+
+Stand-in runner (NOT pytest) over the files that import in the sandbox: 39 files executed; passed=430 failed=37 skipped=5. Failures are sandbox limits (no FastAPI/SQLAlchemy/Starlette, a fixture the stand-in lacks) plus the intentionally RED wiring tests. **The real pytest suite, `alembic upgrade head`/`alembic check` and `yarn build` have never been run on this tree.**
+
+### Verified test runs (append real results here)
+
+| Date | Commit | Environment | Command | Result |
+|---|---|---|---|---|
+| _none recorded yet_ | | | | |
+
+---
+
 Updated at the end of each session. Statuses: PLANNED / IN_PROGRESS / IMPLEMENTED / TESTED / VERIFIED / BLOCKED. IMPLEMENTED and VERIFIED are never used interchangeably (build brief §54/§55) — VERIFIED means an actual run happened and I saw the result; IMPLEMENTED means the code exists and is unit-tested but the specific real-world thing it targets (a live provider, a real MinIO bucket, a real Docker network) hasn't been hit yet.
 
 ## Phase 0 — Slice 1: Provenance Foundation (unchanged from last session)

@@ -275,10 +275,11 @@ class TransferRiskEngine:
                 factors=factors,
             )
 
-        # Calculate availability rate across seasons
-        total_apps = sum(s.appearances for s in season_stats)
-        total_lineups = sum(s.lineups for s in season_stats)
-        total_minutes = sum(s.minutes for s in season_stats)
+        # Calculate availability rate across seasons.
+        # Season rows the provider left unmeasured contribute nothing to the totals.
+        total_apps = sum((s.appearances or 0) for s in season_stats)
+        total_lineups = sum((s.lineups or 0) for s in season_stats)
+        total_minutes = sum((s.minutes or 0) for s in season_stats)
         seasons_count = len(season_stats)
 
         factors["total_appearances"] = total_apps

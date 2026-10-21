@@ -16,6 +16,8 @@ export default function WatchlistsPage() {
   const [filterType, setFilterType] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [newWatchlistName, setNewWatchlistName] = useState("");
+  const [actionError, setActionError] = useState(null);
 
   // Evaluate modal/form state
   const [evalForm, setEvalForm] = useState({
@@ -62,6 +64,21 @@ export default function WatchlistsPage() {
     }
   };
 
+  const handleCreateWatchlist = async (e) => {
+    e.preventDefault();
+    setActionError(null);
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/phase10/watchlists`, { name: newWatchlistName });
+      setWatchlists([...watchlists, res.data]);
+      setSelectedWatchlist(res.data);
+      setAlerts([]);
+      setNewWatchlistName("");
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setActionError(typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message);
+    }
+  };
+
   const handleSelectWatchlist = (wl) => {
     setSelectedWatchlist(wl);
     fetchAlerts(wl.watchlist_id);
@@ -80,6 +97,8 @@ export default function WatchlistsPage() {
       fetchAlerts(selectedWatchlist.watchlist_id);
     } catch (err) {
       console.error("Failed to evaluate change", err);
+      const detail = err.response?.data?.detail;
+      setActionError(typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message);
     }
   };
 
@@ -123,6 +142,14 @@ export default function WatchlistsPage() {
           </button>
         </div>
       </header>
+
+      {/* Watchlists are private to their owner; create one to start tracking */}
+      <form onSubmit={handleCreateWatchlist} style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }} data-testid="new-watchlist-form">
+        <input type="text" required placeholder="New watchlist name" value={newWatchlistName} onChange={(e) => setNewWatchlistName(e.target.value)} className="input-field" />
+        <button type="submit" className="primary-button">Create watchlist</button>
+        {watchlists.length === 0 && <span style={{ fontSize: "0.8rem", color: "var(--text-muted, #94a3b8)" }} data-testid="no-watchlists">You have no watchlists yet.</span>}
+      </form>
+      {actionError && <div style={{ color: "#ef4444", fontSize: "0.8rem", marginBottom: "0.75rem" }} data-testid="watchlist-action-error">{actionError}</div>}
 
       {/* Alert Governance Banner */}
       <section className="governance-card" style={{ marginBottom: "1.5rem" }} data-testid="alert-governance-banner">
@@ -309,7 +336,7 @@ export default function WatchlistsPage() {
                             {/* Evidence & Provenance Strip */}
                             <div style={{ marginTop: "0.75rem", paddingTop: "0.6rem", borderTop: "1px dashed var(--border-subtle, #1e293b)", fontSize: "0.75rem", color: "var(--text-muted, #94a3b8)" }}>
                               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                                <span><strong>Model:</strong> {alert.model_version}</span>
+                                <span><strong>Model:</strong> {alert.model_version || "none (values were supplied by a user)"}</span>
                                 <span><strong>Provider:</strong> {alert.source_provider}</span>
                                 <span><strong>Triggered:</strong> {new Date(alert.created_at).toLocaleDateString()}</span>
                               </div>
@@ -474,7 +501,7 @@ export default function WatchlistsPage() {
                               {evalResult.alert.what_changed}
                             </p>
                             <span style={{ fontSize: "0.7rem", color: "var(--text-muted, #94a3b8)" }}>
-                              Delta: {evalResult.alert.delta} · Confidence: {evalResult.alert.confidence} · {evalResult.alert.model_version}
+                              Delta: {evalResult.alert.delta} · Confidence: {evalResult.alert.confidence} · {evalResult.alert.model_version || "no model"}
                             </span>
                           </div>
                         )}

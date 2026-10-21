@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Command, Search, Sparkles, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { getClubs, getPlayers } from "@/lib/footballApi";
+import { getClubs, getPlayerPage, getPlayers } from "@/lib/footballApi";
 
 const pages = [
   { label: "Player discovery", path: "/players", hint: "Filter the connected player universe" },
@@ -27,8 +27,18 @@ const suggestedQueries = [
 
 export default function CommandPalette({ open, onClose }) {
   const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
   const navigate = useNavigate();
   const players = useQuery({ queryKey: ["command-players"], queryFn: () => getPlayers(), enabled: open, staleTime: 120000, retry: false });
+  const normalized = deferredQuery.trim().toLowerCase();
+  const playerSearch = useQuery({
+    queryKey: ["command-player-search", normalized],
+    queryFn: () => getPlayerPage({ q: normalized, page_size: 5, sort_by: "name" }),
+    enabled: open && normalized.length >= 2,
+    staleTime: 30000,
+    retry: false,
+    placeholderData: (previous) => previous,
+  });
   const clubs = useQuery({ queryKey: ["command-clubs"], queryFn: getClubs, enabled: open, staleTime: 120000, retry: false });
   useEffect(() => {
     if (!open) return undefined;
@@ -37,17 +47,18 @@ export default function CommandPalette({ open, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  const normalized = query.trim().toLowerCase();
   const results = useMemo(() => ({
-    players: (players.data || []).filter((item) => item.name?.toLowerCase().includes(normalized)).slice(0, 5),
+    players: normalized && normalized.length >= 2
+      ? (playerSearch.data?.items || [])
+      : (players.data || []).filter((item) => item.name?.toLowerCase().includes(normalized)).slice(0, 5),
     clubs: (clubs.data || []).filter((item) => item.name?.toLowerCase().includes(normalized)).slice(0, 4),
     pages: pages.filter((item) => item.label.toLowerCase().includes(normalized) || !normalized).slice(0, 6),
-  }), [clubs.data, normalized, players.data]);
+  }), [clubs.data, normalized, playerSearch.data, players.data]);
 
   if (!open) return null;
   const go = (path) => { setQuery(""); onClose(); navigate(path); };
   const goCopilot = (prefill) => { setQuery(""); onClose(); navigate("/copilot", { state: { prefill } }); };
-  const backendUnavailable = players.isError || clubs.isError;
+  const backendUnavailable = players.isError || clubs.isError || playerSearch.isError;
 
   return (
     <div className="command-backdrop" role="presentation" onClick={onClose} data-testid="command-palette-backdrop">

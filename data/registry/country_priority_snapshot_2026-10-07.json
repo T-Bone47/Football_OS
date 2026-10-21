@@ -1,0 +1,37 @@
+{
+  "snapshot_id": "fifa-mens-senior-2026-10-07",
+  "ranking_name": "FIFA Men's World Ranking",
+  "scope": "men's senior national teams (senior A internationals)",
+  "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+  "ranking_source_readable": "Wikipedia: FIFA Men's World Ranking (citing FIFA.com), top-20 table 'as of 7 October 2026'",
+  "ranking_snapshot_date": "2026-10-07",
+  "retrieved_at": "2026-10-21",
+  "next_publication": "2026-11-18",
+  "notes": [
+    "Snapshot, not a permanent hardcoded list: point the loader at a newer file to change the priority countries.",
+    "provider_nationality is the spelling used by the API-Football player payload for the same country.",
+    "Selection of national-team countries does NOT define the club-league coverage: players of these nationalities are discovered through club competitions and squad registrations."
+  ],
+  "countries": [
+    { "rank": 1, "country_code": "ESP", "iso2": "ES", "country_name": "Spain", "provider_nationality": "Spain", "points": 2011.57 },
+    { "rank": 2, "country_code": "ARG", "iso2": "AR", "country_name": "Argentina", "provider_nationality": "Argentina", "points": 1972.80 },
+    { "rank": 3, "country_code": "FRA", "iso2": "FR", "country_name": "France", "provider_nationality": "France", "points": 1958.86 },
+    { "rank": 4, "country_code": "ENG", "iso2": "GB", "country_name": "England", "provider_nationality": "England", "points": 1925.59 },
+    { "rank": 5, "country_code": "POR", "iso2": "PT", "country_name": "Portugal", "provider_nationality": "Portugal", "points": 1807.69 },
+    { "rank": 6, "country_code": "BRA", "iso2": "BR", "country_name": "Brazil", "provider_nationality": "Brazil", "points": 1806.51 },
+    { "rank": 7, "country_code": "MAR", "iso2": "MA", "country_name": "Morocco", "provider_nationality": "Morocco", "points": 1805.34 },
+    { "rank": 8, "country_code": "BEL", "iso2": "BE", "country_name": "Belgium", "provider_nationality": "Belgium", "points": 1779.17 },
+    { "rank": 9, "country_code": "NED", "iso2": "NL", "country_name": "Netherlands", "provider_nationality": "Netherlands", "points": 1778.61 },
+    { "rank": 10, "country_code": "MEX", "iso2": "MX", "country_name": "Mexico", "provider_nationality": "Mexico", "points": 1738.48 },
+    { "rank": 11, "country_code": "COL", "iso2": "CO", "country_name": "Colombia", "provider_nationality": "Colombia", "points": 1735.80 },
+    { "rank": 12, "country_code": "SUI", "iso2": "CH", "country_name": "Switzerland", "provider_nationality": "Switzerland", "points": 1725.39 },
+    { "rank": 13, "country_code": "GER", "iso2": "DE", "country_name": "Germany", "provider_nationality": "Germany", "points": 1717.52 },
+    { "rank": 14, "country_code": "CRO", "iso2": "HR", "country_name": "Croatia", "provider_nationality": "Croatia", "points": 1714.74 },
+    { "rank": 15, "country_code": "ITA", "iso2": "IT", "country_name": "Italy", "provider_nationality": "Italy", "points": 1713.04 },
+    { "rank": 16, "country_code": "USA", "iso2": "US", "country_name": "United States", "provider_nationality": "USA", "points": 1705.47 },
+    { "rank": 17, "country_code": "JPN", "iso2": "JP", "country_name": "Japan", "provider_nationality": "Japan", "points": 1684.75 },
+    { "rank": 18, "country_code": "SEN", "iso2": "SN", "country_name": "Senegal", "provider_nationality": "Senegal", "points": 1648.84 },
+    { "rank": 19, "country_code": "NOR", "iso2": "NO", "country_name": "Norway", "provider_nationality": "Norway", "points": 1637.89 },
+    { "rank": 20, "country_code": "URU", "iso2": "UY", "country_name": "Uruguay", "provider_nationality": "Uruguay", "points": 1635.54 }
+  ]
+}

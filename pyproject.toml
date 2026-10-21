@@ -5,3 +5,4 @@
 asyncio_mode = "auto"
 pythonpath = ["apps/api"]
 testpaths = ["tests"]
+markers = ["real_auth: exercise real token verification (no dependency override)"]

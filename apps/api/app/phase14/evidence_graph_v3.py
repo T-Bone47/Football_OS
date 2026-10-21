@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import EpistemicModality
 
 
@@ -166,9 +167,10 @@ class EvidenceGraphV3:
 class EvidenceGraphV3Builder:
     """Builds and caches Evidence Graph V3 instances."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._graphs: dict[str, EvidenceGraphV3] = {}
-        self._seed_default_graph()
+        if seed_demo:
+            self._seed_default_graph()
 
     def build_decision_graph(
         self,
@@ -221,4 +223,4 @@ class EvidenceGraphV3Builder:
         self.build_decision_graph("dec_rec_timber_2023", "scen_timber_sign")
 
 
-evidence_graph_v3_builder = EvidenceGraphV3Builder()
+evidence_graph_v3_builder = EvidenceGraphV3Builder(seed_demo=demo_data_allowed())

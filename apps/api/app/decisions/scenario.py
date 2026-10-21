@@ -85,14 +85,14 @@ class DecisionTransferScenarioEngine:
             sim_req = TransferSimulationRequest(
                 club_id=request.club_id,
                 formation=request.formation,
-                transfers_in=[t.player_id for t in in_transfers],
-                transfers_out=[t.player_id for t in out_transfers],
+                incoming_player_ids=[t.player_id for t in in_transfers],
+                outgoing_player_ids=[t.player_id for t in out_transfers],
             )
             sim_res = await self.squad_simulator.simulate_transfer(sim_req)
-            depth_before = sim_res.baseline_squad.overall_health.depth_health
-            depth_after = sim_res.scenario_squad.overall_health.depth_health
-            cov_before = sim_res.baseline_squad.overall_health.role_coverage_pct
-            cov_after = sim_res.scenario_squad.overall_health.role_coverage_pct
+            depth_before = sim_res.before.depth_risk_level
+            depth_after = sim_res.after.depth_risk_level
+            cov_before = sim_res.before.role_coverage_score * 100
+            cov_after = sim_res.after.role_coverage_score * 100
         else:
             depth_before = "ADEQUATE"
             depth_after = "HEALTHY" if len(in_transfers) >= len(out_transfers) else "THIN"

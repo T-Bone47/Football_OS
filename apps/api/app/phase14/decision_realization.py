@@ -15,6 +15,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import (
     AlignmentClassification,
     DataSufficiencyStatus,
@@ -81,10 +82,11 @@ class DecisionRealizationEvaluation:
 class DecisionRealizationEvaluator:
     """Evaluates decision-time expectations vs realized observations using Outcome Ledger."""
 
-    def __init__(self, ledger: OutcomeLedger | None = None) -> None:
+    def __init__(self, ledger: OutcomeLedger | None = None, seed_demo: bool = False) -> None:
         self._ledger = ledger or outcome_ledger
         self._evaluations: dict[str, DecisionRealizationEvaluation] = {}
-        self._seed_default_evaluations()
+        if seed_demo:
+            self._seed_default_evaluations()
 
     def evaluate_decision(
         self,
@@ -256,4 +258,4 @@ class DecisionRealizationEvaluator:
         )
 
 
-decision_realization_evaluator = DecisionRealizationEvaluator()
+decision_realization_evaluator = DecisionRealizationEvaluator(seed_demo=demo_data_allowed())

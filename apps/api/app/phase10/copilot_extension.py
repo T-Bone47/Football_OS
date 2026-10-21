@@ -1,62 +1,54 @@
-"""Phase 10 — Scout Copilot Project Integration (§15).
+"""Phase 10 — Scout Copilot Project Query Extension (§15).
 
-Extends the Scout Decision Copilot with persistent project & shortlist tools:
-  1. get_project_shortlist(project_id)
-  2. inspect_player_changes(player_name, watchlist_id)
-  3. explain_candidate_flagging(candidate_id, project_id)
-  4. simulate_project_scenario(sell_player, buy_player, project_id)
-  5. retrieve_candidate_evidence(candidate_id, project_id)
-
-All responses are deterministically anchored to verifiable project records,
-canonical feature vectors, and governed alert histories. Zero hallucination.
+Routes natural-language scout queries to deterministic lookups over the data the CALLER IS ALLOWED TO SEE.
+Answers state recorded values and say "not supplied" for anything missing. There is no default project, no
+canned player and no canned evidence: the previous dispatcher defaulted to a seeded project, answered "why was X
+flagged" with Saliba or Inácio regardless of the query, and returned four hardcoded "evidence" strings ("100%
+SHA-256 provenance linkage...") for any project.
 """
 from __future__ import annotations
 
 from typing import Any
 
-from app.phase10.recruitment_projects import recruitment_manager
+from app.phase10.recruitment_projects import RecruitmentProject, recruitment_manager
 from app.phase10.scenarios import scenario_engine
 from app.phase10.watchlists import watchlist_engine
+from app.security.tokens import Principal
+
+_CONSTRAINT_LABEL = {True: "all verified", False: "at least one violated", None: "not fully verifiable"}
+
+
+def _show(value: Any, suffix: str = "") -> str:
+    return "not supplied" if value is None else f"{value}{suffix}"
 
 
 class ProjectCopilotDispatcher:
-    """Dispatches natural-language scout queries to deterministic operational tools."""
+    """Dispatches natural-language scout queries to deterministic, access-scoped lookups."""
 
-    def dispatch_query(self, query: str, project_id: str = "proj_cb_summer_2027") -> dict[str, Any]:
-        """Routes query to appropriate deterministic tool based on intent keywords."""
-        q_lower = query.lower()
+    def __init__(self, projects: Any = None, scenarios: Any = None, watchlists: Any = None) -> None:
+        self._projects = projects or recruitment_manager
+        self._scenarios = scenarios or scenario_engine
+        self._watchlists = watchlists or watchlist_engine
 
-        # 1. Shortlist query: "Show me the current shortlist"
-        if "shortlist" in q_lower or "candidates" in q_lower:
-            return self.get_project_shortlist(project_id)
-
-        # 2. What changed: "What changed about these players?"
-        if "changed" in q_lower or "alerts" in q_lower or "movement" in q_lower:
-            return self.inspect_recent_changes()
-
-        # 3. Why flagged: "Why was Player X flagged?"
-        if "flagged" in q_lower or "why was" in q_lower:
-            # Extract player name if mentioned
-            player_name = "Gonçalo Inácio" if "inácio" in q_lower or "inacio" in q_lower else "William Saliba"
-            return self.explain_candidate_flagging(player_name, project_id)
-
-        # 4. Simulate: "Simulate selling X and buying Y"
-        if "simulate" in q_lower or "sell" in q_lower or "buy" in q_lower:
-            return self.simulate_transfer_scenario(project_id)
-
-        # 5. Evidence: "What evidence supports this candidate?"
-        if "evidence" in q_lower or "support" in q_lower:
-            return self.retrieve_candidate_evidence(project_id)
-
-        # Default fallback: project status summary
-        return self.get_project_shortlist(project_id)
-
-    def get_project_shortlist(self, project_id: str) -> dict[str, Any]:
-        """Returns the verified candidate shortlist for a recruitment project."""
-        p = recruitment_manager.get_project(project_id)
-        if not p:
+    def dispatch_query(self, query: str, project_id: str, principal: Principal) -> dict[str, Any]:
+        try:
+            project = self._projects.get_project_for(principal, project_id)
+        except KeyError:
             return {"error": f"Project '{project_id}' not found"}
+        q = query.lower()
+        if "shortlist" in q or "candidates" in q:
+            return self.get_project_shortlist(project)
+        if "changed" in q or "alerts" in q or "movement" in q:
+            return self.inspect_recent_changes(principal)
+        if "flagged" in q or "why was" in q:
+            return self.explain_candidate_flagging(project, query)
+        if "simulate" in q or "sell" in q or "buy" in q:
+            return self.simulate_transfer_scenario(project, principal)
+        if "evidence" in q or "support" in q:
+            return self.retrieve_candidate_evidence(project)
+        return self.get_project_shortlist(project)
 
+    def get_project_shortlist(self, p: RecruitmentProject) -> dict[str, Any]:
         return {
             "intent": "PROJECT_SHORTLIST",
             "project_name": p.name,
@@ -76,87 +68,90 @@ class ProjectCopilotDispatcher:
                 }
                 for c in p.candidates
             ],
-            "text_summary": (
-                f"Project '{p.name}' currently has {len(p.candidates)} candidate(s) in review. "
-                f"Top option is {p.candidates[0].player_name if p.candidates else 'None'}."
-            ),
+            "text_summary": f"Project '{p.name}' currently has {len(p.candidates)} candidate(s) in review (unranked).",
         }
 
-    def inspect_recent_changes(self) -> dict[str, Any]:
-        """Fetches governed operational alerts for tracked players."""
-        alerts = watchlist_engine.list_alerts(limit=5)
+    def inspect_recent_changes(self, principal: Principal) -> dict[str, Any]:
+        """Alerts from the caller's own watchlists only."""
+        visible = {w["watchlist_id"] for w in self._watchlists.list_watchlists_for(principal)}
+        alerts = self._watchlists.list_alerts(limit=5, watchlist_ids=visible)
         return {
             "intent": "WATCHLIST_CHANGES",
             "alerts_count": len(alerts),
             "alerts": alerts,
             "text_summary": (
-                f"Found {len(alerts)} evidence-backed metric shift(s). "
-                f"Most recent: {alerts[0].get('what_changed') if alerts else 'No recent changes.'}"
+                f"Found {len(alerts)} recorded metric shift(s) on your watchlists. "
+                f"Most recent: {alerts[0].get('what_changed') if alerts else 'none.'}"
             ),
         }
 
-    def explain_candidate_flagging(self, player_name: str, project_id: str) -> dict[str, Any]:
-        """Returns deterministic evidence explaining why a candidate was flagged."""
-        p = recruitment_manager.get_project(project_id)
-        cand = next((c for c in (p.candidates if p else []) if player_name.lower() in c.player_name.lower()), None)
-
-        if not cand:
+    def explain_candidate_flagging(self, p: RecruitmentProject, query: str) -> dict[str, Any]:
+        """States the recorded values for the candidate named in the query; never guesses a player."""
+        q = query.lower()
+        cand = next((c for c in p.candidates if c.player_name.lower() in q), None)
+        if cand is None:
+            names = ", ".join(c.player_name for c in p.candidates) or "none yet"
             return {
                 "intent": "EXPLAIN_FLAGGING",
-                "player_name": player_name,
                 "found": False,
-                "text_summary": f"Player '{player_name}' was not found in project '{project_id}'.",
+                "text_summary": f"Name a candidate on this project in your question (candidates: {names}).",
             }
-
-        assess = cand.analytical_assessment
+        a = cand.analytical_assessment
         return {
             "intent": "EXPLAIN_FLAGGING",
             "player_name": cand.player_name,
             "found": True,
-            "tactical_fit_score": assess.get("tactical_fit_score"),
-            "contribution_rating": assess.get("contribution_rating"),
+            "tactical_fit_score": a.get("tactical_fit_score"),
+            "contribution_rating": a.get("contribution_rating"),
             "hard_constraints_passed": cand.hard_constraints_passed,
             "scout_notes": cand.scout_notes,
             "text_summary": (
-                f"{cand.player_name} was flagged because of a {assess.get('tactical_fit_score')}% tactical fit "
-                f"in the {p.formation if p else 'target'} formation and contribution rating of {assess.get('contribution_rating')}%. "
-                f"Scout notes: {', '.join(cand.scout_notes)}."
+                f"Recorded values for {cand.player_name}: tactical fit {_show(a.get('tactical_fit_score'))}, "
+                f"contribution {_show(a.get('contribution_rating'))} (source: {a.get('source', 'NONE')}); "
+                f"hard constraints {_CONSTRAINT_LABEL[cand.hard_constraints_passed]}. "
+                f"Scout notes: {', '.join(cand.scout_notes) or 'none'}."
             ),
         }
 
-    def simulate_transfer_scenario(self, project_id: str) -> dict[str, Any]:
-        """Executes and returns a scenario simulation for the project."""
-        scenarios = scenario_engine.list_scenarios(project_id)
+    def simulate_transfer_scenario(self, p: RecruitmentProject, principal: Principal) -> dict[str, Any]:
+        scenarios = self._scenarios.list_scenarios_for(principal, p.project_id)
         if not scenarios:
             return {"error": "No scenarios available for this project"}
-
         sc = scenarios[0]
         res = sc.get("results", {})
+        spend = res.get("net_transfer_spend_eur")
         return {
             "intent": "SIMULATE_SCENARIO",
             "scenario_name": sc.get("name"),
-            "net_transfer_spend_eur": res.get("net_transfer_spend_eur"),
+            "net_transfer_spend_eur": spend,
             "projected_points_delta": res.get("projected_league_points_delta"),
             "match_prediction_impact": res.get("match_prediction_impact"),
             "text_summary": (
-                f"Simulation '{sc.get('name')}': Net outlay €{res.get('net_transfer_spend_eur', 0):,.0f}. "
-                f"Projected league points delta: {res.get('projected_league_points_delta', 0):+.1f} pts."
+                f"Scenario '{sc.get('name')}': net outlay {'unknown' if spend is None else f'€{spend:,.0f}'} "
+                "(sum of user-entered fees). League points and match impact are not modelled."
             ),
         }
 
-    def retrieve_candidate_evidence(self, project_id: str) -> dict[str, Any]:
-        """Returns the cryptographic evidence nodes supporting candidate evaluations."""
-        p = recruitment_manager.get_project(project_id)
+    def retrieve_candidate_evidence(self, p: RecruitmentProject) -> dict[str, Any]:
+        """What is actually recorded for each candidate; no canned evidence."""
+        nodes = [
+            {
+                "candidate_id": c.candidate_id,
+                "player_name": c.player_name,
+                "assessment_source": c.analytical_assessment.get("source", "NONE"),
+                "hard_constraints": c.analytical_assessment.get("hard_constraints_breakdown", {}),
+            }
+            for c in p.candidates
+        ]
+        supplied = sum(1 for n in nodes if n["assessment_source"] == "USER_SUPPLIED")
         return {
             "intent": "RETRIEVE_EVIDENCE",
-            "project_id": project_id,
-            "evidence_nodes": [
-                "EVIDENCE_1: Hard constraints verified prior to multi-dimensional scoring",
-                "EVIDENCE_2: TacticalFitCalculator_v1.0 evaluated across 4-3-3 system",
-                "EVIDENCE_3: Baseline valuation bounded by comparable historical transfers",
-                "EVIDENCE_4: 100% SHA-256 provenance linkage back to bronze snapshot storage",
-            ],
-            "text_summary": "All candidate recommendations are supported by 4 verifiable evidence layers.",
+            "project_id": p.project_id,
+            "evidence_nodes": nodes,
+            "text_summary": (
+                f"{len(nodes)} candidate(s); {supplied} carry user-supplied assessment values. "
+                "No analytical-model evidence is attached to any candidate."
+            ),
         }
 
 

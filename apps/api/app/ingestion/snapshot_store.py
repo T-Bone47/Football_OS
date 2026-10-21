@@ -6,10 +6,21 @@ callers.
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Protocol
 
 from app.providers.base import RawResponse
+
+
+_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,63}")
+
+
+def safe_segment(value: str, label: str) -> str:
+    """provider/resource become directory names; reject anything that could leave the bronze root."""
+    if not isinstance(value, str) or not _SEGMENT.fullmatch(value) or ".." in value:
+        raise ValueError(f"unsafe {label} for a storage path: {value!r}")
+    return value
 
 
 class SnapshotStore(Protocol):
@@ -31,7 +42,9 @@ class LocalFilesystemSnapshotStore:
 
     async def save(self, provider: str, resource: str, response: RawResponse) -> tuple[str, str]:
         digest = hashlib.sha256(response.content).hexdigest()
-        target_dir = self._root / provider / resource
+        # Sanitize resource for filesystem: replace path separators with underscore
+        safe_resource = resource.replace("/", "_").replace("\\", "_")
+        target_dir = self._root / safe_segment(provider, "provider") / safe_segment(safe_resource, "resource")
         target_dir.mkdir(parents=True, exist_ok=True)
         target_path = target_dir / f"{digest}.json"
         if not target_path.exists():

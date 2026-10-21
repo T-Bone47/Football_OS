@@ -9,8 +9,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.demo_gate import require_demo_data
 from app.phase9.coverage_audit import build_coverage_matrix
 from app.phase9.cross_competition import build_cross_competition_matrix
 from app.phase9.ood_validation import validate_ood_behavior
@@ -44,7 +45,7 @@ def get_data_coverage_summary() -> dict[str, Any]:
             "provider": dim.provider,
             "quality": dim.coverage_quality,
             "validation_status": dim.validation_status,
-            "provenance_complete": dim.provenance_completeness >= 1.0,
+            "provenance_complete": None if dim.provenance_completeness is None else dim.provenance_completeness >= 1.0,
             "missingness_rate": dim.missingness_rate,
         }
 
@@ -105,11 +106,11 @@ def get_ood_status() -> dict[str, Any]:
     }
 
 
-@router.get("/model-validation")
+@router.get("/model-validation", dependencies=[Depends(require_demo_data)])
 def get_model_validation_surface() -> dict[str, Any]:
     """Returns validation metrics across all intelligence engines with honest limitations."""
     data_root = _get_data_root()
-    report = generate_phase9_report(data_root, test_passed=413, test_failed=0, test_skipped=61)
+    report = generate_phase9_report(data_root, test_passed=0, test_failed=0, test_skipped=0)  # demo mode only; no test result is claimed
     return {
         "release_state": report.release_state,
         "player_intelligence": report.player_intelligence,
@@ -123,7 +124,7 @@ def get_model_validation_surface() -> dict[str, Any]:
     }
 
 
-@router.get("/dry-run")
+@router.get("/dry-run", dependencies=[Depends(require_demo_data)])
 def get_dry_run_status() -> dict[str, Any]:
     """Runs and returns the latest production ingestion dry run verification (§19)."""
     report = execute_dry_run_cycle()

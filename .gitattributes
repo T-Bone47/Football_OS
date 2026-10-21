@@ -1,0 +1,28 @@
+# Keep the repository consistent across machines: text is stored with LF, and the
+# files that are not text are never touched.
+* text=auto eol=lf
+
+*.py text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.sh text eol=lf
+*.ps1 text eol=lf
+*.sql text eol=lf
+*.txt text eol=lf
+*.example text eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.joblib binary
+*.lock text eol=lf

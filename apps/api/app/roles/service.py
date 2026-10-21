@@ -51,9 +51,15 @@ class RoleService:
         as_of: datetime | None = None,
         feature_set_version: str = ROLE_FEATURE_SET_VERSION,
         custom_min_minutes: int | None = None,
+        feature_window: str = "last_5",
+        feature_set: str | None = None,
     ) -> PlayerRoleProfile:
         """Derives a functional role profile from the latest FeatureSnapshot as of the given timestamp
         and saves it to PostgreSQL idempotently.
+
+        ``feature_set`` pins the snapshot family (for example a season-aggregate
+        snapshot); without it the latest snapshot of any family is used, which
+        is the historical match-window behaviour.
         """
         eval_time = as_of or datetime.now(timezone.utc)
 
@@ -67,38 +73,38 @@ class RoleService:
         position_group = map_position_to_group(player.primary_position)
 
         # 2. Fetch latest FeatureSnapshot strictly <= eval_time (leakage safe)
-        snap_stmt = (
-            select(FeatureSnapshot)
-            .where(
-                FeatureSnapshot.entity_type == "player",
-                FeatureSnapshot.entity_id == player_id,
-                FeatureSnapshot.as_of <= eval_time,
-            )
-            .order_by(desc(FeatureSnapshot.as_of))
-            .limit(1)
+        snap_query = select(FeatureSnapshot).where(
+            FeatureSnapshot.entity_type == "player",
+            FeatureSnapshot.entity_id == player_id,
+            FeatureSnapshot.as_of <= eval_time,
         )
+        if feature_set is not None:
+            snap_query = snap_query.where(FeatureSnapshot.feature_set == feature_set)
+        snap_stmt = snap_query.order_by(desc(FeatureSnapshot.as_of)).limit(1)
         snap_res = await self.session.execute(snap_stmt)
         snapshot = snap_res.scalar_one_or_none()
 
         raw_features = snapshot.features if snapshot else {}
         snapshot_id = str(snapshot.id) if snapshot else None
 
-        # Determine sample minutes and matches
+        # Determine sample minutes and matches for the selected window.
         sample_minutes = int(
-            raw_features.get("minutes_last_5")
+            raw_features.get(f"minutes_{feature_window}")
             or raw_features.get("minutes_season_to_date")
             or raw_features.get("minutes")
             or 0
         )
         sample_matches = int(
-            raw_features.get("sample_matches_last_5")
-            or raw_features.get("appearances_last_5")
+            raw_features.get(f"sample_matches_{feature_window}")
+            or raw_features.get(f"appearances_{feature_window}")
             or raw_features.get("appearances")
             or 0
         )
 
         # 3. Extract & Standardize features
-        extracted = self.profiler.extract_role_features(raw_features, position_group)
+        extracted = self.profiler.extract_role_features(
+            raw_features, position_group, window=feature_window
+        )
         standardized = self.profiler.standardize(extracted)
 
         # 4. Compute continuous 9-dimension scores [0.0, 1.0]
@@ -117,6 +123,10 @@ class RoleService:
             primary_archetype = None
             secondary_archetype = None
             archetype_confidence = None
+            # A below-threshold sample produces neutral placeholder scores, not
+            # evidence. Persist no dimension profile so no interface can render
+            # a percentile shape for a player with insufficient minutes.
+            profile_scores = {}
         else:
             role_status = "QUALIFIED"
             primary_archetype, secondary_archetype, archetype_confidence = (
@@ -126,6 +136,9 @@ class RoleService:
         provenance = {
             "source_feature_snapshot_id": snapshot_id,
             "feature_set_version": feature_set_version,
+            "feature_window": feature_window,
+            "feature_set": feature_set,
+            "classification_method": "rules_based_role_profiler_v1",
             "min_minutes_threshold": min_threshold,
             "evaluation_time": eval_time.isoformat(),
         }
@@ -186,7 +199,14 @@ class RoleService:
         if as_of:
             stmt = stmt.where(PlayerRoleProfile.as_of <= as_of)
 
-        stmt = stmt.order_by(desc(PlayerRoleProfile.as_of)).limit(1)
+        # A qualified profile is the best available role estimate; a newer
+        # INSUFFICIENT_SAMPLE row does not contain a classification at all and
+        # would otherwise hide the qualified one. The returned row carries its
+        # own as_of so a caller can see how old the evidence is.
+        stmt = stmt.order_by(
+            desc(PlayerRoleProfile.role_status == "QUALIFIED"),
+            desc(PlayerRoleProfile.as_of),
+        ).limit(1)
         res = await self.session.execute(stmt)
         return res.scalar_one_or_none()
 
@@ -272,6 +292,9 @@ class RoleService:
             .where(
                 PlayerRoleProfile.player_id != player_id,
                 PlayerRoleProfile.as_of <= eval_time,
+                # Only profiles that actually passed the sample gate can be
+                # compared; an insufficient row has no archetype to match.
+                PlayerRoleProfile.role_status == "QUALIFIED",
             )
         )
 
@@ -291,6 +314,24 @@ class RoleService:
         p_res = await self.session.execute(select(Player).where(Player.id == player_id))
         t_player = p_res.scalar_one_or_none()
         target_name = t_player.name if t_player else "Target Player"
+
+        # A target that never cleared the sample gate has no evidence vector of
+        # its own; ranking peers against placeholder values would invent a
+        # similarity score. Refuse the comparison and say why.
+        if target_profile.role_status != "QUALIFIED":
+            return SimilarPlayersResponse(
+                target_player_id=player_id,
+                target_player_name=target_name,
+                as_of=eval_time,
+                total_evaluated=0,
+                results=[],
+                status="INSUFFICIENT_SAMPLE",
+                message=(
+                    f"{target_name} has {target_profile.sample_minutes} minutes across "
+                    f"{target_profile.sample_matches} matches. A similarity ranking needs a "
+                    "qualified playing-time sample; no comparable players are ranked."
+                ),
+            )
 
         evaluated: list[SimilarPlayerItem] = []
 

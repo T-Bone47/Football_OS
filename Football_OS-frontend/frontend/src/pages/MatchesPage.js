@@ -1,10 +1,28 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Database, ShieldAlert } from "lucide-react";
-import { apiErrorMessage, BACKEND_GAPS, getMatch, getMatches, getMatchEvents, getMatchLineups, getMatchPrediction, getMatchStatistics } from "@/lib/footballApi";
+import { apiErrorMessage, BACKEND_GAPS, getMatch, getMatchesPage, getMatchEvents, getMatchLineups, getMatchPrediction, getMatchStatistics } from "@/lib/footballApi";
+
+const PAGE_SIZE = 25;
+
+function formatKickoff(value) {
+  if (!value) return "—";
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? String(value) : parsed.toLocaleString();
+}
 
 function MatchList() {
-  const matches = useQuery({ queryKey: ["matches"], queryFn: () => getMatches({ limit: 50 }), retry: false });
+  const [page, setPage] = useState(1);
+  const matches = useQuery({
+    queryKey: ["matches", page],
+    queryFn: () => getMatchesPage({ page, page_size: PAGE_SIZE }),
+    retry: false,
+    placeholderData: undefined,
+  });
+  const result = matches.data;
+  const firstRow = result && result.total > 0 ? (result.page - 1) * result.page_size + 1 : 0;
+  const lastRow = result ? Math.min(result.page * result.page_size, result.total) : 0;
   return (
     <>
       <div className="page-heading">
@@ -22,8 +40,13 @@ function MatchList() {
       {matches.isError && (
         <div className="inline-state error-state" data-testid="matches-error"><Database size={17} /> {apiErrorMessage(matches.error)}</div>
       )}
-      {matches.data && (
+      {result && (
         <div className="player-table-wrap" data-testid="matches-table">
+          <div className="inline-state" style={{ padding: "10px 18px" }} data-testid="matches-count">
+            Showing {firstRow}–{lastRow} of {result.total} fixtures
+            {result.total_pages > 1 ? ` · page ${result.page} of ${result.total_pages}` : ""}
+            {matches.isFetching ? " · updating…" : ""}
+          </div>
           <table>
             <thead>
               <tr>
@@ -31,24 +54,57 @@ function MatchList() {
                 <th>AWAY</th>
                 <th>COMPETITION</th>
                 <th>DATE</th>
+                <th>SCORE</th>
                 <th>STATUS</th>
                 <th />
               </tr>
             </thead>
             <tbody>
-              {matches.data.map((m) => (
+              {result.items.map((m) => (
                 <tr key={m.id} data-testid={`match-row-${m.id}`}>
                   <td>{m.home_club_name || m.home_club_id || "—"}</td>
                   <td>{m.away_club_name || m.away_club_id || "—"}</td>
-                  <td>{m.competition_name || m.competition_id || "—"}</td>
-                  <td>{m.kickoff_time || m.date || "—"}</td>
+                  <td>{m.competition_name || m.competition_season_id || "—"}</td>
+                  <td>{formatKickoff(m.date)}</td>
+                  <td>{m.home_score != null && m.away_score != null ? `${m.home_score}–${m.away_score}` : "—"}</td>
                   <td>{m.status || "—"}</td>
                   <td><Link to={`/matches/${m.id}`} className="row-action">Open →</Link></td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {matches.data.length === 0 && <div className="table-empty">No matches surfaced by the connected backend yet.</div>}
+          {result.items.length === 0 && <div className="table-empty">No matches surfaced by the connected backend yet.</div>}
+          {result.total_pages > 1 && (
+            <div
+              className="workspace-toolbar"
+              style={{ justifyContent: "space-between", padding: "10px 18px" }}
+              data-testid="matches-pagination"
+            >
+              <span className="inline-state" data-testid="matches-page-indicator">
+                Page {result.page} of {result.total_pages}
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={result.page <= 1 || matches.isFetching}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  data-testid="matches-page-prev"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={!result.has_next || matches.isFetching}
+                  onClick={() => setPage((p) => p + 1)}
+                  data-testid="matches-page-next"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>

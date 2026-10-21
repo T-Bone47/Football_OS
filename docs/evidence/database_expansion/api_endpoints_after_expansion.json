@@ -1,0 +1,3402 @@
+{
+  "/data-status": {
+    "status": "OK",
+    "metrics": {
+      "canonical_players_count": 2334,
+      "canonical_matches_count": 268,
+      "canonical_transfers_count": 220,
+      "last_successful_ingestion_at": "2026-10-21T08:51:56.078466+00:00",
+      "last_successful_ingestion_age_hours": 0.71,
+      "provenance_coverage_rate": null
+    },
+    "schema_version": "0018",
+    "checked_at": "2026-10-21T09:34:26.028146+00:00"
+  },
+  "/api/v1/players/search?page=1&page_size=25": {
+    "items": [
+      {
+        "id": "56b49346-b7e0-412c-8fdf-5940ba68e006",
+        "name": "A. Ahmedhod\u017ei\u0107",
+        "first_name": "Anel",
+        "last_name": "Ahmedhod\u017ei\u0107",
+        "nationality": "Bosnia and Herzegovina",
+        "height_cm": 190,
+        "weight_kg": 84,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/1949.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "1949",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "03c1693c-e24a-4c83-9ff2-3ad234d2dbab",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "76ce9038-ac6a-4b37-8588-7fcaf1c683b2",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "a41f020f-a621-4d06-b5dd-d22c0ddc3eb4",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "76ce9038-ac6a-4b37-8588-7fcaf1c683b2",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 90,
+            "position": "Defender",
+            "rating": 6.2,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "c2e461c0-bcd3-4ddc-8c3b-c26f1fe01204",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "76ce9038-ac6a-4b37-8588-7fcaf1c683b2",
+            "appearances": 31,
+            "lineups": 30,
+            "minutes": 2650,
+            "position": "Defender",
+            "rating": 6.541935,
+            "goals": 2,
+            "assists": 0,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "8b355604-0f7c-4728-b104-ba8b0bc45edc",
+        "name": "A. Al Dakhil",
+        "first_name": "Ameen",
+        "last_name": "Al Dakhil",
+        "nationality": "Belgium",
+        "height_cm": 188,
+        "weight_kg": 81,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/323449.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "323449",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "f6bac59c-274a-4e8e-b7a6-e69a34d96015",
+            "club_id": "db3a3484-a077-41a7-93d1-a573be9660ef",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "6a161420-473a-4b5d-addc-fd9bb6884027",
+            "appearances": 3,
+            "lineups": 1,
+            "minutes": 153,
+            "position": "Defender",
+            "rating": 6.633333,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "93bae298-c899-4ef0-b8d1-e29c44dc98b2",
+            "club_id": "db3a3484-a077-41a7-93d1-a573be9660ef",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "6a161420-473a-4b5d-addc-fd9bb6884027",
+            "appearances": 1,
+            "lineups": 0,
+            "minutes": 23,
+            "position": "Defender",
+            "rating": 6.7,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "ab1aa482-20e7-4272-9e86-43c35546a52c",
+            "club_id": "db3a3484-a077-41a7-93d1-a573be9660ef",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "6a161420-473a-4b5d-addc-fd9bb6884027",
+            "appearances": 15,
+            "lineups": 13,
+            "minutes": 1055,
+            "position": "Defender",
+            "rating": 6.515384,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "5b954616-da3a-48cf-878a-a90cd2dab8fc",
+        "name": "A. Areola",
+        "first_name": "Alphonse Francis",
+        "last_name": "Areola",
+        "nationality": "France",
+        "height_cm": 195,
+        "weight_kg": 94,
+        "primary_position": "Goalkeeper",
+        "photo_url": "https://media.api-sports.io/football/players/253.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "253",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "e7155fed-977d-4b6e-9078-b84f9e80eb01",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "ae67653b-957c-4dce-b868-4047cbf6ad00",
+            "appearances": 31,
+            "lineups": 31,
+            "minutes": 2702,
+            "position": "Goalkeeper",
+            "rating": 7.377419,
+            "goals": 0,
+            "assists": 0,
+            "conceded": 53
+          },
+          {
+            "id": "10acdca8-6a20-473e-9f42-8e325fb35285",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 90,
+            "position": "Goalkeeper",
+            "rating": 6.2,
+            "goals": 0,
+            "assists": null,
+            "conceded": 5
+          },
+          {
+            "id": "124ea21a-9923-4f55-a3dc-32c40dc6d6a9",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "b6980a15-01e1-4ac1-a873-b1d1d90730fc",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "fe1dd77a-f6ac-42bc-adc8-0db7757dc722",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 90,
+            "position": "Goalkeeper",
+            "rating": 6.7,
+            "goals": 0,
+            "assists": null,
+            "conceded": 2
+          },
+          {
+            "id": "e6471920-c160-4a8c-bd68-c6d55149de4f",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "60866cab-ec30-4a17-ab20-36587d1b51c8",
+        "name": "A. Arias",
+        "first_name": null,
+        "last_name": null,
+        "nationality": null,
+        "height_cm": null,
+        "weight_kg": null,
+        "primary_position": null,
+        "photo_url": null,
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "673669",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": []
+      },
+      {
+        "id": "2e26e8c9-248e-4063-a4d0-9ad494c20d2f",
+        "name": "Aar\u00f3n Escandell",
+        "first_name": "Aar\u00f3n",
+        "last_name": "Escandell Banacloche",
+        "nationality": "Spain",
+        "height_cm": 185,
+        "weight_kg": 71,
+        "primary_position": "Goalkeeper",
+        "photo_url": "https://media.api-sports.io/football/players/46673.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "46673",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "bfe569fd-b37c-48ff-be5c-f10158e76a1d",
+            "club_id": "5690000e-c4d2-4208-8ee5-91a75de46e37",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "43343d79-fcd8-4957-8c9c-70bd05e6b087",
+            "appearances": 36,
+            "lineups": 19,
+            "minutes": 152,
+            "position": "Goalkeeper",
+            "rating": 6.15,
+            "goals": null,
+            "assists": null,
+            "conceded": 3
+          },
+          {
+            "id": "5f700401-356c-4eaa-9642-3d212b2eccb9",
+            "club_id": "5690000e-c4d2-4208-8ee5-91a75de46e37",
+            "competition_season_id": "2deb6b9c-48c9-4f81-9425-0ef5542c197c",
+            "snapshot_id": "43343d79-fcd8-4957-8c9c-70bd05e6b087",
+            "appearances": 42,
+            "lineups": 39,
+            "minutes": 3198,
+            "position": "Goalkeeper",
+            "rating": 7.091666,
+            "goals": null,
+            "assists": null,
+            "conceded": 37
+          }
+        ]
+      },
+      {
+        "id": "affed955-b5ed-4d87-a7fd-73aceb8f4f47",
+        "name": "Aaron Keto-Diyawa",
+        "first_name": "Aaron",
+        "last_name": "Keto-Diyawa",
+        "nationality": "England",
+        "height_cm": null,
+        "weight_kg": null,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/284357.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "284357",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "42e68df1-423a-408a-95f5-2fb74a0acf25",
+            "club_id": "02c74189-9a40-4e17-a654-229e2c241853",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "800b1f06-1351-4c96-9867-fd2fc5618928",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "f51414a7-f858-4fac-8531-eb6092d29818",
+            "club_id": "02c74189-9a40-4e17-a654-229e2c241853",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "800b1f06-1351-4c96-9867-fd2fc5618928",
+            "appearances": null,
+            "lineups": null,
+            "minutes": null,
+            "position": "Defender",
+            "rating": null,
+            "goals": null,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "1b772028-1d06-4dac-87d3-68388167d6cc",
+        "name": "Aaron Ramsey",
+        "first_name": null,
+        "last_name": null,
+        "nationality": "Wales",
+        "height_cm": null,
+        "weight_kg": null,
+        "primary_position": "ATT",
+        "photo_url": null,
+        "identities": [
+          {
+            "provider": "statsbomb",
+            "provider_player_id": "3517",
+            "confidence": 0.9,
+            "resolution_method": "NEW"
+          }
+        ],
+        "season_stats": []
+      },
+      {
+        "id": "227af69e-f12c-4225-9267-83ba7f1427e7",
+        "name": "A. Ayew",
+        "first_name": "Andr\u00e9 Morgan",
+        "last_name": "Rami Ayew",
+        "nationality": "Ghana",
+        "height_cm": 175,
+        "weight_kg": 70,
+        "primary_position": "Forward",
+        "photo_url": "https://media.api-sports.io/football/players/1370.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "1370",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "2e45166f-6efc-4b3e-ba75-ce5c502ab79b",
+            "club_id": "e9f32df7-b000-4452-a642-6a716e80b6a3",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "8e4173a0-5d0d-41c2-a71a-ce906c693dc1",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Forward",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "b9a44518-c021-4437-aa22-328923420bf8",
+        "name": "A. Bassinga",
+        "first_name": "Aboubacar",
+        "last_name": "Bassinga",
+        "nationality": "C\u00f4te d'Ivoire",
+        "height_cm": 178,
+        "weight_kg": 70,
+        "primary_position": "Midfielder",
+        "photo_url": "https://media.api-sports.io/football/players/453885.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "453885",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "a28d0308-55f8-488d-9f04-e376dced8bcf",
+            "club_id": "5690000e-c4d2-4208-8ee5-91a75de46e37",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "6454b4b8-a627-4e16-9301-a8601a35ca12",
+            "appearances": null,
+            "lineups": null,
+            "minutes": null,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": null,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "79147cfe-255e-403d-815a-25e652f08437",
+            "club_id": "5690000e-c4d2-4208-8ee5-91a75de46e37",
+            "competition_season_id": "2deb6b9c-48c9-4f81-9425-0ef5542c197c",
+            "snapshot_id": "6454b4b8-a627-4e16-9301-a8601a35ca12",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 46,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "7bbe4acb-464f-442d-993d-f468db87be9b",
+        "name": "A. Bay\u0131nd\u0131r",
+        "first_name": "Altay",
+        "last_name": "Bay\u0131nd\u0131r",
+        "nationality": "T\u00fcrkiye",
+        "height_cm": 198,
+        "weight_kg": 88,
+        "primary_position": "Goalkeeper",
+        "photo_url": "https://media.api-sports.io/football/players/50132.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "50132",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "f108ed59-d895-4228-ab74-d699d942e748",
+            "club_id": "8539a42c-822a-4fdf-a290-c2dfb25fc9c1",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "8a571be6-db88-4969-b3db-ef1cc62515b8",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "db3bb743-ed48-4d9d-a2a1-1df758defe16",
+            "club_id": "8539a42c-822a-4fdf-a290-c2dfb25fc9c1",
+            "competition_season_id": "77358bce-c197-4146-a60f-992b2aabfd50",
+            "snapshot_id": "8a571be6-db88-4969-b3db-ef1cc62515b8",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "82f08bff-5205-4703-9dff-b0d73e801a58",
+            "club_id": "8539a42c-822a-4fdf-a290-c2dfb25fc9c1",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "8a571be6-db88-4969-b3db-ef1cc62515b8",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 90,
+            "position": "Goalkeeper",
+            "rating": 7.0,
+            "goals": null,
+            "assists": null,
+            "conceded": 2
+          },
+          {
+            "id": "f0144ed8-c973-4e4c-ba49-7e05ed75b1d6",
+            "club_id": "8539a42c-822a-4fdf-a290-c2dfb25fc9c1",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "8a571be6-db88-4969-b3db-ef1cc62515b8",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "46493b2f-2ddd-4162-9884-5be6a66ab6ad",
+        "name": "Abdelaziz Barrada",
+        "first_name": null,
+        "last_name": null,
+        "nationality": "Morocco",
+        "height_cm": null,
+        "weight_kg": null,
+        "primary_position": "ATT",
+        "photo_url": null,
+        "identities": [
+          {
+            "provider": "statsbomb",
+            "provider_player_id": "23933",
+            "confidence": 0.9,
+            "resolution_method": "NEW"
+          }
+        ],
+        "season_stats": []
+      },
+      {
+        "id": "1d37f2b8-83f0-4a8a-9f7a-12e2443cc688",
+        "name": "Abdoul Karim Yoda",
+        "first_name": null,
+        "last_name": null,
+        "nationality": "France",
+        "height_cm": null,
+        "weight_kg": null,
+        "primary_position": null,
+        "photo_url": null,
+        "identities": [
+          {
+            "provider": "statsbomb",
+            "provider_player_id": "27092",
+            "confidence": 0.9,
+            "resolution_method": "NEW"
+          }
+        ],
+        "season_stats": []
+      },
+      {
+        "id": "e52292f9-a6aa-47a2-b531-4bb6520c2090",
+        "name": "A. Begovi\u0107",
+        "first_name": "Asmir",
+        "last_name": "Begovi\u0107",
+        "nationality": "Bosnia and Herzegovina",
+        "height_cm": 199,
+        "weight_kg": 101,
+        "primary_position": "Goalkeeper",
+        "photo_url": "https://media.api-sports.io/football/players/18858.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "18858",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "b4c0b64e-ef2a-4cbf-89d7-2e26a7e765f0",
+            "club_id": "37283b1c-6399-47ba-b7ac-6d6677c30c64",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "fcf69cae-fee1-407c-9ad8-ba1820b5d490",
+            "appearances": null,
+            "lineups": null,
+            "minutes": null,
+            "position": "Goalkeeper",
+            "rating": null,
+            "goals": null,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "1182d670-8797-4e52-80cd-db5132e75804",
+        "name": "A. Bell",
+        "first_name": "Amari'i Kyren",
+        "last_name": "Bell",
+        "nationality": "Jamaica",
+        "height_cm": 180,
+        "weight_kg": 66,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/19466.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "19466",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "11cd8401-99c2-437b-bfaf-62e44bcf6338",
+            "club_id": "7bcc1fcd-2ac2-4368-a18a-da3910ac8904",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "b8bbeccc-620c-47f8-b946-6f8a4ba858d9",
+            "appearances": 2,
+            "lineups": 1,
+            "minutes": 116,
+            "position": "Defender",
+            "rating": 6.75,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "88fbb98f-f215-40c5-81ab-9e5c314d5d21",
+            "club_id": "7bcc1fcd-2ac2-4368-a18a-da3910ac8904",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "b8bbeccc-620c-47f8-b946-6f8a4ba858d9",
+            "appearances": 4,
+            "lineups": 3,
+            "minutes": 263,
+            "position": "Defender",
+            "rating": 7.1,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "b2229eb2-ec5f-4883-94cb-70f121bc19b3",
+            "club_id": "7bcc1fcd-2ac2-4368-a18a-da3910ac8904",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "b8bbeccc-620c-47f8-b946-6f8a4ba858d9",
+            "appearances": 21,
+            "lineups": 21,
+            "minutes": 1722,
+            "position": "Defender",
+            "rating": 6.635,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "c1dbc5b5-bd6d-4a40-8d94-fce7a5268cae",
+        "name": "A. Ben Slimane",
+        "first_name": "Anis",
+        "last_name": "Ben Slimane",
+        "nationality": "Tunisia",
+        "height_cm": 188,
+        "weight_kg": 86,
+        "primary_position": "Midfielder",
+        "photo_url": "https://media.api-sports.io/football/players/199310.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "199310",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "0f971df0-fca5-4c51-bb23-50a316aba484",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "575a8c13-2fca-46f0-aa6d-8ff1bc8ce80e",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "d21abef8-0d87-4718-8690-4ac005ccab25",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "575a8c13-2fca-46f0-aa6d-8ff1bc8ce80e",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "80dd91da-5031-4793-829d-122a57c939e2",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "575a8c13-2fca-46f0-aa6d-8ff1bc8ce80e",
+            "appearances": 28,
+            "lineups": 15,
+            "minutes": 434,
+            "position": "Midfielder",
+            "rating": 6.326666,
+            "goals": null,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "06937a2d-d413-4f2b-b905-09e9b1d3f6fc",
+        "name": "A. Boiro",
+        "first_name": "Adama",
+        "last_name": "Boiro Boiro",
+        "nationality": "Senegal",
+        "height_cm": 183,
+        "weight_kg": 75,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/336998.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "336998",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "3ed87687-6452-4cca-b747-7c064647f791",
+            "club_id": "6144ae0e-6d63-4d2a-8e24-100ef92a5d40",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "9792f67d-c6c5-411e-a488-625c2a50379c",
+            "appearances": null,
+            "lineups": null,
+            "minutes": null,
+            "position": "Defender",
+            "rating": null,
+            "goals": null,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "c32b4e43-9243-4b1a-82d4-c17470f23abd",
+        "name": "Abraham del Moral",
+        "first_name": "Abraham",
+        "last_name": "del Moral Rando",
+        "nationality": "Spain",
+        "height_cm": 184,
+        "weight_kg": 76,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/188571.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "188571",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "a415cb1a-44c8-46b9-b58b-f9bf3b2d11dc",
+            "club_id": "f300be6f-c514-44ab-bdd6-d0e63bcfaaf3",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "de9d04a4-86fa-402f-a3c1-929428a7f81e",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "410f5c0f-0c3a-4367-b06a-0a8e65147fbb",
+            "club_id": "f300be6f-c514-44ab-bdd6-d0e63bcfaaf3",
+            "competition_season_id": "2deb6b9c-48c9-4f81-9425-0ef5542c197c",
+            "snapshot_id": "de9d04a4-86fa-402f-a3c1-929428a7f81e",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "e8fe70b2-6b24-4afe-b167-576e5a2cb215",
+            "club_id": "f300be6f-c514-44ab-bdd6-d0e63bcfaaf3",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "de9d04a4-86fa-402f-a3c1-929428a7f81e",
+            "appearances": 1,
+            "lineups": 0,
+            "minutes": 28,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "ddd92603-9040-48f8-b042-f7fcd17a9726",
+        "name": "A. Broja",
+        "first_name": "Armando",
+        "last_name": "Broja",
+        "nationality": "Albania",
+        "height_cm": 191,
+        "weight_kg": 83,
+        "primary_position": "Attacker",
+        "photo_url": "https://media.api-sports.io/football/players/138822.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "138822",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "f1fedffd-b17a-4f45-a82a-993c6f529e7f",
+            "club_id": "ff4e42b1-874d-416b-9f45-13ff8a0c5b10",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "325fcbfd-cf31-470f-99c9-eb336e727492",
+            "appearances": 4,
+            "lineups": 1,
+            "minutes": 153,
+            "position": "Attacker",
+            "rating": 6.55,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "09a0dd59-22c8-4bcd-952c-d785667f54fd",
+            "club_id": "ff4e42b1-874d-416b-9f45-13ff8a0c5b10",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "325fcbfd-cf31-470f-99c9-eb336e727492",
+            "appearances": 2,
+            "lineups": 1,
+            "minutes": 89,
+            "position": "Attacker",
+            "rating": 6.7,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "0a5842f2-5c45-407f-b882-1d636c69b4ee",
+            "club_id": "ff4e42b1-874d-416b-9f45-13ff8a0c5b10",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "325fcbfd-cf31-470f-99c9-eb336e727492",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Attacker",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "eb7ff347-2ed2-49d8-8a5b-fef7dfecf349",
+            "club_id": "ff4e42b1-874d-416b-9f45-13ff8a0c5b10",
+            "competition_season_id": "8e316e17-f521-4807-b8e2-29f9e9651023",
+            "snapshot_id": "325fcbfd-cf31-470f-99c9-eb336e727492",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Attacker",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "3e70d09f-80db-462d-a9a6-839109fc2b1c",
+            "club_id": "5518c03a-a206-4f52-b887-5fdb9f767d62",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "547251c5-03a0-4a5d-b2e7-4eb7d0e71e73",
+            "appearances": 8,
+            "lineups": 0,
+            "minutes": 81,
+            "position": "Attacker",
+            "rating": 6.576923,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "d296b3c1-6f26-4174-a179-bd615278ba0e",
+            "club_id": "ff4e42b1-874d-416b-9f45-13ff8a0c5b10",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "325fcbfd-cf31-470f-99c9-eb336e727492",
+            "appearances": 13,
+            "lineups": 6,
+            "minutes": 453,
+            "position": "Attacker",
+            "rating": 6.576923,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "547a6a6c-9b98-47e2-a11c-7fe05b9eebc2",
+        "name": "A. Brooks",
+        "first_name": "Andre",
+        "last_name": "Chance Brooks",
+        "nationality": "England",
+        "height_cm": 180,
+        "weight_kg": null,
+        "primary_position": "Midfielder",
+        "photo_url": "https://media.api-sports.io/football/players/379150.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "379150",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "56e0391c-f491-4a11-9b4b-d7d2a157b76e",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "7ea273f6-7493-40e6-9706-131f1c9d511a",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 46,
+            "position": "Midfielder",
+            "rating": 6.2,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "a6cdd1c2-b806-4ca8-8c3e-c32140fdf4ab",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "7ea273f6-7493-40e6-9706-131f1c9d511a",
+            "appearances": 2,
+            "lineups": 1,
+            "minutes": 103,
+            "position": "Midfielder",
+            "rating": 6.8,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "2e40b8fc-7955-4c30-b6ee-ba58bb022323",
+            "club_id": "e80d33bd-2255-4313-9d66-6c7b1b25cbfe",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "7ea273f6-7493-40e6-9706-131f1c9d511a",
+            "appearances": 20,
+            "lineups": 12,
+            "minutes": 942,
+            "position": "Midfielder",
+            "rating": 6.51,
+            "goals": 0,
+            "assists": 0,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "bc66c7d4-966b-423b-98bd-b0062375380d",
+        "name": "A. Campbell",
+        "first_name": "Allan",
+        "last_name": "Campbell",
+        "nationality": "Scotland",
+        "height_cm": 174,
+        "weight_kg": 73,
+        "primary_position": "Midfielder",
+        "photo_url": "https://media.api-sports.io/football/players/44922.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "44922",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "d94521f4-4e4e-408c-a967-00885abe9b8c",
+            "club_id": "7bcc1fcd-2ac2-4368-a18a-da3910ac8904",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "c1e43c70-f495-4937-8a89-53b400c96e6f",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "c732df99-f7e8-4ab5-9be2-0523b5ad3429",
+            "club_id": "7bcc1fcd-2ac2-4368-a18a-da3910ac8904",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "c1e43c70-f495-4937-8a89-53b400c96e6f",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          }
+        ]
+      },
+      {
+        "id": "a569c8e9-5a5f-42b0-a3c2-2d22b5e58802",
+        "name": "A. Christensen",
+        "first_name": "Andreas",
+        "last_name": "B\u00f8dtker Christensen",
+        "nationality": "Denmark",
+        "height_cm": 189,
+        "weight_kg": 84,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/2282.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "2282",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "c839a339-ccc0-412b-aecc-8cf5605bf55d",
+            "club_id": "0d3470b0-a476-4b73-950d-a75d3790beec",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "4a6aec76-4f1c-4e5b-bbdc-f52ec4497cf7",
+            "appearances": 36,
+            "lineups": 33,
+            "minutes": 1990,
+            "position": "Defender",
+            "rating": 6.893333,
+            "goals": 2,
+            "assists": 2,
+            "conceded": 0
+          },
+          {
+            "id": "9d86f8e8-0583-4411-8121-3a12aa8a5fa6",
+            "club_id": "0d3470b0-a476-4b73-950d-a75d3790beec",
+            "competition_season_id": "2deb6b9c-48c9-4f81-9425-0ef5542c197c",
+            "snapshot_id": "4a6aec76-4f1c-4e5b-bbdc-f52ec4497cf7",
+            "appearances": 3,
+            "lineups": 3,
+            "minutes": 180,
+            "position": "Defender",
+            "rating": 6.7,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "e568a62d-af8b-4516-9c80-a7d0f716323f",
+            "club_id": "0d3470b0-a476-4b73-950d-a75d3790beec",
+            "competition_season_id": "77358bce-c197-4146-a60f-992b2aabfd50",
+            "snapshot_id": "4a6aec76-4f1c-4e5b-bbdc-f52ec4497cf7",
+            "appearances": 7,
+            "lineups": 5,
+            "minutes": 440,
+            "position": "Defender",
+            "rating": 6.9,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "68de16ed-2f1e-4f2c-af29-b8ee072bed82",
+            "club_id": "0d3470b0-a476-4b73-950d-a75d3790beec",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "4a6aec76-4f1c-4e5b-bbdc-f52ec4497cf7",
+            "appearances": 3,
+            "lineups": 3,
+            "minutes": 121,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "5915003e-5be3-4a41-9a69-6478ae470ef6",
+        "name": "A. Connolly",
+        "first_name": "Aaron Anthony",
+        "last_name": "Connolly",
+        "nationality": "Republic of Ireland",
+        "height_cm": 175,
+        "weight_kg": 73,
+        "primary_position": "Attacker",
+        "photo_url": "https://media.api-sports.io/football/players/19772.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "19772",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "f306bbe8-3dd9-44f4-8ca0-826521868bc6",
+            "club_id": "90305232-b17b-4d7c-b24d-525ddd5d9bdf",
+            "competition_season_id": "8e316e17-f521-4807-b8e2-29f9e9651023",
+            "snapshot_id": "d3e0e78e-d732-4c3d-8b44-ec334b698907",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Attacker",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "4e947b7c-befa-481e-a0b9-2e74b17501a8",
+            "club_id": "90305232-b17b-4d7c-b24d-525ddd5d9bdf",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "d3e0e78e-d732-4c3d-8b44-ec334b698907",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Attacker",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "dad3d8a7-46d8-49b7-86c1-6f33ac16ac4d",
+        "name": "\u00c1. Correa",
+        "first_name": "\u00c1ngel Mart\u00edn",
+        "last_name": "Correa Mart\u00ednez",
+        "nationality": "Argentina",
+        "height_cm": 173,
+        "weight_kg": 68,
+        "primary_position": "Attacker",
+        "photo_url": "https://media.api-sports.io/football/players/53.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "53",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "aa0ad2d5-f317-4f87-8396-1cd84cc25a20",
+            "club_id": "37eaaf05-3f59-407d-a9ab-dd522c019125",
+            "competition_season_id": "0b4347e1-322e-4b82-901d-e8412372b3a8",
+            "snapshot_id": "9a470bac-9137-42f1-b7dc-d02db55d5547",
+            "appearances": 35,
+            "lineups": 26,
+            "minutes": 1532,
+            "position": "Attacker",
+            "rating": 7.015625,
+            "goals": 9,
+            "assists": 2,
+            "conceded": 0
+          },
+          {
+            "id": "de5ae64e-0e63-413c-895a-3a36cd1a85e0",
+            "club_id": "37eaaf05-3f59-407d-a9ab-dd522c019125",
+            "competition_season_id": "2deb6b9c-48c9-4f81-9425-0ef5542c197c",
+            "snapshot_id": "9a470bac-9137-42f1-b7dc-d02db55d5547",
+            "appearances": 4,
+            "lineups": 2,
+            "minutes": 142,
+            "position": "Attacker",
+            "rating": 7.0,
+            "goals": 1,
+            "assists": 1,
+            "conceded": 0
+          },
+          {
+            "id": "7ac17cb5-af24-4938-bca1-a4fa79037b9a",
+            "club_id": "37eaaf05-3f59-407d-a9ab-dd522c019125",
+            "competition_season_id": "77358bce-c197-4146-a60f-992b2aabfd50",
+            "snapshot_id": "9a470bac-9137-42f1-b7dc-d02db55d5547",
+            "appearances": 10,
+            "lineups": 2,
+            "minutes": 317,
+            "position": "Attacker",
+            "rating": 6.8,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "88fc8725-6f19-4b93-8e5b-87ff00a1b4d7",
+            "club_id": "37eaaf05-3f59-407d-a9ab-dd522c019125",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "9a470bac-9137-42f1-b7dc-d02db55d5547",
+            "appearances": 4,
+            "lineups": 1,
+            "minutes": 157,
+            "position": "Attacker",
+            "rating": null,
+            "goals": 1,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "7e34cb21-85c8-4bff-9bbd-4d91fc9c12f3",
+        "name": "A. Cozier-Duberry",
+        "first_name": "Amario",
+        "last_name": "Cozier-Duberry",
+        "nationality": "England",
+        "height_cm": 170,
+        "weight_kg": 57,
+        "primary_position": "Midfielder",
+        "photo_url": "https://media.api-sports.io/football/players/309501.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "309501",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "5bf304d4-7b66-4bc6-b40d-edeed50b2bc0",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "13c61309-b508-40d9-9895-5e165fdcf90b",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "dcf24f37-23f0-451a-ad91-f69d5715de32",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "20753338-d8d6-4f62-a898-ab8d1d51fe73",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "086d47de-4de0-4f36-9c5e-0338aaccaf67",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "77358bce-c197-4146-a60f-992b2aabfd50",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "a707b7d9-ab2e-4d21-b54a-c4f6c0c9be08",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 1,
+            "lineups": 0,
+            "minutes": 6,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "9e02e643-87a2-45c2-93c8-beade04001fb",
+            "club_id": "531d8e7b-8cdb-4aa5-a904-678a014726ef",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "ea45b66d-dd08-46c0-8844-de12ac1bce32",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Midfielder",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          }
+        ]
+      },
+      {
+        "id": "457a0b96-2680-443f-86fd-3f149dad9856",
+        "name": "A. Cresswell",
+        "first_name": "Aaron William",
+        "last_name": "Cresswell",
+        "nationality": "England",
+        "height_cm": 170,
+        "weight_kg": 66,
+        "primary_position": "Defender",
+        "photo_url": "https://media.api-sports.io/football/players/18813.png",
+        "identities": [
+          {
+            "provider": "api-football",
+            "provider_player_id": "18813",
+            "confidence": 1.0,
+            "resolution_method": "DIRECT_PROVIDER_ID"
+          }
+        ],
+        "season_stats": [
+          {
+            "id": "644167a3-6b91-4e49-ad22-c92eeab78541",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "de54114a-e1d2-4228-9083-3b24f63d8be4",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "2cbdc8be-b5e3-4895-adac-67e87f801117",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "c9f1d28d-062a-4259-b8dd-3d6132e7a46b",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 1,
+            "lineups": 1,
+            "minutes": 80,
+            "position": "Defender",
+            "rating": 6.2,
+            "goals": 0,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "d4f7c963-c670-4950-b0c7-bbdf1d00e26d",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "fe1dd77a-f6ac-42bc-adc8-0db7757dc722",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 6,
+            "lineups": 5,
+            "minutes": 417,
+            "position": "Defender",
+            "rating": 6.716666,
+            "goals": 1,
+            "assists": null,
+            "conceded": 0
+          },
+          {
+            "id": "32263a43-85fe-469b-9a8c-ee1242f3a051",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "322a814b-7690-48db-8898-b22c2757da7b",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 0,
+            "lineups": 0,
+            "minutes": 0,
+            "position": "Defender",
+            "rating": null,
+            "goals": 0,
+            "assists": null,
+            "conceded": null
+          },
+          {
+            "id": "851d38ec-62f1-4163-a1fc-7b80072da823",
+            "club_id": "eeabb782-47cb-4203-88ba-eb482c21ae94",
+            "competition_season_id": "d38f0e36-2531-4789-9d7e-509eb24c23aa",
+            "snapshot_id": "eaee2e75-3ea7-4e10-95a7-87c3e04a190b",
+            "appearances": 11,
+            "lineups": 4,
+            "minutes": 431,
+            "position": "Defender",
+            "rating": 6.51,
+            "goals": 0,
+            "assists": 0,
+            "conceded": 0
+          }
+        ]
+      }
+    ],
+    "total": 2334,
+    "page": 1,
+    "page_size": 25,
+    "total_pages": 94,
+    "has_next": true
+  },
+  "/api/v1/players/facets": {
+    "nationalities": [
+      "Albania",
+      "Algeria",
+      "Andorra",
+      "Angola",
+      "Argentina",
+      "Australia",
+      "Austria",
+      "Azerbaijan",
+      "Belarus",
+      "Belgium",
+      "Benin",
+      "Bosnia and Herzegovina",
+      "Brazil",
+      "Burkina Faso",
+      "Cameroon",
+      "Canada",
+      "Central African Republic",
+      "Chile",
+      "Colombia",
+      "Comoros",
+      "Congo",
+      "Congo\u00a0(Brazzaville)",
+      "Congo DR",
+      "Congo, (Kinshasa)",
+      "Costa Rica",
+      "C\u00f4te d'Ivoire",
+      "Croatia",
+      "Cura\u00e7ao",
+      "Cyprus",
+      "Czechia",
+      "Czech Republic",
+      "Denmark",
+      "Dominican Republic",
+      "Ecuador",
+      "Egypt",
+      "England",
+      "Equatorial Guinea",
+      "Estonia",
+      "Finland",
+      "France",
+      "Gabon",
+      "Gambia",
+      "Georgia",
+      "Germany",
+      "Ghana",
+      "Greece",
+      "Grenada",
+      "Guadeloupe",
+      "Guinea",
+      "Haiti",
+      "Hungary",
+      "Iceland",
+      "Iran",
+      "Iraq",
+      "Ireland",
+      "Israel",
+      "Italy",
+      "Jamaica",
+      "Japan",
+      "Kenya",
+      "Korea Republic",
+      "Korea\u00a0(South)",
+      "Kosovo",
+      "Lithuania",
+      "Mali",
+      "Mexico",
+      "Moldova",
+      "Montenegro",
+      "Montserrat",
+      "Morocco",
+      "Mozambique",
+      "Netherlands",
+      "New Zealand",
+      "Nigeria",
+      "Northern Ireland",
+      "North Macedonia",
+      "Norway",
+      "Paraguay",
+      "Peru",
+      "Poland",
+      "Portugal",
+      "Republic of Ireland",
+      "Romania",
+      "Russia",
+      "Scotland",
+      "Senegal",
+      "Serbia",
+      "Sierra Leone",
+      "Slovakia",
+      "Slovenia",
+      "South Africa",
+      "Spain",
+      "Sweden",
+      "Switzerland",
+      "Togo",
+      "Tunisia",
+      "Turkey",
+      "T\u00fcrkiye",
+      "Ukraine",
+      "United States of America",
+      "Uruguay",
+      "USA",
+      "Venezuela\u00a0(Bolivarian Republic)",
+      "Wales",
+      "Zimbabwe"
+    ],
+    "positions": [
+      "ATT",
+      "Attacker",
+      "DEF",
+      "Defender",
+      "Forward",
+      "GK",
+      "Goalkeeper",
+      "MID",
+      "Midfielder"
+    ],
+    "total_players": 2334
+  },
+  "/api/v1/players/coverage": {
+    "canonical_players": 2334,
+    "provider_mappings": {
+      "api-football": 1504,
+      "statsbomb": 830
+    },
+    "unique_mapped_players_by_provider": {
+      "api-football": 1504,
+      "statsbomb": 830
+    },
+    "players_with_season_stats": 1455,
+    "players_with_club_association": 1455,
+    "players_missing_identity": 0,
+    "players_missing_position": 343,
+    "duplicate_provider_ids": 0,
+    "by_competition_season": [
+      {
+        "competition": "Community Shield",
+        "season": "2023",
+        "players": 13
+      },
+      {
+        "competition": "Copa del Rey",
+        "season": "2023",
+        "players": 292
+      },
+      {
+        "competition": "EFL Trophy",
+        "season": "2023",
+        "players": 1
+      },
+      {
+        "competition": "Emirates Cup",
+        "season": "2023",
+        "players": 33
+      },
+      {
+        "competition": "FA Cup",
+        "season": "2023",
+        "players": 733
+      },
+      {
+        "competition": "FIFA Club World Cup",
+        "season": "2023",
+        "players": 4
+      },
+      {
+        "competition": "Friendlies Clubs",
+        "season": "2023",
+        "players": 699
+      },
+      {
+        "competition": "La Liga",
+        "season": "2023",
+        "players": 414
+      },
+      {
+        "competition": "League Cup",
+        "season": "2023",
+        "players": 666
+      },
+      {
+        "competition": "MLS All-Star",
+        "season": "2023",
+        "players": 35
+      },
+      {
+        "competition": "Premier League",
+        "season": "2023",
+        "players": 959
+      },
+      {
+        "competition": "Premier League 2 Division One",
+        "season": "2023",
+        "players": 1
+      },
+      {
+        "competition": "Premier League - Summer Series",
+        "season": "2023",
+        "players": 205
+      },
+      {
+        "competition": "Serie A",
+        "season": "2023",
+        "players": 2
+      },
+      {
+        "competition": "Super Cup",
+        "season": "2023",
+        "players": 6
+      },
+      {
+        "competition": "UEFA Champions League",
+        "season": "2023",
+        "players": 296
+      },
+      {
+        "competition": "UEFA - CONMEBOL - Club Challenge",
+        "season": "2023",
+        "players": 35
+      },
+      {
+        "competition": "UEFA Europa Conference League",
+        "season": "2023",
+        "players": 43
+      },
+      {
+        "competition": "UEFA Europa League",
+        "season": "2023",
+        "players": 139
+      },
+      {
+        "competition": "UEFA Super Cup",
+        "season": "2023",
+        "players": 54
+      }
+    ],
+    "latest_player_ingestion": {
+      "provider": "api-football",
+      "status": "FAILED",
+      "finished_at": "2026-10-21T08:52:25.547766+00:00",
+      "parameters": {
+        "page": 1,
+        "team": "728",
+        "season": 2023
+      },
+      "record_count": null,
+      "error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+    },
+    "ingestion_completeness": {
+      "scope": {
+        "team": "728",
+        "season": 2023
+      },
+      "declared_total_pages": null,
+      "latest_page": null,
+      "completed_pages": 0,
+      "failed_runs": 14,
+      "status": "BLOCKED_BY_PLAN",
+      "provider_plan_limit": {
+        "page_max": 3,
+        "message": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}"
+      },
+      "accessible_pages": 3,
+      "provider_quota_note": "Provider rate limits and quotas are not inferred from a successful request; FAILED runs carry the provider error."
+    },
+    "generated_at": "2026-10-21T09:34:32.535506+00:00"
+  },
+  "/api/v1/matches/search?page=1&page_size=1": {
+    "items": [
+      {
+        "id": "dd079718-1333-4dac-9019-4e2f1c3aca83",
+        "provider": "api-football",
+        "provider_fixture_id": "1549825",
+        "competition_season_id": "cbb7bb32-15c8-4530-8d21-900d70f48594",
+        "date": "2026-10-20T23:30:00Z",
+        "status": "SCHEDULED",
+        "status_detail": "Not Started",
+        "round": "Clausura - 15",
+        "venue_name": "Estadio General Santander",
+        "venue_city": "Cucuta",
+        "home_club_id": "d0988e1e-63ec-4e99-8392-d91229434f7d",
+        "home_club_name": "Cucuta",
+        "away_club_id": "062df5af-54bf-4204-8fbe-f2ef6122e949",
+        "away_club_name": "Atletico Nacional",
+        "competition_name": "Primera A",
+        "season_name": "2026",
+        "home_score": null,
+        "away_score": null,
+        "winner_club_id": null
+      }
+    ],
+    "total": 268,
+    "page": 1,
+    "page_size": 1,
+    "total_pages": 268,
+    "has_next": true
+  },
+  "/api/v1/players/roles?page=1&page_size=1": {
+    "items": [
+      {
+        "player_id": "56b49346-b7e0-412c-8fdf-5940ba68e006",
+        "player_name": "A. Ahmedhod\u017ei\u0107",
+        "primary_position": "Defender",
+        "role_status": "NOT_CLASSIFIED",
+        "position_group": null,
+        "primary_archetype": null,
+        "secondary_archetype": null,
+        "archetype_confidence": null,
+        "sample_minutes": null,
+        "sample_matches": null,
+        "as_of": null
+      }
+    ],
+    "requested": 1,
+    "returned": 1,
+    "classified": 0,
+    "insufficient": 0,
+    "not_classified": 1,
+    "coverage": {
+      "qualified_profiles": 33,
+      "insufficient_profiles": 76,
+      "total_players": 2334
+    }
+  },
+  "/api/v1/coverage/summary": {
+    "generated_at": "2026-10-21T09:34:38.854843+00:00",
+    "canonical": {
+      "players": 2334,
+      "provider_player_records": 2334,
+      "clubs": 599,
+      "national_teams": 0,
+      "competitions": 1247,
+      "seasons": 16,
+      "competition_seasons": 1266,
+      "fixtures": 268,
+      "match_lineups": 1228,
+      "match_events": 116018,
+      "match_statistics": 0,
+      "player_match_stats": 1228,
+      "player_season_stats": 4744,
+      "transfers": 220,
+      "player_aliases": 3666,
+      "player_club_memberships": 4744,
+      "bronze_snapshots": 174
+    },
+    "profile_completeness": {
+      "players": 2334,
+      "mean_completeness": 0.6809,
+      "players_fully_complete": 1263,
+      "by_field": {
+        "date_of_birth": 1455,
+        "nationality": 2285,
+        "primary_position": 1991,
+        "height_cm": 1355,
+        "weight_kg": 1263,
+        "photo_url": 1455,
+        "club_id": 1455
+      }
+    },
+    "statistic_completeness": {
+      "season_rows": 4744,
+      "minutes_known": 4488,
+      "minutes_unknown": 256,
+      "measured_zero_minutes": 1763,
+      "goals_known": 4186,
+      "goals_unknown": 558
+    },
+    "providers": [
+      {
+        "provider": "api-football",
+        "identity_rows": 1504,
+        "unique_players": 1504,
+        "runs": 201,
+        "last_success_at": "2026-10-21T08:51:56.078466+00:00",
+        "checkpoints": 41,
+        "checkpoint_status": {
+          "FAILED": 11,
+          "PARTIAL": 5,
+          "COMPLETE_FOR_DECLARED_SCOPE": 22,
+          "BLOCKED_BY_PLAN": 3
+        },
+        "enabled": true
+      },
+      {
+        "provider": "statsbomb",
+        "identity_rows": 830,
+        "unique_players": 830,
+        "runs": 3,
+        "last_success_at": "2026-10-20T17:58:44.193987+00:00",
+        "checkpoints": 33,
+        "checkpoint_status": {
+          "COMPLETE_FOR_DECLARED_SCOPE": 33
+        },
+        "enabled": true
+      }
+    ],
+    "competitions": [
+      {
+        "competition": "Community Shield",
+        "country": "England",
+        "season": "2023",
+        "players": 13,
+        "player_season_rows": 13,
+        "clubs": 2,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Copa del Rey",
+        "country": "Spain",
+        "season": "2023",
+        "players": 292,
+        "player_season_rows": 293,
+        "clubs": 9,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "EFL Trophy",
+        "country": "England",
+        "season": "2023",
+        "players": 1,
+        "player_season_rows": 1,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Emirates Cup",
+        "country": "World",
+        "season": "2023",
+        "players": 33,
+        "player_season_rows": 33,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "FA Cup",
+        "country": "England",
+        "season": "2023",
+        "players": 733,
+        "player_season_rows": 745,
+        "clubs": 20,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "FIFA Club World Cup",
+        "country": "World",
+        "season": "2023",
+        "players": 4,
+        "player_season_rows": 4,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Friendlies Clubs",
+        "country": "World",
+        "season": "2023",
+        "players": 699,
+        "player_season_rows": 726,
+        "clubs": 15,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "La Liga",
+        "country": "Spain",
+        "season": "2023",
+        "players": 414,
+        "player_season_rows": 418,
+        "clubs": 9,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "League Cup",
+        "country": "England",
+        "season": "2023",
+        "players": 666,
+        "player_season_rows": 679,
+        "clubs": 20,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "MLS All-Star",
+        "country": "USA",
+        "season": "2023",
+        "players": 35,
+        "player_season_rows": 35,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Premier League",
+        "country": "England",
+        "season": "2023",
+        "players": 959,
+        "player_season_rows": 1013,
+        "clubs": 20,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Premier League 2 Division One",
+        "country": "England",
+        "season": "2023",
+        "players": 1,
+        "player_season_rows": 1,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Premier League - Summer Series",
+        "country": "England",
+        "season": "2023",
+        "players": 205,
+        "player_season_rows": 205,
+        "clubs": 6,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Serie A",
+        "country": "Italy",
+        "season": "2023",
+        "players": 2,
+        "player_season_rows": 2,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "Super Cup",
+        "country": "Spain",
+        "season": "2023",
+        "players": 6,
+        "player_season_rows": 6,
+        "clubs": 3,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "UEFA Champions League",
+        "country": "World",
+        "season": "2023",
+        "players": 296,
+        "player_season_rows": 299,
+        "clubs": 8,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "UEFA - CONMEBOL - Club Challenge",
+        "country": "World",
+        "season": "2023",
+        "players": 35,
+        "player_season_rows": 35,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "UEFA Europa Conference League",
+        "country": "World",
+        "season": "2023",
+        "players": 43,
+        "player_season_rows": 43,
+        "clubs": 1,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "UEFA Europa League",
+        "country": "World",
+        "season": "2023",
+        "players": 139,
+        "player_season_rows": 139,
+        "clubs": 4,
+        "status": "IN_PROGRESS"
+      },
+      {
+        "competition": "UEFA Super Cup",
+        "country": "World",
+        "season": "2023",
+        "players": 54,
+        "player_season_rows": 54,
+        "clubs": 2,
+        "status": "IN_PROGRESS"
+      }
+    ],
+    "countries": {
+      "ranking_scope": "men's senior national teams (senior A internationals)",
+      "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+      "ranking_snapshot_date": "2026-10-07",
+      "selected_countries": 20,
+      "countries_with_covered_players": 20,
+      "country_coverage_pct": 100.0,
+      "coverage_denominator": "selected priority countries with at least one ingested player",
+      "players_without_nationality": 49,
+      "canonical_players": 2334,
+      "countries": [
+        {
+          "rank": 1,
+          "country_code": "ESP",
+          "country": "Spain",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 447,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 2,
+          "country_code": "ARG",
+          "country": "Argentina",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 62,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 3,
+          "country_code": "FRA",
+          "country": "France",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 153,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 4,
+          "country_code": "ENG",
+          "country": "England",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 476,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 5,
+          "country_code": "POR",
+          "country": "Portugal",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 50,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 6,
+          "country_code": "BRA",
+          "country": "Brazil",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 104,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 7,
+          "country_code": "MAR",
+          "country": "Morocco",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 20,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 8,
+          "country_code": "BEL",
+          "country": "Belgium",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 33,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 9,
+          "country_code": "NED",
+          "country": "Netherlands",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 45,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 10,
+          "country_code": "MEX",
+          "country": "Mexico",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 8,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 11,
+          "country_code": "COL",
+          "country": "Colombia",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 18,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 12,
+          "country_code": "SUI",
+          "country": "Switzerland",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 20,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 13,
+          "country_code": "GER",
+          "country": "Germany",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 89,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 14,
+          "country_code": "CRO",
+          "country": "Croatia",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 21,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 15,
+          "country_code": "ITA",
+          "country": "Italy",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 91,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 16,
+          "country_code": "USA",
+          "country": "United States",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 19,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 17,
+          "country_code": "JPN",
+          "country": "Japan",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 10,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 18,
+          "country_code": "SEN",
+          "country": "Senegal",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 24,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 19,
+          "country_code": "NOR",
+          "country": "Norway",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 14,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        },
+        {
+          "rank": 20,
+          "country_code": "URU",
+          "country": "Uruguay",
+          "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+          "ranking_snapshot_date": "2026-10-07",
+          "players_with_nationality": 21,
+          "coverage_status": "PARTIAL",
+          "denominator": "players ingested in the canonical index with this nationality"
+        }
+      ],
+      "note": "Nationality coverage counts players already in the canonical index. It is not a claim about the total population of footballers from those countries."
+    },
+    "ingestion": {
+      "recent_runs_by_status": {
+        "FAILED": 13,
+        "SUCCESS": 37
+      },
+      "last_successful_ingestion_at": "2026-10-21T08:51:56.078466+00:00",
+      "checkpoints_by_status": {
+        "FAILED": 11,
+        "PARTIAL": 5,
+        "COMPLETE_FOR_DECLARED_SCOPE": 55,
+        "BLOCKED_BY_PLAN": 3
+      },
+      "failures_by_status": {},
+      "checkpoints": [
+        "{\"league\": \"39\", \"season\": 2023}",
+        "{\"season\": 2023, \"team\": \"33\"}",
+        "{\"season\": 2023, \"team\": \"34\"}",
+        "{\"season\": 2023, \"team\": \"35\"}",
+        "{\"season\": 2023, \"team\": \"36\"}",
+        "{\"season\": 2023, \"team\": \"39\"}",
+        "{\"season\": 2023, \"team\": \"40\"}",
+        "{\"season\": 2023, \"team\": \"42\"}",
+        "{\"season\": 2023, \"team\": \"44\"}",
+        "{\"season\": 2023, \"team\": \"45\"}",
+        "{\"season\": 2023, \"team\": \"47\"}",
+        "{\"season\": 2023, \"team\": \"48\"}",
+        "{\"season\": 2023, \"team\": \"49\"}",
+        "{\"season\": 2023, \"team\": \"50\"}",
+        "{\"season\": 2023, \"team\": \"51\"}",
+        "{\"season\": 2023, \"team\": \"52\"}",
+        "{\"season\": 2023, \"team\": \"55\"}",
+        "{\"season\": 2023, \"team\": \"62\"}",
+        "{\"season\": 2023, \"team\": \"65\"}",
+        "{\"season\": 2023, \"team\": \"66\"}",
+        "{\"season\": 2023, \"team\": \"1359\"}",
+        "{\"league\": \"140\", \"season\": 2023}",
+        "{\"season\": 2023, \"team\": \"529\"}",
+        "{\"season\": 2023, \"team\": \"530\"}",
+        "{\"season\": 2023, \"team\": \"531\"}",
+        "{\"season\": 2023, \"team\": \"532\"}",
+        "{\"season\": 2023, \"team\": \"533\"}",
+        "{\"season\": 2023, \"team\": \"534\"}",
+        "{\"season\": 2023, \"team\": \"536\"}",
+        "{\"season\": 2023, \"team\": \"538\"}",
+        "{\"season\": 2023, \"team\": \"541\"}",
+        "{\"season\": 2023, \"team\": \"542\"}",
+        "{\"season\": 2023, \"team\": \"543\"}",
+        "{\"season\": 2023, \"team\": \"546\"}",
+        "{\"season\": 2023, \"team\": \"547\"}",
+        "{\"season\": 2023, \"team\": \"548\"}",
+        "{\"season\": 2023, \"team\": \"715\"}",
+        "{\"season\": 2023, \"team\": \"723\"}",
+        "{\"season\": 2023, \"team\": \"724\"}",
+        "{\"season\": 2023, \"team\": \"727\"}",
+        "{\"season\": 2023, \"team\": \"728\"}",
+        "{\"match_id\": 3754217}",
+        "{\"match_id\": 3754117}",
+        "{\"match_id\": 3754296}",
+        "{\"match_id\": 3753983}",
+        "{\"match_id\": 3754160}",
+        "{\"match_id\": 3754129}",
+        "{\"match_id\": 3754309}",
+        "{\"match_id\": 3754047}",
+        "{\"match_id\": 3754058}"
+      ]
+    },
+    "duplicates": {
+      "duplicate_provider_id_groups": 0,
+      "players_without_identity": 0,
+      "distinct_players_with_identities": 2334
+    },
+    "players_by_nationality": [
+      {
+        "nationality": "England",
+        "players": 476
+      },
+      {
+        "nationality": "Spain",
+        "players": 447
+      },
+      {
+        "nationality": "France",
+        "players": 153
+      },
+      {
+        "nationality": "Brazil",
+        "players": 104
+      },
+      {
+        "nationality": "Italy",
+        "players": 91
+      },
+      {
+        "nationality": "Germany",
+        "players": 89
+      },
+      {
+        "nationality": "Argentina",
+        "players": 62
+      },
+      {
+        "nationality": "Portugal",
+        "players": 50
+      },
+      {
+        "nationality": "Netherlands",
+        "players": 45
+      },
+      {
+        "nationality": "Republic of Ireland",
+        "players": 42
+      },
+      {
+        "nationality": "Scotland",
+        "players": 35
+      },
+      {
+        "nationality": "Belgium",
+        "players": 33
+      },
+      {
+        "nationality": "Wales",
+        "players": 30
+      },
+      {
+        "nationality": "C\u00f4te d'Ivoire",
+        "players": 27
+      },
+      {
+        "nationality": "Senegal",
+        "players": 24
+      },
+      {
+        "nationality": "Denmark",
+        "players": 24
+      },
+      {
+        "nationality": "Serbia",
+        "players": 24
+      },
+      {
+        "nationality": "Croatia",
+        "players": 21
+      },
+      {
+        "nationality": "Uruguay",
+        "players": 21
+      },
+      {
+        "nationality": "Morocco",
+        "players": 20
+      },
+      {
+        "nationality": "Switzerland",
+        "players": 20
+      },
+      {
+        "nationality": "Ghana",
+        "players": 19
+      },
+      {
+        "nationality": "USA",
+        "players": 19
+      },
+      {
+        "nationality": "Colombia",
+        "players": 18
+      },
+      {
+        "nationality": "Poland",
+        "players": 18
+      },
+      {
+        "nationality": "Sweden",
+        "players": 17
+      },
+      {
+        "nationality": "Nigeria",
+        "players": 15
+      },
+      {
+        "nationality": "Norway",
+        "players": 14
+      },
+      {
+        "nationality": "Cameroon",
+        "players": 14
+      },
+      {
+        "nationality": "Algeria",
+        "players": 14
+      },
+      {
+        "nationality": "Northern Ireland",
+        "players": 12
+      },
+      {
+        "nationality": "Austria",
+        "players": 12
+      },
+      {
+        "nationality": "Mali",
+        "players": 11
+      },
+      {
+        "nationality": "Tunisia",
+        "players": 10
+      },
+      {
+        "nationality": "Australia",
+        "players": 10
+      },
+      {
+        "nationality": "Jamaica",
+        "players": 10
+      },
+      {
+        "nationality": "Japan",
+        "players": 10
+      },
+      {
+        "nationality": "Chile",
+        "players": 9
+      },
+      {
+        "nationality": "Greece",
+        "players": 8
+      },
+      {
+        "nationality": "Ukraine",
+        "players": 8
+      },
+      {
+        "nationality": "Paraguay",
+        "players": 8
+      },
+      {
+        "nationality": "Romania",
+        "players": 8
+      },
+      {
+        "nationality": "Mexico",
+        "players": 8
+      },
+      {
+        "nationality": "Hungary",
+        "players": 8
+      },
+      {
+        "nationality": "Guinea",
+        "players": 7
+      },
+      {
+        "nationality": "Slovenia",
+        "players": 7
+      },
+      {
+        "nationality": "Iceland",
+        "players": 6
+      },
+      {
+        "nationality": "T\u00fcrkiye",
+        "players": 6
+      },
+      {
+        "nationality": "Costa Rica",
+        "players": 6
+      },
+      {
+        "nationality": "Turkey",
+        "players": 6
+      },
+      {
+        "nationality": "Bosnia and Herzegovina",
+        "players": 6
+      },
+      {
+        "nationality": "Canada",
+        "players": 6
+      },
+      {
+        "nationality": "United States of America",
+        "players": 5
+      },
+      {
+        "nationality": "Gabon",
+        "players": 5
+      },
+      {
+        "nationality": "Slovakia",
+        "players": 5
+      },
+      {
+        "nationality": "Albania",
+        "players": 5
+      },
+      {
+        "nationality": "Finland",
+        "players": 4
+      },
+      {
+        "nationality": "Ireland",
+        "players": 4
+      },
+      {
+        "nationality": "Korea Republic",
+        "players": 4
+      },
+      {
+        "nationality": "Ecuador",
+        "players": 4
+      },
+      {
+        "nationality": "Congo DR",
+        "players": 4
+      },
+      {
+        "nationality": "Czechia",
+        "players": 4
+      },
+      {
+        "nationality": "Guadeloupe",
+        "players": 3
+      },
+      {
+        "nationality": "Central African Republic",
+        "players": 3
+      },
+      {
+        "nationality": "Burkina Faso",
+        "players": 3
+      },
+      {
+        "nationality": "Montenegro",
+        "players": 3
+      },
+      {
+        "nationality": "Congo, (Kinshasa)",
+        "players": 3
+      },
+      {
+        "nationality": "Czech Republic",
+        "players": 3
+      },
+      {
+        "nationality": "Venezuela\u00a0(Bolivarian Republic)",
+        "players": 3
+      },
+      {
+        "nationality": "South Africa",
+        "players": 2
+      },
+      {
+        "nationality": "Israel",
+        "players": 2
+      },
+      {
+        "nationality": "New Zealand",
+        "players": 2
+      },
+      {
+        "nationality": "Cura\u00e7ao",
+        "players": 2
+      },
+      {
+        "nationality": "Lithuania",
+        "players": 2
+      },
+      {
+        "nationality": "Congo\u00a0(Brazzaville)",
+        "players": 2
+      },
+      {
+        "nationality": "Zimbabwe",
+        "players": 2
+      },
+      {
+        "nationality": "Estonia",
+        "players": 2
+      },
+      {
+        "nationality": "Egypt",
+        "players": 2
+      },
+      {
+        "nationality": "Sierra Leone",
+        "players": 2
+      },
+      {
+        "nationality": "Mozambique",
+        "players": 2
+      },
+      {
+        "nationality": "Benin",
+        "players": 2
+      },
+      {
+        "nationality": "Georgia",
+        "players": 2
+      },
+      {
+        "nationality": "North Macedonia",
+        "players": 2
+      },
+      {
+        "nationality": "Iraq",
+        "players": 2
+      },
+      {
+        "nationality": "Togo",
+        "players": 2
+      },
+      {
+        "nationality": "Andorra",
+        "players": 1
+      },
+      {
+        "nationality": "Comoros",
+        "players": 1
+      },
+      {
+        "nationality": "Russia",
+        "players": 1
+      },
+      {
+        "nationality": "Cyprus",
+        "players": 1
+      },
+      {
+        "nationality": "Belarus",
+        "players": 1
+      },
+      {
+        "nationality": "Kosovo",
+        "players": 1
+      },
+      {
+        "nationality": "Kenya",
+        "players": 1
+      },
+      {
+        "nationality": "Peru",
+        "players": 1
+      },
+      {
+        "nationality": "Angola",
+        "players": 1
+      },
+      {
+        "nationality": "Korea\u00a0(South)",
+        "players": 1
+      },
+      {
+        "nationality": "Gambia",
+        "players": 1
+      },
+      {
+        "nationality": "Iran",
+        "players": 1
+      },
+      {
+        "nationality": "Azerbaijan",
+        "players": 1
+      },
+      {
+        "nationality": "Congo",
+        "players": 1
+      },
+      {
+        "nationality": "Grenada",
+        "players": 1
+      },
+      {
+        "nationality": "Moldova",
+        "players": 1
+      },
+      {
+        "nationality": "Dominican Republic",
+        "players": 1
+      },
+      {
+        "nationality": "Haiti",
+        "players": 1
+      },
+      {
+        "nationality": "Montserrat",
+        "players": 1
+      },
+      {
+        "nationality": "Equatorial Guinea",
+        "players": 1
+      }
+    ],
+    "players_by_position": [
+      {
+        "position": "Midfielder",
+        "players": 478
+      },
+      {
+        "position": "Defender",
+        "players": 462
+      },
+      {
+        "position": "Attacker",
+        "players": 286
+      },
+      {
+        "position": "DEF",
+        "players": 207
+      },
+      {
+        "position": "Goalkeeper",
+        "players": 179
+      },
+      {
+        "position": "ATT",
+        "players": 155
+      },
+      {
+        "position": "MID",
+        "players": 127
+      },
+      {
+        "position": "Forward",
+        "players": 50
+      },
+      {
+        "position": "GK",
+        "players": 47
+      }
+    ],
+    "next_recommended_tasks": [
+      {
+        "provider": "api-football",
+        "entity_type": "teams",
+        "scope_key": "{\"league\": \"39\", \"season\": 2023}",
+        "status": "FAILED",
+        "last_error": "ProviderBadRequestError: API-Football returned errors in a 200 response: {'page': 'The Page field do not exist.'}",
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"33\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"40\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"47\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"49\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"65\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"530\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"533\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"536\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"542\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"543\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"546\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"547\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"548\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"715\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"723\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"724\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"727\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"728\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      }
+    ],
+    "coverage_notes": [
+      "A provider being reachable is not evidence that the database is complete.",
+      "Coverage percentages are only reported where the denominator is defined; otherwise a status is returned."
+    ]
+  },
+  "/api/v1/coverage/countries": {
+    "ranking_scope": "men's senior national teams (senior A internationals)",
+    "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+    "ranking_snapshot_date": "2026-10-07",
+    "selected_countries": 20,
+    "countries_with_covered_players": 20,
+    "country_coverage_pct": 100.0,
+    "coverage_denominator": "selected priority countries with at least one ingested player",
+    "players_without_nationality": 49,
+    "canonical_players": 2334,
+    "countries": [
+      {
+        "rank": 1,
+        "country_code": "ESP",
+        "country": "Spain",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 447,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 2,
+        "country_code": "ARG",
+        "country": "Argentina",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 62,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 3,
+        "country_code": "FRA",
+        "country": "France",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 153,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 4,
+        "country_code": "ENG",
+        "country": "England",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 476,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 5,
+        "country_code": "POR",
+        "country": "Portugal",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 50,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 6,
+        "country_code": "BRA",
+        "country": "Brazil",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 104,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 7,
+        "country_code": "MAR",
+        "country": "Morocco",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 20,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 8,
+        "country_code": "BEL",
+        "country": "Belgium",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 33,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 9,
+        "country_code": "NED",
+        "country": "Netherlands",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 45,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 10,
+        "country_code": "MEX",
+        "country": "Mexico",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 8,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 11,
+        "country_code": "COL",
+        "country": "Colombia",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 18,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 12,
+        "country_code": "SUI",
+        "country": "Switzerland",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 20,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 13,
+        "country_code": "GER",
+        "country": "Germany",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 89,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 14,
+        "country_code": "CRO",
+        "country": "Croatia",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 21,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 15,
+        "country_code": "ITA",
+        "country": "Italy",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 91,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 16,
+        "country_code": "USA",
+        "country": "United States",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 19,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 17,
+        "country_code": "JPN",
+        "country": "Japan",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 10,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 18,
+        "country_code": "SEN",
+        "country": "Senegal",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 24,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 19,
+        "country_code": "NOR",
+        "country": "Norway",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 14,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      },
+      {
+        "rank": 20,
+        "country_code": "URU",
+        "country": "Uruguay",
+        "ranking_source": "FIFA Men's World Ranking, published 7 October 2026 (https://inside.fifa.com/fifa-world-ranking/men)",
+        "ranking_snapshot_date": "2026-10-07",
+        "players_with_nationality": 21,
+        "coverage_status": "PARTIAL",
+        "denominator": "players ingested in the canonical index with this nationality"
+      }
+    ],
+    "note": "Nationality coverage counts players already in the canonical index. It is not a claim about the total population of footballers from those countries."
+  },
+  "/api/v1/coverage/ingestion": {
+    "recent_runs_by_status": {
+      "FAILED": 13,
+      "SUCCESS": 37
+    },
+    "last_successful_ingestion_at": "2026-10-21T08:51:56.078466+00:00",
+    "checkpoints_by_status": {
+      "FAILED": 11,
+      "PARTIAL": 5,
+      "COMPLETE_FOR_DECLARED_SCOPE": 55,
+      "BLOCKED_BY_PLAN": 3
+    },
+    "failures_by_status": {},
+    "checkpoints": [
+      "{\"league\": \"39\", \"season\": 2023}",
+      "{\"season\": 2023, \"team\": \"33\"}",
+      "{\"season\": 2023, \"team\": \"34\"}",
+      "{\"season\": 2023, \"team\": \"35\"}",
+      "{\"season\": 2023, \"team\": \"36\"}",
+      "{\"season\": 2023, \"team\": \"39\"}",
+      "{\"season\": 2023, \"team\": \"40\"}",
+      "{\"season\": 2023, \"team\": \"42\"}",
+      "{\"season\": 2023, \"team\": \"44\"}",
+      "{\"season\": 2023, \"team\": \"45\"}",
+      "{\"season\": 2023, \"team\": \"47\"}",
+      "{\"season\": 2023, \"team\": \"48\"}",
+      "{\"season\": 2023, \"team\": \"49\"}",
+      "{\"season\": 2023, \"team\": \"50\"}",
+      "{\"season\": 2023, \"team\": \"51\"}",
+      "{\"season\": 2023, \"team\": \"52\"}",
+      "{\"season\": 2023, \"team\": \"55\"}",
+      "{\"season\": 2023, \"team\": \"62\"}",
+      "{\"season\": 2023, \"team\": \"65\"}",
+      "{\"season\": 2023, \"team\": \"66\"}",
+      "{\"season\": 2023, \"team\": \"1359\"}",
+      "{\"league\": \"140\", \"season\": 2023}",
+      "{\"season\": 2023, \"team\": \"529\"}",
+      "{\"season\": 2023, \"team\": \"530\"}",
+      "{\"season\": 2023, \"team\": \"531\"}",
+      "{\"season\": 2023, \"team\": \"532\"}",
+      "{\"season\": 2023, \"team\": \"533\"}",
+      "{\"season\": 2023, \"team\": \"534\"}",
+      "{\"season\": 2023, \"team\": \"536\"}",
+      "{\"season\": 2023, \"team\": \"538\"}",
+      "{\"season\": 2023, \"team\": \"541\"}",
+      "{\"season\": 2023, \"team\": \"542\"}",
+      "{\"season\": 2023, \"team\": \"543\"}",
+      "{\"season\": 2023, \"team\": \"546\"}",
+      "{\"season\": 2023, \"team\": \"547\"}",
+      "{\"season\": 2023, \"team\": \"548\"}",
+      "{\"season\": 2023, \"team\": \"715\"}",
+      "{\"season\": 2023, \"team\": \"723\"}",
+      "{\"season\": 2023, \"team\": \"724\"}",
+      "{\"season\": 2023, \"team\": \"727\"}",
+      "{\"season\": 2023, \"team\": \"728\"}",
+      "{\"match_id\": 3754217}",
+      "{\"match_id\": 3754117}",
+      "{\"match_id\": 3754296}",
+      "{\"match_id\": 3753983}",
+      "{\"match_id\": 3754160}",
+      "{\"match_id\": 3754129}",
+      "{\"match_id\": 3754309}",
+      "{\"match_id\": 3754047}",
+      "{\"match_id\": 3754058}"
+    ],
+    "next_recommended_tasks": [
+      {
+        "provider": "api-football",
+        "entity_type": "teams",
+        "scope_key": "{\"league\": \"39\", \"season\": 2023}",
+        "status": "FAILED",
+        "last_error": "ProviderBadRequestError: API-Football returned errors in a 200 response: {'page': 'The Page field do not exist.'}",
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"33\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"40\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"47\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"49\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"65\"}",
+        "status": "PARTIAL",
+        "last_error": null,
+        "command": "python tools/ingest_expansion.py run --competition Premier League --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"530\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"533\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"536\"}",
+        "status": "BLOCKED_BY_PLAN",
+        "last_error": "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"542\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"543\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"546\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"547\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"548\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"715\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"723\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"724\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"727\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      },
+      {
+        "provider": "api-football",
+        "entity_type": "players",
+        "scope_key": "{\"season\": 2023, \"team\": \"728\"}",
+        "status": "FAILED",
+        "last_error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}",
+        "command": "python tools/ingest_expansion.py run --competition La Liga --season 2023 --resume"
+      }
+    ]
+  },
+  "/api/v1/coverage/data-quality": {
+    "profile_completeness": {
+      "players": 2334,
+      "mean_completeness": 0.6809,
+      "players_fully_complete": 1263,
+      "by_field": {
+        "date_of_birth": 1455,
+        "nationality": 2285,
+        "primary_position": 1991,
+        "height_cm": 1355,
+        "weight_kg": 1263,
+        "photo_url": 1455,
+        "club_id": 1455
+      }
+    },
+    "statistic_completeness": {
+      "season_rows": 4744,
+      "minutes_known": 4488,
+      "minutes_unknown": 256,
+      "measured_zero_minutes": 1763,
+      "goals_known": 4186,
+      "goals_unknown": 558
+    },
+    "duplicates": {
+      "duplicate_provider_id_groups": 0,
+      "players_without_identity": 0,
+      "distinct_players_with_identities": 2334
+    }
+  }
+}

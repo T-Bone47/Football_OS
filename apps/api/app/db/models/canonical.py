@@ -1,4 +1,4 @@
-"""Canonical football entities (Silver layer, architecture doc §20/§21).
+"""Canonical football entities (Silver layer, architecture doc Â§20/Â§21).
 All entities are normalized from raw Bronze snapshots, carry explicit
 identity mappings back to external providers, and link to DataSnapshot
 for end-to-end data provenance.
@@ -81,6 +81,10 @@ class CompetitionSeason(Base):
 
 class Club(Base):
     __tablename__ = "clubs"
+    __table_args__ = (
+        Index("ix_clubs_name", "name"),
+        Index("ix_clubs_country", "country"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -104,6 +108,7 @@ class ClubIdentity(Base):
     __tablename__ = "club_identities"
     __table_args__ = (
         UniqueConstraint("provider", "provider_club_id", name="uq_club_identity_provider_id"),
+        Index("ix_club_identities_provider_lookup", "provider", "provider_club_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -123,6 +128,20 @@ class ClubIdentity(Base):
 
 class Player(Base):
     __tablename__ = "players"
+    __table_args__ = (
+        Index("ix_players_name", "name"),
+        Index("ix_players_nationality", "nationality"),
+        Index("ix_players_primary_position", "primary_position"),
+        Index("ix_players_club_id", "club_id"),
+        # Trigram index: the player search is a case-insensitive substring match
+        # (`name ILIKE '%q%'`), which a btree cannot serve.
+        Index(
+            "ix_players_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -134,12 +153,28 @@ class Player(Base):
     weight_kg: Mapped[int | None] = mapped_column(Integer)
     primary_position: Mapped[str | None] = mapped_column(String(32))
     photo_url: Mapped[str | None] = mapped_column(String(512))
+    # Current club (denormalized for common queries; maintained by normalization service).
+    # The time-aware history lives in `player_club_memberships`.
+    club_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("clubs.id", ondelete="SET NULL"), nullable=True)
+    # --- expansion fields (database expansion, Phase 1) -------------------------
+    display_name: Mapped[str | None] = mapped_column(String(160))
+    secondary_position: Mapped[str | None] = mapped_column(String(32))
+    country_of_birth: Mapped[str | None] = mapped_column(String(64))
+    preferred_foot: Mapped[str | None] = mapped_column(String(16))
+    active_status: Mapped[str] = mapped_column(String(16), nullable=False, default="UNKNOWN")
+    name_normalized: Mapped[str | None] = mapped_column(String(160))
+    identity_confidence: Mapped[float] = mapped_column(Float, default=1.0, nullable=False)
+    data_completeness: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
     identities: Mapped[list["PlayerIdentity"]] = relationship(
+        back_populates="player", cascade="all, delete-orphan"
+    )
+    aliases: Mapped[list["PlayerAlias"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
     season_stats: Mapped[list["PlayerSeasonStats"]] = relationship(back_populates="player")
@@ -156,13 +191,15 @@ class Player(Base):
     valuation_predictions: Mapped[list["ValuationPredictionRecord"]] = relationship(
         back_populates="player", cascade="all, delete-orphan"
     )
-
+    club: Mapped["Club | None"] = relationship(foreign_keys=[club_id])
 
 
 class PlayerIdentity(Base):
     __tablename__ = "player_identities"
     __table_args__ = (
         UniqueConstraint("provider", "provider_player_id", name="uq_player_identity_provider_id"),
+        Index("ix_player_identities_provider_lookup", "provider", "provider_player_id"),
+        Index("ix_player_identities_player_id", "player_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -175,15 +212,31 @@ class PlayerIdentity(Base):
     resolution_method: Mapped[str] = mapped_column(
         String(64), nullable=False, default="DIRECT_PROVIDER_ID"
     )
+    # --- expansion fields (database expansion, Phase 1) -------------------------
+    source_url: Mapped[str | None] = mapped_column(String(512))
+    source_record_hash: Mapped[str | None] = mapped_column(String(64))
+    review_status: Mapped[str] = mapped_column(String(32), nullable=False, default="AUTO")
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     player: Mapped["Player"] = relationship(back_populates="identities")
 
 
 class PlayerSeasonStats(Base):
+    """Season aggregate for one player at one club in one competition-season.
+
+    Metric columns are NULLABLE on purpose: a statistic the provider did not report is
+    unknown, not zero. `raw_stats` keeps the source-native block so the canonical
+    columns can always be re-derived or audited.
+    """
+
     __tablename__ = "player_season_stats"
     __table_args__ = (
         UniqueConstraint("player_id", "club_id", "competition_season_id", name="uq_player_club_comp_season"),
+        Index("ix_player_season_stats_club_id", "club_id"),
+        Index("ix_player_season_stats_competition_season_id", "competition_season_id"),
+        Index("ix_player_season_stats_player_id", "player_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -200,14 +253,14 @@ class PlayerSeasonStats(Base):
         ForeignKey("data_snapshots.id", ondelete="SET NULL")
     )
 
-    appearances: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    lineups: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    minutes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    appearances: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    lineups: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     position: Mapped[str | None] = mapped_column(String(32))
     rating: Mapped[float | None] = mapped_column(Float)
-    goals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    assists: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    conceded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    goals: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    assists: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    conceded: Mapped[int | None] = mapped_column(Integer, nullable=True)
     raw_stats: Mapped[dict] = mapped_column(JSONB, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -221,6 +274,7 @@ class Match(Base):
     __table_args__ = (
         UniqueConstraint("competition_season_id", "home_club_id", "away_club_id", "date", name="uq_match_fixture"),
         UniqueConstraint("provider", "provider_fixture_id", name="uq_match_provider_fixture"),
+        Index("ix_matches_competition_season_date", "competition_season_id", "date"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -320,6 +374,7 @@ class MatchEvent(Base):
     __tablename__ = "match_events"
     __table_args__ = (
         UniqueConstraint("match_id", "event_key", name="uq_match_event_match_key"),
+        Index("ix_match_events_match_minute", "match_id", "minute"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -440,6 +495,8 @@ class PlayerMatchStats(Base):
     __tablename__ = "player_match_stats"
     __table_args__ = (
         UniqueConstraint("match_id", "club_id", "player_id", name="uq_player_match_stats"),
+        Index("ix_player_match_stats_match_club", "match_id", "club_id"),
+        Index("ix_player_match_stats_match_player", "match_id", "player_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)

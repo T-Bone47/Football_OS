@@ -15,7 +15,13 @@ from app.market.taxonomy import DataQualityStatus, TransferFeeStatus
 
 @pytest.fixture
 def sample_payload():
-    snapshot_path = Path("data/bronze/api-football/transfers/b0beb3a6793a7c02d9ada731a6edcd2e2e1b9ed78f425735a154688de94eabf6.json")
+    snapshot_path = (
+        Path(__file__).resolve().parents[2]
+        / "data" / "bronze" / "api-football" / "transfers"
+        / "b0beb3a6793a7c02d9ada731a6edcd2e2e1b9ed78f425735a154688de94eabf6.json"
+    )
+    if not snapshot_path.exists():  # data/bronze is gitignored; a clean checkout does not have this snapshot (R1)
+        pytest.skip("requires the locally ingested api-football transfers snapshot (data/bronze is gitignored)")
     return json.loads(snapshot_path.read_bytes())
 
 

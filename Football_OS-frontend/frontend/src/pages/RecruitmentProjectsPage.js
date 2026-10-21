@@ -16,6 +16,12 @@ export default function RecruitmentProjectsPage() {
   const [comparisonData, setComparisonData] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectForm, setProjectForm] = useState({ name: "", club: "", season: "", position: "", target_role: "", budget_eur: "" });
+  const [projectError, setProjectError] = useState(null);
+  const [candidateForm, setCandidateForm] = useState({ player_id: "", player_name: "", age: "", estimated_value_eur: "", tactical_fit_score: "" });
+  const [candidateError, setCandidateError] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -31,8 +37,52 @@ export default function RecruitmentProjectsPage() {
       }
     } catch (err) {
       console.error("Failed to load recruitment projects", err);
+      setLoadError(err.response?.data?.detail || err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const numberOrNull = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+  const messageOf = (err) => {
+    const detail = err.response?.data?.detail;
+    return typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message;
+  };
+
+  const handleCreateProject = async (e) => {
+    e.preventDefault();
+    setProjectError(null);
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/phase10/recruitment/projects`, {
+        ...projectForm,
+        budget_eur: numberOrNull(projectForm.budget_eur),
+      });
+      setProjects([...projects, res.data]);
+      setSelectedProject(res.data);
+      setShowProjectForm(false);
+      setProjectForm({ name: "", club: "", season: "", position: "", target_role: "", budget_eur: "" });
+    } catch (err) {
+      setProjectError(messageOf(err));
+    }
+  };
+
+  const handleAddCandidate = async (e) => {
+    e.preventDefault();
+    if (!selectedProject) return;
+    setCandidateError(null);
+    try {
+      await axios.post(`${BACKEND_URL}/api/phase10/recruitment/projects/${selectedProject.project_id}/candidates`, {
+        player_id: candidateForm.player_id,
+        player_name: candidateForm.player_name,
+        age: numberOrNull(candidateForm.age),
+        estimated_value_eur: numberOrNull(candidateForm.estimated_value_eur),
+        tactical_fit_score: numberOrNull(candidateForm.tactical_fit_score),
+      });
+      const res = await axios.get(`${BACKEND_URL}/api/phase10/recruitment/projects/${selectedProject.project_id}`);
+      setSelectedProject(res.data);
+      setCandidateForm({ player_id: "", player_name: "", age: "", estimated_value_eur: "", tactical_fit_score: "" });
+    } catch (err) {
+      setCandidateError(messageOf(err));
     }
   };
 
@@ -86,6 +136,34 @@ export default function RecruitmentProjectsPage() {
 
   return (
     <div className="recruitment-workspace" data-testid="recruitment-projects-page" style={{ padding: "24px", color: "#f8fafc" }}>
+      {loadError && (
+        <div style={{ color: "#f87171", marginBottom: "12px" }} data-testid="recruitment-load-error">Could not load projects: {loadError}</div>
+      )}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "12px" }}>
+        <button onClick={() => setShowProjectForm(!showProjectForm)} style={{ padding: "6px 14px", borderRadius: "4px", background: "#0284c7", color: "#fff", border: "none", cursor: "pointer" }} data-testid="new-project-btn">
+          {showProjectForm ? "Close" : "New project"}
+        </button>
+      </div>
+      {showProjectForm && (
+        <form onSubmit={handleCreateProject} style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", padding: "16px", marginBottom: "16px", display: "grid", gap: "8px", gridTemplateColumns: "repeat(3, 1fr)" }} data-testid="new-project-form">
+          {[["name", "Project name"], ["club", "Club"], ["season", "Season"], ["position", "Position"], ["target_role", "Target role"]].map(([key, label]) => (
+            <label key={key} style={{ fontSize: "12px", color: "#94a3b8" }}>
+              {label} (required)
+              <input type="text" required value={projectForm[key]} onChange={(e) => setProjectForm({ ...projectForm, [key]: e.target.value })} style={{ display: "block", width: "100%" }} />
+            </label>
+          ))}
+          <label style={{ fontSize: "12px", color: "#94a3b8" }}>
+            Budget EUR (optional)
+            <input type="number" min="0" value={projectForm.budget_eur} onChange={(e) => setProjectForm({ ...projectForm, budget_eur: e.target.value })} style={{ display: "block", width: "100%" }} />
+          </label>
+          {projectError && <div style={{ color: "#f87171", gridColumn: "1 / -1" }} data-testid="new-project-error">{projectError}</div>}
+          <button type="submit" style={{ gridColumn: "1 / -1" }}>Create project</button>
+        </form>
+      )}
+      {projects.length === 0 && !loadError && (
+        <div style={{ color: "#94a3b8", marginBottom: "16px" }} data-testid="no-projects">No recruitment projects yet. Create one to start a shortlist.</div>
+      )}
+
       {/* ── §19 Project Header ── */}
       {p && (
         <header className="project-header" style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", padding: "20px", marginBottom: "24px" }}>
@@ -106,15 +184,15 @@ export default function RecruitmentProjectsPage() {
             <div style={{ display: "flex", gap: "24px", textAlign: "right" }}>
               <div>
                 <p style={{ margin: 0, fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Formation</p>
-                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#38bdf8" }}>{p.formation}</p>
+                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#38bdf8" }}>{p.formation || "not set"}</p>
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Budget (EUR)</p>
-                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#4ade80" }}>€{(p.budget_eur / 1e6).toFixed(1)}M</p>
+                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#4ade80" }}>{p.budget_eur == null ? "not set" : `€${(p.budget_eur / 1e6).toFixed(1)}M`}</p>
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: "11px", color: "#64748b", textTransform: "uppercase" }}>Age Limit</p>
-                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#e2e8f0" }}>{p.min_age} - {p.max_age} yrs</p>
+                <p style={{ margin: 0, fontSize: "16px", fontWeight: "600", color: "#e2e8f0" }}>{p.min_age == null && p.max_age == null ? "not set" : `${p.min_age ?? "-"} - ${p.max_age ?? "-"} yrs`}</p>
               </div>
             </div>
           </div>
@@ -150,6 +228,18 @@ export default function RecruitmentProjectsPage() {
             <h2 style={{ fontSize: "16px", fontWeight: "600", margin: 0 }}>Candidate Pipeline ({p.candidates.length})</h2>
             <span style={{ fontSize: "12px", color: "#94a3b8" }}>Select 2 or more candidates to compare multi-dimensional profiles</span>
           </div>
+
+          <form onSubmit={handleAddCandidate} style={{ background: "#0f172a", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", marginBottom: "16px", display: "grid", gap: "8px", gridTemplateColumns: "repeat(5, 1fr) auto" }} data-testid="add-candidate-form">
+            {[["player_id", "Player id *", "text"], ["player_name", "Player name *", "text"], ["age", "Age", "number"], ["estimated_value_eur", "Value EUR", "number"], ["tactical_fit_score", "Fit score", "number"]].map(([key, label, type]) => (
+              <label key={key} style={{ fontSize: "11px", color: "#94a3b8" }}>
+                {label}
+                <input type={type} required={label.endsWith("*")} value={candidateForm[key]} onChange={(e) => setCandidateForm({ ...candidateForm, [key]: e.target.value })} style={{ display: "block", width: "100%" }} />
+              </label>
+            ))}
+            <button type="submit" style={{ alignSelf: "end" }}>Add candidate</button>
+            {candidateError && <div style={{ color: "#f87171", gridColumn: "1 / -1" }} data-testid="add-candidate-error">{candidateError}</div>}
+            <span style={{ gridColumn: "1 / -1", fontSize: "11px", color: "#64748b" }}>Values are recorded as entered (USER_SUPPLIED). Leave a field blank if unknown: it stays unknown.</span>
+          </form>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "16px" }}>
             {p.candidates.map((c) => {
@@ -188,7 +278,7 @@ export default function RecruitmentProjectsPage() {
                           <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "700" }}>{c.player_name}</h3>
                         </div>
                         <p style={{ margin: "2px 0 0 24px", fontSize: "12px", color: "#94a3b8" }}>
-                          {c.current_club} · {c.current_competition} · {c.age} yrs
+                          {c.current_club} · {c.current_competition} · {c.age == null ? "age n/a" : `${c.age} yrs`}
                         </p>
                       </div>
 
@@ -218,12 +308,12 @@ export default function RecruitmentProjectsPage() {
                       </div>
                       <div>
                         <span style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Valuation (EUR)</span>
-                        <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#4ade80" }}>€{((assess.estimated_value_eur || 0) / 1e6).toFixed(1)}M</p>
+                        <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "#4ade80" }}>{assess.estimated_value_eur == null ? "n/a" : `€${(assess.estimated_value_eur / 1e6).toFixed(1)}M`}</p>
                       </div>
                       <div>
                         <span style={{ fontSize: "10px", color: "#64748b", textTransform: "uppercase" }}>Risk Score</span>
                         <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: assess.overall_risk_score > 0.4 ? "#f87171" : "#fbbf24" }}>
-                          {assess.overall_risk_score?.toFixed(2) || "0.00"}
+                          {assess.overall_risk_score == null ? "n/a" : assess.overall_risk_score.toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -237,7 +327,7 @@ export default function RecruitmentProjectsPage() {
                   </div>
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #1e293b", paddingTop: "8px", marginTop: "8px", fontSize: "11px", color: "#64748b" }}>
-                    <span>Hard Constraints: <strong style={{ color: c.hard_constraints_passed ? "#4ade80" : "#f87171" }}>{c.hard_constraints_passed ? "PASS" : "FAIL"}</strong></span>
+                    <span>Hard Constraints: <strong style={{ color: c.hard_constraints_passed === true ? "#4ade80" : c.hard_constraints_passed === false ? "#f87171" : "#fbbf24" }}>{c.hard_constraints_passed === true ? "PASS" : c.hard_constraints_passed === false ? "FAIL" : "UNVERIFIED"}</strong></span>
                     <span>Confidence: <strong style={{ color: "#38bdf8" }}>{c.overall_confidence}</strong></span>
                   </div>
                 </div>
@@ -265,7 +355,7 @@ export default function RecruitmentProjectsPage() {
                 <td style={{ padding: "10px", color: "#94a3b8" }}>Tactical Fit</td>
                 {comparisonData.candidates.map((c) => (
                   <td key={c.candidate_id} style={{ padding: "10px", fontWeight: "600", color: "#38bdf8" }}>
-                    {c.analytical_assessment?.tactical_fit_score?.toFixed(1)}%
+                    {c.analytical_assessment?.tactical_fit_score == null ? "n/a" : `${c.analytical_assessment.tactical_fit_score.toFixed(1)}%`}
                   </td>
                 ))}
               </tr>
@@ -273,7 +363,7 @@ export default function RecruitmentProjectsPage() {
                 <td style={{ padding: "10px", color: "#94a3b8" }}>Contribution Percentile</td>
                 {comparisonData.candidates.map((c) => (
                   <td key={c.candidate_id} style={{ padding: "10px", fontWeight: "600" }}>
-                    {c.analytical_assessment?.contribution_rating?.toFixed(1)}%
+                    {c.analytical_assessment?.contribution_rating == null ? "n/a" : `${c.analytical_assessment.contribution_rating.toFixed(1)}%`}
                   </td>
                 ))}
               </tr>
@@ -281,7 +371,7 @@ export default function RecruitmentProjectsPage() {
                 <td style={{ padding: "10px", color: "#94a3b8" }}>Estimated Valuation</td>
                 {comparisonData.candidates.map((c) => (
                   <td key={c.candidate_id} style={{ padding: "10px", fontWeight: "600", color: "#4ade80" }}>
-                    €{((c.analytical_assessment?.estimated_value_eur || 0) / 1e6).toFixed(1)}M
+                    {c.analytical_assessment?.estimated_value_eur == null ? "n/a" : `€${(c.analytical_assessment.estimated_value_eur / 1e6).toFixed(1)}M`}
                   </td>
                 ))}
               </tr>
@@ -289,7 +379,7 @@ export default function RecruitmentProjectsPage() {
                 <td style={{ padding: "10px", color: "#94a3b8" }}>Overall Risk Score</td>
                 {comparisonData.candidates.map((c) => (
                   <td key={c.candidate_id} style={{ padding: "10px", fontWeight: "600", color: c.analytical_assessment?.overall_risk_score > 0.4 ? "#f87171" : "#fbbf24" }}>
-                    {c.analytical_assessment?.overall_risk_score?.toFixed(2)}
+                    {c.analytical_assessment?.overall_risk_score == null ? "n/a" : c.analytical_assessment.overall_risk_score.toFixed(2)}
                   </td>
                 ))}
               </tr>

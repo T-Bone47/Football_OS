@@ -42,8 +42,8 @@ class ComparableTransferEngine:
         candidate_age: float | None,
         target_role: str | None,
         candidate_role: str | None,
-        target_contrib: dict[str, float],
-        candidate_contrib: dict[str, float],
+        target_contrib: dict[str, float | None],
+        candidate_contrib: dict[str, float | None],
         days_diff: int,
         target_tier: float = 1.0,
         candidate_tier: float = 1.0,
@@ -63,12 +63,16 @@ class ComparableTransferEngine:
             s_age = 0.70
 
         # 3. Contribution similarity
+        # A dimension whose score is unknown (None) is excluded rather than
+        # treated as a zero performance value.
         if target_contrib and candidate_contrib:
-            common_keys = set(target_contrib.keys()) & set(candidate_contrib.keys())
+            scored_target = {k: v for k, v in target_contrib.items() if v is not None}
+            scored_candidate = {k: v for k, v in candidate_contrib.items() if v is not None}
+            common_keys = set(scored_target.keys()) & set(scored_candidate.keys())
             if common_keys:
-                dot = sum(target_contrib[k] * candidate_contrib[k] for k in common_keys)
-                norm_a = math.sqrt(sum(v * v for v in target_contrib.values()))
-                norm_b = math.sqrt(sum(v * v for v in candidate_contrib.values()))
+                dot = sum(scored_target[k] * scored_candidate[k] for k in common_keys)
+                norm_a = math.sqrt(sum(v * v for v in scored_target.values()))
+                norm_b = math.sqrt(sum(v * v for v in scored_candidate.values()))
                 if norm_a > 1e-6 and norm_b > 1e-6:
                     s_contrib = max(0.0, min(1.0, dot / (norm_a * norm_b)))
                 else:

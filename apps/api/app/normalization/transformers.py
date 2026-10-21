@@ -149,21 +149,38 @@ def transform_api_football_players(
         str_player_id = str(player_id)
         birth = p_data.get("birth", {})
 
+        provider_name = p_data.get("name") or "Unknown"
+        first_name = p_data.get("firstname")
+        last_name = p_data.get("lastname")
+        # Keep every observed spelling: the short provider name, the full name and
+        # the "Last, First" form are all useful for later cross-provider matching.
+        alias_candidates = {
+            str(value).strip()
+            for value in (
+                provider_name,
+                " ".join(part for part in (first_name, last_name) if part),
+                f"{last_name}, {first_name}" if first_name and last_name else None,
+            )
+            if value and str(value).strip()
+        }
+
         player = NormalizedPlayer(
             provider_id=str_player_id,
-            name=p_data.get("name", "Unknown"),
-            first_name=p_data.get("firstname"),
-            last_name=p_data.get("lastname"),
+            name=provider_name,
+            first_name=first_name,
+            last_name=last_name,
             date_of_birth=_parse_date(birth.get("date")),
             nationality=p_data.get("nationality"),
             height_cm=_parse_int_clean(p_data.get("height")),
             weight_kg=_parse_int_clean(p_data.get("weight")),
             primary_position=None,  # Will be enriched from games if present
             photo_url=p_data.get("photo"),
+            aliases=sorted(alias_candidates),
         )
 
         statistics = item.get("statistics", [])
         primary_pos = None
+        secondary_pos = None
 
         for stat in statistics:
             team = stat.get("team", {})
@@ -185,23 +202,35 @@ def transform_api_football_players(
             pos = games.get("position")
             if pos and not primary_pos:
                 primary_pos = pos
+            elif pos and pos != primary_pos and not secondary_pos:
+                secondary_pos = pos
 
             team_id = team.get("id")
             str_team_id = str(team_id) if team_id is not None else None
+
+            # The provider spells appearances two ways depending on the endpoint;
+            # a metric the provider did not send stays unknown (None), not zero.
+            appearances_raw = games.get("appearences")
+            if appearances_raw is None:
+                appearances_raw = games.get("appearances")
 
             player_stat = NormalizedPlayerStats(
                 provider_player_id=str_player_id,
                 provider_club_id=str_team_id,
                 provider_league_id=str(league_id),
                 season_year=season_year,
-                appearances=_parse_int_clean(games.get("appearences")) or 0,
-                lineups=_parse_int_clean(games.get("lineups")) or 0,
-                minutes=_parse_int_clean(games.get("minutes")) or 0,
+                appearances=_parse_int_clean(appearances_raw),
+                lineups=_parse_int_clean(games.get("lineups")),
+                minutes=_parse_int_clean(games.get("minutes")),
                 position=pos,
                 rating=_parse_float_clean(games.get("rating")),
-                goals=_parse_int_clean(goals.get("total")) or 0,
-                assists=_parse_int_clean(goals.get("assists")) or 0,
-                conceded=_parse_int_clean(goals.get("conceded")) or 0,
+                goals=_parse_int_clean(goals.get("total")),
+                assists=_parse_int_clean(goals.get("assists")),
+                conceded=_parse_int_clean(goals.get("conceded")),
+                # Preserve every provider block the feature/role pipeline can
+                # legitimately use; previously only passes/tackles/duels/
+                # dribbles/fouls/cards were retained, so shots and goalkeeper
+                # saves were discarded at ingest time.
                 raw_stats={
                     "passes": passes,
                     "tackles": tackles,
@@ -209,12 +238,18 @@ def transform_api_football_players(
                     "dribbles": dribbles,
                     "fouls": fouls,
                     "cards": cards,
+                    "shots": stat.get("shots") or {},
+                    "goals": goals,
+                    "penalty": stat.get("penalty") or {},
+                    "games": games,
                 },
             )
             stats_list.append(player_stat)
 
         if primary_pos and not player.primary_position:
             player.primary_position = primary_pos
+        if secondary_pos and not player.secondary_position:
+            player.secondary_position = secondary_pos
 
         players.append(player)
 

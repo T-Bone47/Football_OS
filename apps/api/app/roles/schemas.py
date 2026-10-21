@@ -62,6 +62,10 @@ class SimilarPlayersResponse(BaseModel):
     as_of: datetime
     total_evaluated: int
     results: list[SimilarPlayerItem]
+    # "OK" only when the target itself cleared the sample gate; otherwise no
+    # comparison is issued and the reason is stated instead of a ranked list.
+    status: str = "OK"
+    message: str | None = None
 
 
 class PlayerComparisonResponse(BaseModel):

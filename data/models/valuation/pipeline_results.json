@@ -332,5 +332,6 @@
     "sufficiency_and_ood_gate_operational": true,
     "reproducibility_verified": true
   },
-  "artifact_path": "C:\\Users\\olive\\Downloads\\football-intelligence-os1\\football-intelligence-os\\data\\models\\valuation\\val_lightgbm_20260920.joblib"
+  "artifact_path": "C:\\Users\\olive\\Downloads\\football-intelligence-os1\\football-intelligence-os\\data\\models\\valuation\\val_lightgbm_20260920.joblib",
+  "release_gate_status_superseded_by": "registry_manifest.json: re-measured with app.market.ml.release_gate -> MODEL_RELEASE_BLOCKED. The release_gate_status/checklist above are the original hard-coded claims and are kept only for traceability."
 }

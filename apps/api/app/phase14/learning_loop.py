@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import (
     AlignmentClassification,
     ErrorCategory,
@@ -92,11 +93,12 @@ class GovernedChallengerComparison:
 class DecisionLearningLoopEngine:
     """Coordinates learning signals, pattern mining, and governed challenger evaluations."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._signals: dict[str, LearningSignalRecord] = {}
         self._patterns: dict[str, DecisionPatternReport] = {}
         self._challenger_evals: dict[str, GovernedChallengerComparison] = {}
-        self._seed_default_learning()
+        if seed_demo:
+            self._seed_default_learning()
 
     def generate_learning_signal(
         self,
@@ -253,4 +255,4 @@ class DecisionLearningLoopEngine:
         self.mine_decision_patterns(min_sample=2)
 
 
-decision_learning_loop_engine = DecisionLearningLoopEngine()
+decision_learning_loop_engine = DecisionLearningLoopEngine(seed_demo=demo_data_allowed())

@@ -13,8 +13,10 @@ Enforces zero-silent-fallback: No inference may use an unverified/unknown model 
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 
@@ -39,7 +41,7 @@ class ModelGovernanceRecord:
     metrics: dict[str, float]
     calibration: dict[str, Any]
     artifact_hash: str
-    status: str  # MODEL_VALIDATED | MODEL_CANDIDATE | MODEL_RELEASE_BLOCKED
+    status: str  # MODEL_VALIDATED | MODEL_CANDIDATE_ONLY | MODEL_RELEASE_BLOCKED | MODEL_UNVALIDATED
     provenance: str
     description: str
     created_at: str
@@ -53,113 +55,86 @@ def _compute_spec_hash(spec_str: str) -> str:
     return hashlib.sha256(spec_str.encode("utf-8")).hexdigest()[:16]
 
 
+_VALUATION_DIR = Path(__file__).resolve().parents[4] / "data" / "models" / "valuation"
+
+
+def _unvalidated(name: str, version: str, feature_set: str, provenance: str, description: str) -> ModelGovernanceRecord:
+    """A component with NO recorded validation run and NO trained artifact. Nothing is claimed for it."""
+    return ModelGovernanceRecord(
+        name=name,
+        version=version,
+        feature_set=feature_set,
+        training_cutoff="UNKNOWN",
+        validation_period="NOT_VALIDATED",
+        metrics={},
+        calibration={},
+        artifact_hash="NO_ARTIFACT",
+        status="MODEL_UNVALIDATED",
+        provenance=provenance,
+        description=description,
+        created_at="UNKNOWN",
+    )
+
+
+def _valuation_ml_record() -> ModelGovernanceRecord:
+    """Derived from the real registry manifest (status, test metrics and pinned SHA-256)."""
+    try:
+        manifest = json.loads((_VALUATION_DIR / "registry_manifest.json").read_text(encoding="utf-8"))
+        entry = manifest["models"][manifest["active_model_id"]]
+    except (OSError, ValueError, KeyError, TypeError):
+        return _unvalidated(
+            "valuation_model", "VALUATION_ML_V1", "VALUATION_FEATURE_SET_V1", "app.market.ml",
+            "No valuation artifact is registered.",
+        )
+    return ModelGovernanceRecord(
+        name="valuation_model",
+        version=entry.get("model_version", "VALUATION_ML_V1"),
+        feature_set=entry.get("feature_set_version", "UNKNOWN"),
+        training_cutoff=(entry.get("training_period") or ["", "UNKNOWN"])[-1] or "UNKNOWN",
+        validation_period=" to ".join(entry.get("validation_period") or []) or "UNKNOWN",
+        metrics={k: float(v) for k, v in (entry.get("test_metrics") or {}).items()},
+        calibration=dict(entry.get("release_gate_evaluation") or {}),
+        artifact_hash=entry.get("artifact_sha256") or "UNPINNED",
+        status=entry.get("status", "UNKNOWN"),
+        provenance="data/models/valuation/registry_manifest.json",
+        description="LightGBM transfer-fee model. " + "; ".join(entry.get("blocking_reasons") or []),
+        created_at=entry.get("created_at", "UNKNOWN"),
+    )
+
+
 class ModelGovernanceRegistry:
-    """Central authority auditing and controlling all analytical model references."""
+    """Central authority auditing and controlling all analytical model references.
+
+    Records are derived from real evidence. Components without a recorded validation run are
+    MODEL_UNVALIDATED and are refused by verify_inference_eligibility().
+    """
 
     def __init__(self) -> None:
         self._registry: dict[tuple[str, str], ModelGovernanceRecord] = {}
         self._bootstrap_authoritative_models()
 
     def _bootstrap_authoritative_models(self) -> None:
-        # 1. Valuation Model (GBR_ValuationEngine_v1.0 / VALUATION_ML_V1)
-        val_rec = ModelGovernanceRecord(
-            name="valuation_model",
-            version="GBR_ValuationEngine_v1.0",
-            feature_set="fset_v2",
-            training_cutoff="2022-06-23",
-            validation_period="2022-06-30 to 2022-09-01",
-            metrics={"mae": 16547896.21, "rmse": 22943202.27, "med_ae": 13971026.79, "log_mae": 0.487, "r2": 0.3362},
-            calibration={"method": "CONFORMAL_RESIDUAL", "empirical_coverage": 0.812},
-            artifact_hash=_compute_spec_hash("GBR_ValuationEngine_v1.0:fset_v2:2022-06-23"),
-            status="MODEL_VALIDATED",
-            provenance="data/models/valuation/val_lightgbm_20260920.joblib",
-            description="Gradient Boosting Regressor with log1p target, Duan smearing and conformal uncertainty bands.",
-            created_at="2026-09-20T20:18:21Z",
-        )
-        self.register(val_rec)
-        # Register alias for schema compatibility
-        self.register(ModelGovernanceRecord(
-            name="valuation_model",
-            version="VALUATION_ML_V1",
-            feature_set="1.0.0",
-            training_cutoff="2022-06-23",
-            validation_period="2022-06-30 to 2022-09-01",
-            metrics=val_rec.metrics,
-            calibration=val_rec.calibration,
-            artifact_hash=val_rec.artifact_hash,
-            status="MODEL_VALIDATED",
-            provenance=val_rec.provenance,
-            description=val_rec.description,
-            created_at=val_rec.created_at,
+        self.register(_valuation_ml_record())
+        self.register(_unvalidated(
+            "valuation_model", "GBR_ValuationEngine_v1.0", "baseline_features", "app.market.valuation",
+            "Deterministic baseline valuation (age curve x cohort median); not a trained model.",
         ))
-
-        # 2. Match Prediction Model (BivariatePoisson_v1)
-        match_rec = ModelGovernanceRecord(
-            name="match_prediction_engine",
-            version="BivariatePoisson_v1",
-            feature_set="match_features_v1",
-            training_cutoff="2026-08-31",
-            validation_period="2026-09-01 to 2026-09-10",
-            metrics={"log_loss": 0.9984, "brier_score": 0.5742, "accuracy": 0.495, "ece": 0.042},
-            calibration={"method": "TEMPERATURE_SCALING", "temperature": 1.12},
-            artifact_hash=_compute_spec_hash("BivariatePoisson_v1:match_features_v1:2026-08-31"),
-            status="MODEL_VALIDATED",
-            provenance="app.prediction.goals.GoalPredictionEngine",
-            description="Pre-match Expected Goals bivariate Poisson distribution with Dixon-Coles dependency adjustment.",
-            created_at="2026-09-20T12:00:00Z",
-        )
-        self.register(match_rec)
-
-        # 3. Tactical Fit Engine (TacticalFitCalculator_v1.0)
-        tactical_rec = ModelGovernanceRecord(
-            name="tactical_fit_engine",
-            version="TacticalFitCalculator_v1.0",
-            feature_set="tactical_contexts_v1",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"system_alignment_acc": 0.915, "role_fit_r2": 0.884},
-            calibration={"method": "NON_LINEAR_POWER_PENALTY", "gamma": 1.4},
-            artifact_hash=_compute_spec_hash("TacticalFitCalculator_v1.0:tactical_contexts_v1"),
-            status="MODEL_VALIDATED",
-            provenance="app.tactical.service.TacticalFitCalculator",
-            description="Role and style compatibility scoring with system-specific threshold penalties.",
-            created_at="2026-09-18T10:00:00Z",
-        )
-        self.register(tactical_rec)
-
-        # 4. Transfer Risk Engine (TransferRiskEngine_v2)
-        risk_rec = ModelGovernanceRecord(
-            name="risk_engine",
-            version="TransferRiskEngine_v2",
-            feature_set="risk_features_v2",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"brier_score": 0.182, "roc_auc": 0.841},
-            calibration={"method": "LOGISTIC_SCALING", "risk_tiers": ["LOW", "MEDIUM", "HIGH", "CRITICAL"]},
-            artifact_hash=_compute_spec_hash("TransferRiskEngine_v2:risk_features_v2"),
-            status="MODEL_VALIDATED",
-            provenance="app.market.risk.TransferRiskEngine",
-            description="Four-pillar transfer risk decomposition: performance, adaptation, financial, and availability.",
-            created_at="2026-09-19T14:30:00Z",
-        )
-        self.register(risk_rec)
-
-        # 5. Role Similarity Engine (RoleSimilarity_v2)
-        sim_rec = ModelGovernanceRecord(
-            name="similarity_engine",
-            version="RoleSimilarity_v2",
-            feature_set="similarity_features_v2",
-            training_cutoff="2026-09-01",
-            validation_period="2026-09-01 to 2026-09-15",
-            metrics={"top5_role_concordance": 0.942},
-            calibration={"method": "WEIGHTED_COSINE_MINKOWSKI", "weights": "position_aligned"},
-            artifact_hash=_compute_spec_hash("RoleSimilarity_v2:similarity_features_v2"),
-            status="MODEL_VALIDATED",
-            provenance="app.roles.similarity.PlayerSimilarityEngine",
-            description="Weighted cosine similarity across positional sub-profiles and physical characteristics.",
-            created_at="2026-09-18T16:00:00Z",
-        )
-        self.register(sim_rec)
+        self.register(_unvalidated(
+            "match_prediction_engine", "BivariatePoisson_v1", "match_features_v1", "app.prediction",
+            "No trained match-prediction artifact or validation run exists in this repository.",
+        ))
+        self.register(_unvalidated(
+            "tactical_fit_engine", "TacticalFitCalculator_v1.0", "tactical_features_v1", "app.market.tactical",
+            "Rule-based calculator; no validation study recorded.",
+        ))
+        self.register(_unvalidated(
+            "risk_engine", "TransferRiskEngine_v2", "risk_features_v2", "app.market.risk.TransferRiskEngine",
+            "Rule-based risk decomposition; no validation study recorded.",
+        ))
+        self.register(_unvalidated(
+            "similarity_engine", "RoleSimilarity_v2", "similarity_features_v2", "app.roles.similarity.PlayerSimilarityEngine",
+            "Weighted cosine similarity; no validation study recorded.",
+        ))
 
     def register(self, record: ModelGovernanceRecord) -> None:
         """Registers a model governance record."""

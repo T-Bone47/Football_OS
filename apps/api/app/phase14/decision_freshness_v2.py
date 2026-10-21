@@ -23,6 +23,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import BenchmarkScope, FreshnessState
 
 
@@ -71,10 +72,11 @@ class DecisionFreshnessAssessment:
 class DecisionFreshnessV2Engine:
     """Evaluates decision staleness and maintains versioned benchmark isolation."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._benchmarks: dict[str, list[VersionedBenchmarkMetric]] = {}
         self._assessments: dict[str, DecisionFreshnessAssessment] = {}
-        self._seed_default_benchmarks_and_freshness()
+        if seed_demo:
+            self._seed_default_benchmarks_and_freshness()
 
     def register_benchmark(
         self,
@@ -247,4 +249,4 @@ class DecisionFreshnessV2Engine:
         )
 
 
-decision_freshness_v2_engine = DecisionFreshnessV2Engine()
+decision_freshness_v2_engine = DecisionFreshnessV2Engine(seed_demo=demo_data_allowed())

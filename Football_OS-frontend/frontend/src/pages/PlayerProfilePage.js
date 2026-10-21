@@ -156,7 +156,12 @@ export default function PlayerProfilePage() {
             <Metric label="Minutes" value={latest?.minutes} testId="player-metric-minutes" />
             <Metric label="Goals" value={latest?.goals} testId="player-metric-goals" />
             <Metric label="Assists" value={latest?.assists} testId="player-metric-assists" />
-            <Metric label="Rating" value={latest?.rating} sub={latest?.competition_id ? `Comp ${latest.competition_id}` : null} testId="player-metric-rating" />
+            <Metric
+              label="Rating"
+              value={latest?.rating != null && !Number.isNaN(Number(latest.rating)) ? Number(latest.rating).toFixed(2) : latest?.rating}
+              sub={latest?.competition_id ? `Comp ${latest.competition_id}` : null}
+              testId="player-metric-rating"
+            />
           </div>
 
           {/* Intelligence Engine Summary */}
@@ -169,6 +174,10 @@ export default function PlayerProfilePage() {
                   </h3>
                   <small style={{ color: "var(--muted)" }}>
                     Calculated as-of {new Date(intelligence.data.as_of).toLocaleDateString()} · v{intelligence.data.calculation_version}
+                    {" · "}
+                    {intelligence.data.provenance?.window === "season_aggregate"
+                      ? `${intelligence.data.sample_matches} apps season aggregate`
+                      : "match-log window"}
                   </small>
                 </div>
                 <div className="badges">
@@ -186,25 +195,37 @@ export default function PlayerProfilePage() {
                 </div>
               </div>
 
-              {/* Explanations */}
+              {/* Explanations. A strength narrative is only issued when the sample
+                  cleared the evidence threshold; otherwise the gap is stated. */}
               <div className="analytics-grid" style={{ marginTop: 12 }}>
-                <div>
-                  <p className="eyebrow" style={{ color: "var(--teal)", marginBottom: 4 }}>WHY STRONG</p>
-                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                    {intelligence.data.explanations?.why_strong?.map((exp, i) => <li key={i}>{exp}</li>)}
-                  </ul>
-                </div>
-                <div>
-                  <p className="eyebrow" style={{ color: "var(--amber)", marginBottom: 4 }}>
-                    {intelligence.data.data_status !== "EVALUATED" ? "WHY LOW CONFIDENCE" : "WHY DIFFERENT"}
-                  </p>
-                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
-                    {(intelligence.data.data_status !== "EVALUATED"
-                      ? intelligence.data.explanations?.why_low_confidence
-                      : intelligence.data.explanations?.why_different
-                    )?.map((exp, i) => <li key={i}>{exp}</li>)}
-                  </ul>
-                </div>
+                {intelligence.data.data_status === "EVALUATED" ? (
+                  <>
+                    <div>
+                      <p className="eyebrow" style={{ color: "var(--teal)", marginBottom: 4 }}>WHY STRONG</p>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        {intelligence.data.explanations?.why_strong?.map((exp, i) => <li key={i}>{exp}</li>)}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="eyebrow" style={{ color: "var(--amber)", marginBottom: 4 }}>WHY DIFFERENT</p>
+                      <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                        {intelligence.data.explanations?.why_different?.map((exp, i) => <li key={i}>{exp}</li>)}
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <div data-testid="overview-no-assessment">
+                    <p className="eyebrow" style={{ color: "var(--amber)", marginBottom: 4 }}>NO ASSESSMENT ISSUED</p>
+                    <p className="section-copy" style={{ margin: 0 }}>
+                      {intelligence.data.sample_minutes} minutes across {intelligence.data.sample_matches} matches is
+                      below the evidence threshold for a strength profile. No percentile, role or performance
+                      claim is made for this player.
+                    </p>
+                    <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.6 }}>
+                      {intelligence.data.explanations?.why_low_confidence?.map((exp, i) => <li key={i}>{exp}</li>)}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -229,10 +250,14 @@ export default function PlayerProfilePage() {
               <p className="section-copy" data-testid="role-profile-summary">
                 {role.data?.summary || (role.isError ? apiErrorMessage(role.error) : "Fetching role evidence from the connected backend…")}
               </p>
-              {radarData.length > 0 ? (
+              {roleProfile.data?.role_status === "QUALIFIED" && radarData.length > 0 ? (
                 <PerformanceRadar data={radarData} testId="overview-role-radar" />
               ) : (
-                <p className="section-copy" data-testid="overview-radar-empty">Role profile percentile data not yet available.</p>
+                <p className="section-copy" data-testid="overview-radar-empty">
+                  {roleProfile.data?.role_status === "INSUFFICIENT_SAMPLE"
+                    ? "No role profile is drawn: the sample is below the minimum minutes for a stable percentile shape."
+                    : "Role profile percentile data not yet available."}
+                </p>
               )}
             </div>
 
@@ -244,6 +269,9 @@ export default function PlayerProfilePage() {
                 </div>
                 {similar.isLoading && <p className="section-copy">Loading similarity…</p>}
                 {similar.isError && <p className="section-copy error-state">{apiErrorMessage(similar.error)}</p>}
+                {similar.data?.status === "INSUFFICIENT_SAMPLE" && (
+                  <p className="section-copy" data-testid="similar-insufficient">{similar.data.message}</p>
+                )}
                 <div className="similar-list" data-testid="similar-player-list">
                   {(similar.data?.results || []).slice(0, 4).map((c) => (
                     <div className="similar-row" key={c.player_id} data-testid={`similar-player-${c.player_id}`}>
@@ -664,10 +692,14 @@ export default function PlayerProfilePage() {
             </div>
             <div className="data-block">
               <div className="block-head"><h3>Percentile radar</h3><span className="badge model"><Radar size={10} /> ROLE MODEL</span></div>
-              {radarData.length > 0 ? (
+              {roleProfile.data?.role_status === "QUALIFIED" && radarData.length > 0 ? (
                 <PerformanceRadar data={radarData} testId="role-tab-radar" />
               ) : (
-                <p className="section-copy">Role profile scores not yet available for this player.</p>
+                <p className="section-copy" data-testid="role-tab-radar-empty">
+                  {roleProfile.data?.role_status === "INSUFFICIENT_SAMPLE"
+                    ? "No percentile radar: insufficient competitive minutes for a stable role profile."
+                    : "Role profile scores not yet available for this player."}
+                </p>
               )}
             </div>
           </div>

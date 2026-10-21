@@ -16,6 +16,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import DataSufficiencyStatus, EpistemicModality, OutcomeType
 
 
@@ -78,9 +79,10 @@ class OutcomeRecord:
 class OutcomeLedger:
     """Governed append-only Outcome Ledger engine with cryptographic integrity."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._records: dict[str, OutcomeRecord] = {}
-        self._seed_verified_outcomes()
+        if seed_demo:
+            self._seed_verified_outcomes()
 
     def append_outcome(
         self,
@@ -351,4 +353,4 @@ class OutcomeLedger:
             self.append_outcome(**s)
 
 
-outcome_ledger = OutcomeLedger()
+outcome_ledger = OutcomeLedger(seed_demo=demo_data_allowed())

@@ -19,6 +19,7 @@ and error classification are unit-tested against a mocked transport
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from typing import Any
 
@@ -26,7 +27,13 @@ import httpx
 
 from app.config import get_settings
 from app.providers.base import RawResponse
-from app.providers.errors import ProviderBadRequestError, classify_http_status_error, classify_transport_error
+from app.providers.errors import (
+    ProviderBadRequestError,
+    ProviderPlanLimitError,
+    ProviderRateLimitError,
+    classify_http_status_error,
+    classify_transport_error,
+)
 from app.providers.http import request_with_retry_config
 
 
@@ -73,7 +80,30 @@ class ApiFootballProvider:
             return  # not JSON — let downstream validation classify this
         errors = payload.get("errors") if isinstance(payload, dict) else None
         if errors:
-            raise ProviderBadRequestError(f"API-Football returned errors in a 200 response: {errors}")
+            message = f"API-Football returned errors in a 200 response: {errors}"
+            if isinstance(errors, dict):
+                for value in errors.values():
+                    if not isinstance(value, str):
+                        continue
+                    match = re.search(
+                        r"maximum value of (\d+) for the Page parameter",
+                        value,
+                        flags=re.IGNORECASE,
+                    )
+                    if match:
+                        raise ProviderPlanLimitError(
+                            message, page_max=int(match.group(1))
+                        )
+                    # Quota/rate-limit failures also arrive inside a 200
+                    # envelope; classifying them as a bad request would make
+                    # a resumable batch look like a malformed query.
+                    if re.search(
+                        r"rate\s*limit|too many requests|request limit|quota|requests per (minute|day)",
+                        value,
+                        flags=re.IGNORECASE,
+                    ):
+                        raise ProviderRateLimitError(message)
+            raise ProviderBadRequestError(message)
 
     def _to_raw_response(self, response: httpx.Response) -> RawResponse:
         return RawResponse(

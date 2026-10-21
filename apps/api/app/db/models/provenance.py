@@ -6,7 +6,7 @@ import enum
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, DateTime, Enum as SAEnum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, DateTime, Enum as SAEnum, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -29,12 +29,25 @@ class ValidationStatus(str, enum.Enum):
 
 
 class DataSource(Base):
+    """A provider we ingest from, with its licensing / attribution policy.
+
+    `enabled = false` means "do not ingest from this source" even if a capability row
+    exists. `redistribution_allowed` records whether the source's terms permit storing
+    and re-serving the data inside this product.
+    """
+
     __tablename__ = "data_sources"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     base_url: Mapped[str | None] = mapped_column(String(512))
     license: Mapped[str | None] = mapped_column(String(256))
+    license_url: Mapped[str | None] = mapped_column(String(512))
+    attribution: Mapped[str | None] = mapped_column(String(256))
+    redistribution_allowed: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    terms_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(String(512))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     ingestion_runs: Mapped[list["IngestionRun"]] = relationship(back_populates="data_source")
@@ -42,6 +55,13 @@ class DataSource(Base):
 
 class IngestionRun(Base):
     __tablename__ = "ingestion_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('QUEUED','RUNNING','SUCCESS','PARTIAL','FAILED')",
+            name="ck_ingestion_runs_status",
+        ),
+        Index("ix_ingestion_runs_data_source_status", "data_source_id", "status"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     data_source_id: Mapped[int] = mapped_column(ForeignKey("data_sources.id"), nullable=False)
@@ -63,7 +83,13 @@ class IngestionRun(Base):
 
 class DataSnapshot(Base):
     __tablename__ = "data_snapshots"
-    __table_args__ = (UniqueConstraint("ingestion_run_id", "sha256", name="uq_snapshot_run_sha"),)
+    __table_args__ = (
+        CheckConstraint(
+            "validation_status IN ('PENDING','VALID','INVALID')",
+            name="ck_data_snapshots_validation_status",
+        ),
+        UniqueConstraint("ingestion_run_id", "sha256", name="uq_snapshot_run_sha"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     ingestion_run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ingestion_runs.id"), nullable=False)

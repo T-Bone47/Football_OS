@@ -11,10 +11,17 @@ Exposes endpoints conforming to Section 41 (API Contract):
 - /api/v1/audit
 """
 
+from datetime import datetime, timezone
 from typing import Any
-from fastapi import APIRouter, HTTPException, Query, Header
-from pydantic import BaseModel, Field
 
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db.session import get_session
+from app.observability.model_governance import governance_registry
+from app.observability.status import OK, UNKNOWN, aggregate_status
+from app.observability.system_health import check_model_health, check_readiness
 from app.phase16 import (
     AlertSeverity,
     DeploymentState,
@@ -35,14 +42,14 @@ from app.phase16.freshness_engine import EntityFreshnessSnapshot, get_freshness_
 from app.phase16.ingestion_orchestrator import IngestionRunRecord, get_ingestion_orchestrator
 from app.phase16.model_serving import (
     ModelServingProfile,
-    PredictionServingResponse,
+    ModelUnavailableError,
     get_model_serving_engine,
 )
 from app.phase16.projects_and_auth import (
     AuthorizationError,
+    DuplicateIdError,
     ProductionWatchlist,
     RecruitmentProject,
-    UserProfile,
     WatchlistItem,
     get_project_auth_manager,
 )
@@ -50,6 +57,8 @@ from app.phase16.provider_orchestrator import (
     ProviderCapabilityProfile,
     get_provider_orchestrator,
 )
+from app.security.deps import get_principal, require
+from app.security.tokens import AuthError, Principal, require_permission
 
 router = APIRouter(tags=["Phase 16 - Production Operations"])
 
@@ -60,7 +69,7 @@ router = APIRouter(tags=["Phase 16 - Production Operations"])
 
 @router.get("/api/v1/operations/status")
 def get_operations_status() -> dict[str, Any]:
-    """Provides high-level operational status across ingestion, models, decisions, and system."""
+    """Counts from this process's in-memory registries (lost on restart); nothing is asserted beyond that."""
     ingest = get_ingestion_orchestrator()
     fresh = get_freshness_engine()
     models = get_model_serving_engine()
@@ -71,48 +80,54 @@ def get_operations_status() -> dict[str, Any]:
     critical_alerts = [a for a in active_alerts if a.severity == AlertSeverity.CRITICAL]
 
     return {
-        "status": "OPERATIONAL" if not critical_alerts else "DEGRADED",
-        "timestamp": "2026-09-27T00:00:00Z",
+        "status": "DEGRADED" if critical_alerts else "NO_CRITICAL_ALERTS",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "state_scope": "PROCESS_LOCAL_IN_MEMORY",
         "active_ingestion_runs": len(ingest.list_runs()),
         "registered_freshness_entities": len(fresh.list_snapshots()),
         "active_models": len([m for m in models.list_models() if m.deployment_state == DeploymentState.ACTIVE]),
         "active_alerts_count": len(active_alerts),
         "critical_alerts_count": len(critical_alerts),
         "running_jobs_count": len(jobs.list_jobs(status=JobStatus.RUNNING)),
-        "epistemic_guarantees": "ENFORCED",
+    }
+
+
+async def _component_health(session: AsyncSession) -> dict[str, dict[str, Any]]:
+    readiness = await check_readiness(session)
+    models = await check_model_health()
+    return {
+        "database": {"status": readiness["database"]["status"], "latency_ms": readiness["database"]["latency_ms"]},
+        "object_storage": {"status": readiness["snapshot_storage"]["status"], "backend": readiness["snapshot_storage"].get("backend")},
+        "model_serving": {"status": models["status"], "artifacts": len(models["artifacts"])},
+        # No cache server, worker pool or rate-limit gateway exists in this codebase: say so rather than invent numbers.
+        "redis_cache": {"status": "NOT_CONFIGURED"},
+        "background_workers": {"status": "NOT_CONFIGURED", "detail": "jobs are tracked in memory; no worker pool exists"},
+        "provider_gateway": {"status": "UNKNOWN", "detail": "provider availability is not probed"},
     }
 
 
 @router.get("/api/v1/operations/health")
-def get_operations_health() -> dict[str, Any]:
-    """Detailed health checks for data plane, model serving, job queue, and cache."""
+async def get_operations_health(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Measured component health (database, storage, model artifacts); unmeasured components say so."""
+    components = await _component_health(session)
     return {
-        "overall_health": "HEALTHY",
-        "components": {
-            "database": {"status": "HEALTHY", "latency_ms": 1.2},
-            "redis_cache": {"status": "HEALTHY", "hit_ratio": 0.84},
-            "object_storage": {"status": "HEALTHY", "durability_tier": "STANDARD"},
-            "background_workers": {"status": "HEALTHY", "active_workers": 4},
-            "model_serving": {"status": "HEALTHY", "active_champions": 1},
-            "provider_gateway": {"status": "HEALTHY", "rate_limit_headroom_pct": 92.5},
-        },
+        "overall_health": aggregate_status({name: c["status"] for name, c in components.items()}),
+        "components": components,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
     }
 
 
 @router.get("/api/v1/system/status")
-def get_system_status() -> dict[str, Any]:
-    """Unified system health status conforming to Section 28."""
+async def get_system_status(session: AsyncSession = Depends(get_session)) -> dict[str, Any]:
+    """Unified status derived from the same measured checks (no hard-coded 'HEALTHY')."""
+    from app.config import get_settings
+
+    components = await _component_health(session)
     return {
-        "status": "HEALTHY",
+        "status": aggregate_status({name: c["status"] for name, c in components.items()}),
         "version": "1.0.0-phase16",
-        "environment": "production",
-        "services": {
-            "api": "HEALTHY",
-            "db": "HEALTHY",
-            "cache": "HEALTHY",
-            "workers": "HEALTHY",
-            "storage": "HEALTHY",
-        },
+        "environment": get_settings().environment,
+        "services": {name: c["status"] for name, c in components.items()},
     }
 
 
@@ -131,7 +146,7 @@ def list_operational_alerts(
 
 
 @router.post("/api/v1/operations/alerts/{alert_id}/acknowledge", response_model=OperationalAlert)
-def acknowledge_alert(alert_id: str) -> OperationalAlert:
+def acknowledge_alert(alert_id: str, _: Principal = Depends(require("data:write"))) -> OperationalAlert:
     try:
         return get_alerting_engine().acknowledge_alert(alert_id)
     except KeyError as exc:
@@ -139,7 +154,7 @@ def acknowledge_alert(alert_id: str) -> OperationalAlert:
 
 
 @router.post("/api/v1/operations/alerts/{alert_id}/resolve", response_model=OperationalAlert)
-def resolve_alert(alert_id: str) -> OperationalAlert:
+def resolve_alert(alert_id: str, _: Principal = Depends(require("data:write"))) -> OperationalAlert:
     try:
         return get_alerting_engine().resolve_alert(alert_id)
     except KeyError as exc:
@@ -165,7 +180,7 @@ def list_background_jobs(status: str | None = None) -> list[ProductionJob]:
 
 
 @router.post("/api/v1/operations/jobs", response_model=ProductionJob)
-def enqueue_background_job(body: JobEnqueueRequest) -> ProductionJob:
+def enqueue_background_job(body: JobEnqueueRequest, _: Principal = Depends(require("data:write"))) -> ProductionJob:
     mgr = get_job_manager()
     return mgr.enqueue_job(
         job_id=body.job_id,
@@ -176,7 +191,7 @@ def enqueue_background_job(body: JobEnqueueRequest) -> ProductionJob:
 
 
 @router.post("/api/v1/operations/jobs/{job_id}/start", response_model=ProductionJob)
-def start_job(job_id: str) -> ProductionJob:
+def start_job(job_id: str, _: Principal = Depends(require("data:write"))) -> ProductionJob:
     try:
         return get_job_manager().start_job(job_id)
     except KeyError as exc:
@@ -184,7 +199,7 @@ def start_job(job_id: str) -> ProductionJob:
 
 
 @router.post("/api/v1/operations/jobs/{job_id}/complete", response_model=ProductionJob)
-def complete_job(job_id: str, result_ref: str = "result_done") -> ProductionJob:
+def complete_job(job_id: str, result_ref: str = "result_done", _: Principal = Depends(require("data:write"))) -> ProductionJob:
     try:
         return get_job_manager().complete_job(job_id, result_reference=result_ref)
     except KeyError as exc:
@@ -216,7 +231,7 @@ class IncidentResolveRequest(BaseModel):
 
 
 @router.post("/api/v1/data/incidents/{incident_id}/resolve", response_model=DataQualityIncident)
-def resolve_incident(incident_id: str, body: IncidentResolveRequest) -> DataQualityIncident:
+def resolve_incident(incident_id: str, body: IncidentResolveRequest, _: Principal = Depends(require("data:write"))) -> DataQualityIncident:
     try:
         return get_data_quality_engine().resolve_incident(incident_id, body.remediation_note)
     except KeyError as exc:
@@ -225,60 +240,20 @@ def resolve_incident(incident_id: str, body: IncidentResolveRequest) -> DataQual
 
 @router.get("/api/v1/data/readiness")
 def get_competition_readiness() -> dict[str, Any]:
-    """Exposes independent competition production readiness per Section 10."""
+    """Readiness is NOT asserted without evidence (the old static matrix claimed PRODUCTION_READY everywhere).
+
+    A competition/capability is only ready with ingested coverage, a MODEL_VALIDATED artifact,
+    calibration evidence and a recorded release approval. None of that is wired to this endpoint yet,
+    so every competition is NOT_ASSESSED; the model evidence that does exist is listed below.
+    """
     return {
-        "competitions": {
-            "EPL": {
-                "match_prediction": "PRODUCTION_READY",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "PRODUCTION_READY",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "PRODUCTION_READY",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "PRODUCTION_READY",
-                "scenario_simulation": "PRODUCTION_READY",
-            },
-            "La_Liga": {
-                "match_prediction": "MODEL_VALIDATED",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "MODEL_VALIDATED",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "MODEL_VALIDATED",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "MODEL_VALIDATED",
-                "scenario_simulation": "MODEL_VALIDATED",
-            },
-            "Bundesliga": {
-                "match_prediction": "MODEL_VALIDATED",
-                "player_intelligence": "PRODUCTION_READY",
-                "tactical_intelligence": "MODEL_VALIDATED",
-                "valuation": "PRODUCTION_READY",
-                "transfer_risk": "MODEL_VALIDATED",
-                "similarity": "PRODUCTION_READY",
-                "recruitment": "MODEL_VALIDATED",
-                "scenario_simulation": "MODEL_VALIDATED",
-            },
-            "Serie_A": {
-                "match_prediction": "DATA_AVAILABLE",
-                "player_intelligence": "MODEL_VALIDATED",
-                "tactical_intelligence": "DATA_AVAILABLE",
-                "valuation": "MODEL_VALIDATED",
-                "transfer_risk": "DATA_AVAILABLE",
-                "similarity": "MODEL_VALIDATED",
-                "recruitment": "DATA_AVAILABLE",
-                "scenario_simulation": "DATA_AVAILABLE",
-            },
-            "Ligue_1": {
-                "match_prediction": "DATA_AVAILABLE",
-                "player_intelligence": "DATA_AVAILABLE",
-                "tactical_intelligence": "DATA_AVAILABLE",
-                "valuation": "DATA_AVAILABLE",
-                "transfer_risk": "DATA_AVAILABLE",
-                "similarity": "DATA_AVAILABLE",
-                "recruitment": "DATA_AVAILABLE",
-                "scenario_simulation": "DATA_AVAILABLE",
-            },
+        "status": "NOT_ASSESSED",
+        "competitions": {},
+        "model_evidence": {
+            r["name"] + ":" + r["version"]: {"status": r["status"], "artifact_hash": r["artifact_hash"]}
+            for r in governance_registry.list_all_models()
         },
+        "reason": "No automated per-competition readiness assessment is implemented.",
         "governance_rule": "No competition may inherit readiness from another competition.",
     }
 
@@ -289,41 +264,34 @@ def get_competition_readiness() -> dict[str, Any]:
 
 @router.get("/api/v1/models/production", response_model=list[ModelServingProfile])
 def list_production_models() -> list[ModelServingProfile]:
+    """Registered artifacts with hash-integrity and release status (derived from the registry, not seeded)."""
     return get_model_serving_engine().list_models()
 
 
 @router.get("/api/v1/models/health")
-def get_model_health_overview() -> dict[str, Any]:
-    """Exposes health metrics conforming to Section 15."""
+async def get_model_health_overview() -> dict[str, Any]:
+    """Measured artifact health + process-local inference telemetry. Unmeasured signals are None."""
+    health = await check_model_health()
     return {
-        "health_state": "HEALTHY",
-        "prediction_volume_24h": 1420,
-        "failure_rate": 0.001,
-        "avg_latency_ms": 14.2,
-        "population_stability_index": 0.038,
-        "feature_missingness_pct": 0.0,
-        "calibration_status": "CALIBRATED",
-        "ood_rate_pct": 1.4,
-        "subgroup_degradation": False,
-        "champion_challenger_gap_brier": 0.004,
+        "health_state": health["status"],
+        "artifacts": health["artifacts"],
+        "inference_telemetry": get_model_serving_engine().telemetry.snapshot(),
+        "population_stability_index": None,
+        "feature_missingness_pct": None,
+        "ood_rate_pct": None,
+        "calibration_status": None,
+        "note": "PSI, missingness, OOD and calibration monitoring are not implemented; they are reported as null, not estimated.",
     }
 
 
 @router.get("/api/v1/models/drift")
 def get_model_drift_overview() -> dict[str, Any]:
     return {
-        "status": "STABLE",
-        "drift_detected": False,
-        "features_monitored": 48,
-        "psi_by_feature": {
-            "progressive_carries_per_90": 0.042,
-            "pass_completion_under_pressure": 0.031,
-            "pressures_defensive_third": 0.055,
-            "box_entries_per_90": 0.029,
-        },
-        "max_psi": 0.055,
-        "threshold_warning": 0.10,
-        "threshold_critical": 0.25,
+        "status": "NOT_MEASURED",
+        "drift_detected": None,
+        "features_monitored": 0,
+        "psi_by_feature": {},
+        "reason": "No drift monitor exists: it needs a stored training-distribution reference and a window of production feature vectors.",
     }
 
 
@@ -344,61 +312,72 @@ def list_challengers() -> list[dict[str, Any]]:
 
 
 class ModelPromoteRequest(BaseModel):
-    user_id: str
     domain: str
-    model_key: str
-    authorization_token: str | None = None
+    model_key: str  # registry model_id
 
 
 @router.post("/api/v1/models/promote")
-def promote_model(body: ModelPromoteRequest) -> dict[str, Any]:
-    """Promotes a model to champion with strict authoritative RBAC check."""
-    auth_mgr = get_project_auth_manager()
+def promote_model(body: ModelPromoteRequest, principal: Principal = Depends(get_principal)) -> dict[str, Any]:
+    """Human-governed promotion: caller must hold model:promote; only a MODEL_VALIDATED, hash-verified model is promotable."""
+    org = principal.org_id or "unscoped"
     try:
-        auth_mgr.authorize(body.user_id, "model:promote")
-    except AuthorizationError as exc:
-        # Audit rejected promotion
+        require_permission(principal, "model:promote")
+    except AuthError as exc:
         get_audit_logger().log_event(
             event_type="UNAUTHORIZED_MODEL_PROMOTION_ATTEMPT",
-            actor=body.user_id,
+            actor=principal.user_id,
             resource=body.model_key,
-            details={"error": str(exc)},
+            details={"error": exc.detail},
+            organization_id=org,
         )
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
+        raise HTTPException(status_code=403, detail=exc.detail) from exc
 
-    serving = get_model_serving_engine()
-    serving.set_champion(body.domain, body.model_key)
+    try:
+        profile = get_model_serving_engine().promote(body.domain, body.model_key)
+    except ModelUnavailableError as exc:
+        get_audit_logger().log_event(
+            event_type="MODEL_PROMOTION_REFUSED",
+            actor=principal.user_id,
+            resource=body.model_key,
+            details={"code": exc.code, "detail": exc.detail},
+            organization_id=org,
+        )
+        raise HTTPException(status_code=exc.http_status, detail={"code": exc.code, "detail": exc.detail}) from exc
 
-    # Log successful promotion
     get_audit_logger().log_event(
         event_type="MODEL_PROMOTION",
-        actor=body.user_id,
+        actor=principal.user_id,
         resource=body.model_key,
-        details={"domain": body.domain, "new_status": "ACTIVE_CHAMPION"},
+        details={"domain": body.domain, "artifact_sha256": profile.artifact_sha256},
+        organization_id=org,
     )
-    return {"status": "PROMOTED", "domain": body.domain, "model_key": body.model_key}
+    return {"status": "PROMOTED", "domain": body.domain, "model_key": body.model_key, "artifact_sha256": profile.artifact_sha256}
 
 
 class PredictionRequest(BaseModel):
+    """No defaults: competition and the full feature mapping must be supplied by the caller."""
+
     domain: str = "valuation"
-    competition: str = "EPL"
-    position: str = "MF"
-    input_data: dict[str, Any] = Field(default_factory=dict)
+    competition: str
+    position: str | None = None
+    as_of: str | None = None
+    features: dict[str, Any]
 
 
 @router.post("/api/v1/models/predict")
 def serve_prediction(body: PredictionRequest) -> dict[str, Any]:
-    serving = get_model_serving_engine()
-    prod_resp, shadow_resp = serving.serve_inference(
-        domain=body.domain,
-        input_data=body.input_data,
-        competition=body.competition,
-        position=body.position,
-    )
-    return {
-        "production_prediction": prod_resp.model_dump(),
-        "shadow_challenger": shadow_resp.model_dump() if shadow_resp else None,
-    }
+    """Served by the real artifact, or refused with a machine-readable reason (never a formula)."""
+    try:
+        response = get_model_serving_engine().serve_inference(
+            domain=body.domain,
+            features=body.features,
+            competition=body.competition,
+            position=body.position,
+            as_of=body.as_of,
+        )
+    except ModelUnavailableError as exc:
+        raise HTTPException(status_code=exc.http_status, detail={"code": exc.code, "detail": exc.detail}) from exc
+    return {"production_prediction": response.model_dump(), "shadow_challenger": None}
 
 
 # ============================================================
@@ -431,13 +410,11 @@ def list_decisions_review_required() -> list[dict[str, Any]]:
 
 
 # ============================================================
-# 7. PROJECTS & WORKSPACES
+# 7. PROJECTS & WORKSPACES  (identity from the verified token; org-scoped)
 # ============================================================
 
 class ProjectCreateRequest(BaseModel):
-    user_id: str
     project_id: str
-    org_id: str
     name: str
     description: str
     target_position: str
@@ -447,46 +424,44 @@ class ProjectCreateRequest(BaseModel):
 
 
 @router.get("/api/v1/projects", response_model=list[RecruitmentProject])
-def list_projects(org_id: str | None = None) -> list[RecruitmentProject]:
-    return get_project_auth_manager().list_projects(org_id=org_id)
+def list_projects(principal: Principal = Depends(get_principal)) -> list[RecruitmentProject]:
+    return get_project_auth_manager().list_projects_for(principal)
 
 
 @router.post("/api/v1/projects", response_model=RecruitmentProject)
-def create_project(body: ProjectCreateRequest) -> RecruitmentProject:
-    auth_mgr = get_project_auth_manager()
+def create_project(body: ProjectCreateRequest, principal: Principal = Depends(require("project:manage"))) -> RecruitmentProject:
+    if principal.org_id is None:
+        raise HTTPException(status_code=403, detail="token carries no organisation; cannot create an org-scoped project")
     try:
-        auth_mgr.authorize(body.user_id, "project:manage")
-    except AuthorizationError as exc:
-        raise HTTPException(status_code=403, detail=str(exc)) from exc
-
-    proj = auth_mgr.create_project(
-        project_id=body.project_id,
-        org_id=body.org_id,
-        name=body.name,
-        description=body.description,
-        target_position=body.target_position,
-        target_role=body.target_role,
-        budget_eur=body.budget_eur,
-        competition_scope=body.competition_scope,
-        lead_scout_id=body.user_id,
-    )
+        proj = get_project_auth_manager().create_project(
+            project_id=body.project_id,
+            org_id=principal.org_id,
+            name=body.name,
+            description=body.description,
+            target_position=body.target_position,
+            target_role=body.target_role,
+            budget_eur=body.budget_eur,
+            competition_scope=body.competition_scope,
+            lead_scout_id=principal.user_id,
+        )
+    except DuplicateIdError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     get_audit_logger().log_event(
         event_type="PROJECT_CREATED",
-        actor=body.user_id,
+        actor=principal.user_id,
         resource=body.project_id,
         details={"name": body.name, "target_role": body.target_role},
+        organization_id=principal.org_id,
     )
     return proj
 
 
 # ============================================================
-# 8. WATCHLISTS
+# 8. WATCHLISTS  (private to their owner)
 # ============================================================
 
 class WatchlistCreateRequest(BaseModel):
-    user_id: str
     watchlist_id: str
-    org_id: str
     name: str
     description: str = ""
 
@@ -505,33 +480,38 @@ class WatchlistItemEvaluateRequest(BaseModel):
 
 
 @router.get("/api/v1/watchlists", response_model=list[ProductionWatchlist])
-def list_watchlists(user_id: str | None = None) -> list[ProductionWatchlist]:
-    return get_project_auth_manager().list_watchlists(user_id=user_id)
+def list_watchlists(principal: Principal = Depends(get_principal)) -> list[ProductionWatchlist]:
+    return get_project_auth_manager().list_watchlists_for(principal)
 
 
 @router.post("/api/v1/watchlists", response_model=ProductionWatchlist)
-def create_watchlist(body: WatchlistCreateRequest) -> ProductionWatchlist:
-    auth_mgr = get_project_auth_manager()
-    wl = auth_mgr.create_watchlist(
-        watchlist_id=body.watchlist_id,
-        user_id=body.user_id,
-        org_id=body.org_id,
-        name=body.name,
-        description=body.description,
-    )
+def create_watchlist(body: WatchlistCreateRequest, principal: Principal = Depends(get_principal)) -> ProductionWatchlist:
+    try:
+        wl = get_project_auth_manager().create_watchlist(
+            watchlist_id=body.watchlist_id,
+            user_id=principal.user_id,
+            org_id=principal.org_id or "unscoped",
+            name=body.name,
+            description=body.description,
+        )
+    except DuplicateIdError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     get_audit_logger().log_event(
         event_type="WATCHLIST_CREATED",
-        actor=body.user_id,
+        actor=principal.user_id,
         resource=body.watchlist_id,
         details={"name": body.name},
+        organization_id=principal.org_id or "unscoped",
     )
     return wl
 
 
 @router.post("/api/v1/watchlists/{watchlist_id}/items", response_model=WatchlistItem)
-def add_watchlist_item(watchlist_id: str, body: WatchlistItemAddRequest) -> WatchlistItem:
+def add_watchlist_item(watchlist_id: str, body: WatchlistItemAddRequest, principal: Principal = Depends(get_principal)) -> WatchlistItem:
+    mgr = get_project_auth_manager()
     try:
-        return get_project_auth_manager().add_watchlist_item(
+        mgr.get_watchlist_for(principal, watchlist_id)  # 404 for missing AND for someone else's watchlist
+        return mgr.add_watchlist_item(
             watchlist_id=watchlist_id,
             item_id=body.item_id,
             entity_type=body.entity_type,
@@ -548,9 +528,12 @@ def evaluate_watchlist_item(
     watchlist_id: str,
     item_id: str,
     body: WatchlistItemEvaluateRequest,
+    principal: Principal = Depends(get_principal),
 ) -> WatchlistItem:
+    mgr = get_project_auth_manager()
     try:
-        item = get_project_auth_manager().evaluate_watchlist_item(
+        mgr.get_watchlist_for(principal, watchlist_id)
+        item = mgr.evaluate_watchlist_item(
             watchlist_id=watchlist_id,
             item_id=item_id,
             new_state=body.new_state,
@@ -571,11 +554,11 @@ def evaluate_watchlist_item(
 
 
 # ============================================================
-# 9. AUDIT LOG (APPEND-ONLY)
+# 9. AUDIT LOG (APPEND-ONLY, ADMIN ONLY)
 # ============================================================
 
 @router.get("/api/v1/audit", response_model=list[AuditEvent])
-def list_audit_trail(event_type: str | None = None) -> list[AuditEvent]:
+def list_audit_trail(event_type: str | None = None, _: Principal = Depends(require("admin:access"))) -> list[AuditEvent]:
     return get_audit_logger().list_events(event_type=event_type)
 
 

@@ -22,11 +22,17 @@ import math
 import uuid
 from typing import Any, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models.canonical import Club, Player, PlayerRoleProfile, PlayerSeasonStats
+from app.db.models.canonical import (
+    Club,
+    Player,
+    PlayerRoleProfile,
+    PlayerSeasonStats,
+    ValuationPredictionRecord,
+)
 from app.decisions.confidence import DecisionConfidenceEngine
 from app.decisions.evidence import DecisionEvidenceGraphBuilder
 from app.decisions.hard_constraints import HardConstraintsEngine
@@ -97,20 +103,48 @@ class RecruitmentTargetEngine:
         )
 
         # 3. Retrieve Candidate Universe
+        #    The universe is the players that actually carry evidence, ordered by
+        #    observed minutes and by name (stable tiebreak). It is NOT an arbitrary
+        #    slice of the table: a player without season statistics cannot be
+        #    assessed, so they are not silently ranked against measured candidates.
         raw_candidates = []
         if candidates_override is not None:
             raw_candidates = list(candidates_override)
         elif self.session is not None:
+            observed_minutes = func.coalesce(
+                func.sum(PlayerSeasonStats.minutes).filter(PlayerSeasonStats.minutes.isnot(None)),
+                0,
+            )
             stmt = (
                 select(Player)
+                .join(PlayerSeasonStats, PlayerSeasonStats.player_id == Player.id)
                 .options(
                     selectinload(Player.season_stats),
                     selectinload(Player.role_profiles),
                     selectinload(Player.club),
                 )
-                .limit(100)
+                .group_by(Player.id)
+                .order_by(observed_minutes.desc(), Player.name.asc(), Player.id.asc())
+                .limit(max(100, request.limit * 10))
             )
             raw_candidates = list((await self.session.execute(stmt)).scalars().all())
+
+        # Canonical valuations for the candidate set, loaded in one query (no N+1).
+        valuation_by_player: dict[uuid.UUID, ValuationPredictionRecord] = {}
+        if self.session is not None and raw_candidates:
+            candidate_ids = [
+                candidate.id for candidate in raw_candidates if getattr(candidate, "id", None)
+            ]
+            if candidate_ids:
+                valuation_rows = (
+                    await self.session.execute(
+                        select(ValuationPredictionRecord)
+                        .where(ValuationPredictionRecord.player_id.in_(candidate_ids))
+                        .order_by(ValuationPredictionRecord.as_of.desc())
+                    )
+                ).scalars().all()
+                for row in valuation_rows:
+                    valuation_by_player.setdefault(row.player_id, row)
 
         all_assessments: list[MultiDimensionalCandidateAssessment] = []
         passed_assessments: list[MultiDimensionalCandidateAssessment] = []
@@ -139,32 +173,67 @@ class RecruitmentTargetEngine:
             club_name = getattr(club_obj, "name", None) or (p.get("club_name") if isinstance(p, dict) else "Free Agent")
             club_id = getattr(club_obj, "id", None) or (p.get("club_id") if isinstance(p, dict) else None)
 
-            # Retrieve or calculate statistics
-            stats_list = getattr(p, "season_stats", []) or (p.get("season_stats") if isinstance(p, dict) else [])
-            raw_mins = (
-                sum((s.minutes_played or 0) for s in stats_list)
-                if stats_list
-                else (getattr(p, "minutes_played", None) or (p.get("minutes_played") if isinstance(p, dict) else 900))
-            )
-            minutes_played = raw_mins if raw_mins is not None else 900
-            raw_matches = (
-                sum((s.matches_played or 0) for s in stats_list)
-                if stats_list
-                else (getattr(p, "matches_played", None) or (p.get("matches_played") if isinstance(p, dict) else 10))
-            )
-            matches_count = raw_matches if raw_matches is not None else 10
+            # Retrieve or calculate statistics.
+            #    A statistic the provider never reported is unknown, not a default.
+            #    When there is no observed evidence the sample is reported as zero
+            #    and the candidate is excluded by the hard-constraint gate rather
+            #    than being ranked on invented minutes.
+            stats_list = getattr(p, "season_stats", None) or (
+                p.get("season_stats") if isinstance(p, dict) else None
+            ) or []
+            # The observed sample is the season evidence; a caller that supplies the
+            # sample explicitly (candidate overrides) is evidence too. Neither is
+            # ever replaced by a default.
+            observed_minutes = sum((s.minutes or 0) for s in stats_list)
+            observed_matches = sum((s.appearances or 0) for s in stats_list)
+            if not stats_list:
+                supplied_minutes = (
+                    p.get("minutes_played")
+                    if isinstance(p, dict)
+                    else getattr(p, "minutes_played", None)
+                )
+                supplied_matches = (
+                    p.get("matches_played")
+                    if isinstance(p, dict)
+                    else getattr(p, "matches_played", None)
+                )
+                if supplied_minutes is not None:
+                    observed_minutes = int(supplied_minutes)
+                if supplied_matches is not None:
+                    observed_matches = int(supplied_matches)
+            has_observed_sample = observed_minutes > 0 or observed_matches > 0
+            minutes_played = observed_minutes
+            matches_count = observed_matches
 
             # 4. Market Valuation & Risk (preliminary for hard constraints)
-            base_cohort_vals = {"GK": 8_000_000.0, "DEF": 14_000_000.0, "MID": 18_000_000.0, "ATT": 22_000_000.0}
-            p_grp = map_position_to_group(pos).name if hasattr(map_position_to_group(pos), "name") else "MID"
-            base_val = base_cohort_vals.get(p_grp, 15_000_000.0)
-            age_factor = BaselineValuationEngine.get_age_adjustment(age)
-            min_factor = min(1.3, max(0.5, minutes_played / 1500.0))
-            est_value = (
-                getattr(getattr(p, "market", None), "estimated_value_eur", None)
-                or round(base_val * age_factor * min_factor, -4)
-            )
-            comparables_count = max(3, int(minutes_played / 200))
+            #    The valuation is the canonical one when one exists. There is no
+            #    cohort-average fallback: an unknown market value stays unknown
+            #    and the budget gate is reported as unevaluated rather than passed
+            #    against an invented number.
+            canonical_valuation = valuation_by_player.get(getattr(p, "id", None))
+            # A valuation supplied with the candidate is evidence; the canonical
+            # valuation record is the other source. There is no cohort-average
+            # fallback: an unknown market value stays unknown.
+            provided_value: float | None = None
+            if isinstance(p, dict):
+                provided_value = p.get("estimated_value_eur")
+                if provided_value is None and isinstance(p.get("market"), dict):
+                    provided_value = p["market"].get("estimated_value_eur")
+            else:
+                provided_value = getattr(
+                    getattr(p, "market", None), "estimated_value_eur", None
+                )
+            est_value = provided_value
+            if est_value is None and canonical_valuation is not None:
+                est_value = canonical_valuation.estimated_value_eur
+            evidence_notes: list[str] = []
+            if est_value is None:
+                evidence_notes.append("No canonical valuation record: market value unknown.")
+            comparables_count = 0 if est_value is None else max(0, int(minutes_played / 200))
+            if not has_observed_sample:
+                evidence_notes.append(
+                    "No observed season sample: minutes and appearances are unknown, not zero-valued estimates."
+                )
 
             # Preliminary risk check
             risk_summary = (
@@ -242,6 +311,16 @@ class RecruitmentTargetEngine:
             # 9. Market Dimension
             if getattr(p, "market", None) is not None:
                 dim_market = p.market
+            elif est_value is None:
+                dim_market = DimensionMarket(
+                    estimated_value_eur=None,
+                    fee_range_low_eur=None,
+                    fee_range_high_eur=None,
+                    budget_eur=request.budget_eur,
+                    affordability_status="UNAVAILABLE",
+                    value_opportunity_index=None,
+                    comparable_transfers_count=0,
+                )
             else:
                 fee_low = round(est_value * 0.85, -4)
                 fee_high = round(est_value * 1.20, -4)
@@ -260,7 +339,7 @@ class RecruitmentTargetEngine:
                     fee_range_high_eur=fee_high,
                     budget_eur=request.budget_eur,
                     affordability_status=affordability,
-                    value_opportunity_index=round(1.10 if (age or 25) < 24 else 0.98, 2),
+                    value_opportunity_index=None,
                     comparable_transfers_count=comparables_count,
                 )
 
@@ -275,9 +354,13 @@ class RecruitmentTargetEngine:
                     risk_level=risk_summary,
                     performance_risk=perf_risk,
                     adaptation_risk=adapt_risk,
-                    financial_risk=round(min(0.8, est_value / 50_000_000.0), 2),
+                    financial_risk=round(min(0.8, est_value / 50_000_000.0), 2) if est_value is not None else None,
                     availability_risk=round(0.15 if minutes_played > 1200 else 0.45, 2),
-                    key_risk_drivers=[f"Sample depth: {minutes_played} minutes recorded"] if minutes_played < 1200 else [],
+                    key_risk_drivers=(
+                        [f"Sample depth: {minutes_played} minutes recorded"]
+                        if minutes_played < 1200
+                        else []
+                    ),
                 )
 
             # 11. Squad Impact Dimension
@@ -312,7 +395,11 @@ class RecruitmentTargetEngine:
             why_matches = [
                 f"Meets all hard constraints for {target_pos} with {dim_perf.contribution_rating:.1f} contribution rating.",
                 f"Demonstrates {dim_tactical.tactical_fit_score:.1f}% tactical fit for {effective_role} in {tactical_name}.",
-                f"Market valuation of €{est_value:,.0f} aligns with recruitment mandate.",
+                (
+                    f"Market valuation of EUR {est_value:,.0f} aligns with recruitment mandate."
+                    if est_value is not None
+                    else "Market valuation is unknown: no canonical valuation record for this candidate."
+                ),
             ]
             where_differs = []
             if dim_risk.overall_risk_score > 0.40:
@@ -341,6 +428,8 @@ class RecruitmentTargetEngine:
                 confidence=conf,
                 why_matches=why_matches,
                 where_differs=where_differs,
+                evidence_status="MEASURED" if has_observed_sample else "INSUFFICIENT_DATA",
+                evidence_notes=evidence_notes,
             )
 
             passed_assessments.append(assessment)

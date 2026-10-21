@@ -9,12 +9,70 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'Segoe UI', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace']
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)'
       },
       colors: {
+        // The product palette is defined once in src/styles/fio.css. Mapping the neutral
+        // utilities (slate/gray) onto those tokens means existing route markup inherits the
+        // same surfaces, hairlines and text hierarchy instead of running a second palette.
+        slate: {
+          50: 'rgb(var(--fio-n-50) / <alpha-value>)',
+          100: 'rgb(var(--fio-n-100) / <alpha-value>)',
+          200: 'rgb(var(--fio-n-200) / <alpha-value>)',
+          300: 'rgb(var(--fio-n-300) / <alpha-value>)',
+          400: 'rgb(var(--fio-n-400) / <alpha-value>)',
+          500: 'rgb(var(--fio-n-500) / <alpha-value>)',
+          600: 'rgb(var(--fio-n-600) / <alpha-value>)',
+          700: 'rgb(var(--fio-n-700) / <alpha-value>)',
+          800: 'rgb(var(--fio-n-800) / <alpha-value>)',
+          900: 'rgb(var(--fio-n-900) / <alpha-value>)',
+          950: 'rgb(var(--fio-n-950) / <alpha-value>)'
+        },
+        gray: {
+          50: 'rgb(var(--fio-n-50) / <alpha-value>)',
+          100: 'rgb(var(--fio-n-100) / <alpha-value>)',
+          200: 'rgb(var(--fio-n-200) / <alpha-value>)',
+          300: 'rgb(var(--fio-n-300) / <alpha-value>)',
+          400: 'rgb(var(--fio-n-400) / <alpha-value>)',
+          500: 'rgb(var(--fio-n-500) / <alpha-value>)',
+          600: 'rgb(var(--fio-n-600) / <alpha-value>)',
+          700: 'rgb(var(--fio-n-700) / <alpha-value>)',
+          800: 'rgb(var(--fio-n-800) / <alpha-value>)',
+          900: 'rgb(var(--fio-n-900) / <alpha-value>)',
+          950: 'rgb(var(--fio-n-950) / <alpha-value>)'
+        },
+        emerald: {
+          300: 'rgb(var(--fio-success) / <alpha-value>)',
+          400: 'rgb(var(--fio-success) / <alpha-value>)',
+          500: 'rgb(var(--fio-success) / <alpha-value>)'
+        },
+        amber: {
+          300: 'rgb(var(--fio-warn) / <alpha-value>)',
+          400: 'rgb(var(--fio-warn) / <alpha-value>)',
+          500: 'rgb(var(--fio-warn) / <alpha-value>)'
+        },
+        red: {
+          300: 'rgb(var(--fio-danger) / <alpha-value>)',
+          400: 'rgb(var(--fio-danger) / <alpha-value>)',
+          500: 'rgb(var(--fio-danger) / <alpha-value>)'
+        },
+        blue: {
+          300: 'rgb(var(--fio-info) / <alpha-value>)',
+          400: 'rgb(var(--fio-info) / <alpha-value>)',
+          500: 'rgb(var(--fio-info) / <alpha-value>)'
+        },
+        purple: {
+          300: 'rgb(var(--fio-model) / <alpha-value>)',
+          400: 'rgb(var(--fio-model) / <alpha-value>)',
+          500: 'rgb(var(--fio-model) / <alpha-value>)'
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -45,7 +103,9 @@ module.exports = {
           DEFAULT: 'hsl(var(--destructive))',
           foreground: 'hsl(var(--destructive-foreground))'
         },
-        border: 'hsl(var(--border))',
+        // `--border` is a colour alias used directly by legacy route styles; the
+        // Tailwind border token resolves to the same product hairline.
+        border: 'var(--fio-line)',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
         chart: {

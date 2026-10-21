@@ -1,200 +1,130 @@
-"""Phase 10 — Operational Ingestion Pipeline & Run Management (§2, §3).
+"""Phase 10 ingestion cycle VIEW over real ingestion runs (handoff R4).
 
-Implements controlled recurring ingestion lifecycle:
-  Provider → authentication → capability check → rate limiting → raw snapshot
-  → SHA-256 → validation → Bronze → normalization → identity resolution
-  → Silver → feature refresh → model readiness → decision impact.
+History: this module used to *execute* a "cycle". With no payload it invented an Arsenal 2-1
+Chelsea fixture stamped with the current time, wrote it to data/bronze/ as if a provider had
+returned it, and then marked eight stages complete that never ran (identity resolution, feature
+refresh, model readiness, decision impact...). It also accepted a caller-supplied "provider
+response" and stored it as Bronze.
 
-Preserves immutable Bronze snapshots and records complete execution telemetry.
+Ingestion now goes through app.ingestion.service.IngestionService (capability gate -> provider
+fetch -> content-addressed snapshot -> schema validation). This module only translates that
+persisted result into the Phase 10 cycle shape and reports, per stage, what actually happened:
+COMPLETED, FAILED or NOT_EXECUTED. It performs no I/O and creates no data.
 """
 from __future__ import annotations
 
-import hashlib
-import json
-import time
-import uuid
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
-from pathlib import Path
+import re
+from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 
-from app.phase9.data_quality_gates import GateDecision, run_all_gates
+COMPLETED = "COMPLETED"
+FAILED = "FAILED"
+NOT_EXECUTED = "NOT_EXECUTED"
+
+INGESTION_STAGES = ("capability_check", "provider_fetch", "bronze_snapshot_persisted", "schema_validation")
+# Not run by an ingestion trigger. They stay NOT_EXECUTED until a real implementation reports them.
+DOWNSTREAM_STAGES = (
+    "silver_normalization",
+    "identity_resolution",
+    "feature_refresh",
+    "model_readiness_check",
+    "decision_impact_evaluation",
+)
+ALL_STAGES = INGESTION_STAGES + DOWNSTREAM_STAGES
+
+_PARAM_KEY = re.compile(r"[A-Za-z_][A-Za-z0-9_]{0,40}")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
 
 
-class IngestionRunStatus(str, Enum):
-    QUEUED = "QUEUED"
-    RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
-    FAILED = "FAILED"
-    PARTIAL = "PARTIAL"
-
-
-@dataclass
-class IngestionCycleRecord:
-    """Telemetry record for a single operational ingestion cycle (§3)."""
-    ingestion_run_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    provider: str = "api-football"
-    resource: str = "fixtures"
-    requested_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    completed_at: str | None = None
-    status: str = IngestionRunStatus.QUEUED
-    records_seen: int = 0
-    records_accepted: int = 0
-    records_rejected: int = 0
-    validation_status: str = "PENDING"
-    snapshot_id: str | None = None
-    checksum: str | None = None
-    error_summary: str | None = None
-    stages_completed: list[str] = field(default_factory=list)
-    impact_summary: dict[str, Any] = field(default_factory=dict)
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-class OperationalIngestionPipeline:
-    """Manages scheduled and on-demand operational ingestion runs."""
-
-    def __init__(self, data_root: str | Path | None = None) -> None:
-        self.data_root = Path(data_root) if data_root else Path(__file__).resolve().parents[3] / "data"
-        self._history: list[IngestionCycleRecord] = []
-
-    def execute_cycle(
-        self,
-        provider: str = "api-football",
-        resource: str = "fixtures",
-        payload: dict[str, Any] | None = None,
-        dry_run: bool = False,
-    ) -> IngestionCycleRecord:
-        """Executes a full controlled ingestion cycle across all 11 lifecycle steps."""
-        cycle = IngestionCycleRecord(
-            provider=provider,
-            resource=resource,
-            status=IngestionRunStatus.RUNNING,
-        )
-
-        try:
-            # 1. Authentication check
-            cycle.stages_completed.append("authentication_verified")
-
-            # 2. Capability verification
-            cycle.stages_completed.append("capabilities_checked")
-
-            # 3. Rate-limit enforcement
-            cycle.stages_completed.append("rate_limit_applied")
-
-            # 4. Raw Snapshot Generation & SHA-256
-            sample = payload or {
-                "results": 1,
-                "response": [
-                    {
-                        "fixture": {
-                            "id": 1035999,
-                            "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                            "status": {"short": "FT"},
-                        },
-                        "teams": {
-                            "home": {"id": 10, "name": "Arsenal"},
-                            "away": {"id": 20, "name": "Chelsea"},
-                        },
-                        "goals": {"home": 2, "away": 1},
-                    }
-                ],
-            }
-            raw_bytes = json.dumps(sample, sort_keys=True).encode("utf-8")
-            sha256 = hashlib.sha256(raw_bytes).hexdigest()
-            cycle.checksum = sha256
-            cycle.snapshot_id = f"snap_{sha256[:12]}"
-            cycle.stages_completed.append("raw_snapshot_hashed")
-
-            # 5. Validation Gates
-            items = sample.get("response", [])
-            cycle.records_seen = len(items)
-
-            validation_records = [
-                {
-                    "provider": provider,
-                    "source_record_id": str(r.get("fixture", {}).get("id", "0")),
-                    "date": str(r.get("fixture", {}).get("date", ""))[:10],
-                }
-                for r in items
-            ]
-
-            gate_res = run_all_gates(
-                records=validation_records,
-                batch_id=cycle.ingestion_run_id,
-                schema_fields=["provider", "source_record_id", "date"],
-                id_fields=["source_record_id"],
-                date_fields=["date"],
-            )
-
-            if gate_res.overall_decision in (GateDecision.REJECT, GateDecision.QUARANTINE):
-                cycle.records_rejected = cycle.records_seen
-                cycle.records_accepted = 0
-                cycle.validation_status = "REJECTED" if gate_res.overall_decision == GateDecision.REJECT else "QUARANTINED"
-                cycle.status = IngestionRunStatus.FAILED
-                cycle.error_summary = f"Quality gate failure: {gate_res.overall_decision.value}"
-                cycle.completed_at = datetime.now(timezone.utc).isoformat()
-                self._history.append(cycle)
-                return cycle
-
-            cycle.records_accepted = cycle.records_seen
-            cycle.records_rejected = 0
-            cycle.validation_status = "PASSED"
-            cycle.stages_completed.append("validation_gates_passed")
-
-            # 6. Immutable Bronze Persistence check (simulate saving or verify path)
-            snapshot_path = self.data_root / "bronze" / provider / resource / f"{sha256}.json"
-            if not dry_run and not snapshot_path.exists():
-                snapshot_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(snapshot_path, "wb") as f:
-                    f.write(raw_bytes)
-            cycle.stages_completed.append("bronze_persisted_immutable")
-
-            # 7. Normalization (Silver)
-            cycle.stages_completed.append("silver_normalized")
-
-            # 8. Identity Resolution (No silent merge)
-            cycle.stages_completed.append("identity_resolved_canonical")
-
-            # 9. Feature Refresh
-            cycle.stages_completed.append("features_refreshed")
-
-            # 10. Model Readiness
-            cycle.stages_completed.append("model_readiness_confirmed")
-
-            # 11. Decision Impact Analysis
-            cycle.impact_summary = {
-                "features_updated": ["elo_rating", "recent_goal_differential"],
-                "affected_entities": ["Arsenal", "Chelsea"],
-                "decisions_impacted_count": 0,
-                "watchlist_alerts_generated": 1,
-            }
-            cycle.stages_completed.append("decision_impact_evaluated")
-
-            cycle.status = IngestionRunStatus.SUCCESS
-            cycle.completed_at = datetime.now(timezone.utc).isoformat()
-
-        except Exception as exc:
-            cycle.status = IngestionRunStatus.FAILED
-            cycle.error_summary = f"{type(exc).__name__}: {str(exc)}"
-            cycle.completed_at = datetime.now(timezone.utc).isoformat()
-
-        self._history.append(cycle)
-        return cycle
-
-    def list_runs(self, limit: int = 50) -> list[dict[str, Any]]:
-        """Returns historical run telemetry in reverse chronological order."""
-        return [r.to_dict() for r in reversed(self._history[-limit:])]
-
-    def get_run(self, run_id: str) -> dict[str, Any] | None:
-        """Fetch a specific ingestion run record by ID."""
-        for r in self._history:
-            if r.ingestion_run_id == run_id:
-                return r.to_dict()
+def sha256_from_location(storage_location: str | None) -> str | None:
+    """Snapshots are content-addressed: the file name is <sha256>.<ext> (local path or s3:// key).
+    The hash is not a column of data_snapshots, so it is read back from the stored location."""
+    if not storage_location:
         return None
+    stem = storage_location.replace("\\", "/").rsplit("/", 1)[-1].rsplit(".", 1)[0].lower()
+    return stem if _SHA256.fullmatch(stem) else None
 
 
-# Global singleton instance for operational use
-operational_pipeline = OperationalIngestionPipeline()
+def validate_provider_params(params: Mapping[str, Any]) -> dict[str, str | int | float | bool]:
+    """Scalar-only provider parameters (they are interpolated into provider URL templates)."""
+    clean: dict[str, str | int | float | bool] = {}
+    for key, value in params.items():
+        if not _PARAM_KEY.fullmatch(str(key)):
+            raise ValueError(f"invalid parameter name: {key!r}")
+        if isinstance(value, bool) or isinstance(value, (int, float)):
+            clean[key] = value
+        elif isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9_.:-]{1,64}", value) and ".." not in value:
+            clean[key] = value
+        else:
+            raise ValueError(f"invalid value for parameter {key!r}")
+    return clean
+
+
+def stage_results(*, run_status: str, error: str | None, has_snapshot: bool, validation_status: str | None) -> dict[str, str]:
+    """Per-stage truth derived only from the recorded run/snapshot."""
+    stages = {name: NOT_EXECUTED for name in ALL_STAGES}
+    if run_status in ("QUEUED", "RUNNING"):
+        return stages
+    if error and error.startswith("capability registry:"):
+        stages["capability_check"] = FAILED
+        return stages
+    stages["capability_check"] = COMPLETED
+    if not has_snapshot:
+        stages["provider_fetch"] = FAILED if run_status == "FAILED" else NOT_EXECUTED
+        return stages
+    stages["provider_fetch"] = COMPLETED
+    stages["bronze_snapshot_persisted"] = COMPLETED
+    if validation_status == "VALID":
+        stages["schema_validation"] = COMPLETED
+    elif validation_status == "INVALID":
+        stages["schema_validation"] = FAILED
+    return stages  # PENDING / unknown => no validator ran => NOT_EXECUTED
+
+
+def cycle_status(run_status: str, stages: Mapping[str, str]) -> str:
+    if run_status in ("QUEUED", "RUNNING", "FAILED"):
+        return run_status
+    if run_status == "PARTIAL" or any(v != COMPLETED for v in stages.values()):
+        return "PARTIAL"
+    return "SUCCESS"
+
+
+def _iso(value: datetime | str | None) -> str | None:
+    return value.isoformat() if isinstance(value, datetime) else value
+
+
+def cycle_view(
+    *,
+    run_id: str,
+    provider: str,
+    resource: str,
+    run_status: str,
+    error: str | None,
+    started_at: datetime | str | None,
+    finished_at: datetime | str | None,
+    record_count: int | None,
+    snapshot: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    stages = stage_results(
+        run_status=run_status,
+        error=error,
+        has_snapshot=snapshot is not None,
+        validation_status=None if snapshot is None else snapshot.get("validation_status"),
+    )
+    return {
+        "run_id": run_id,
+        "provider": provider,
+        "resource": resource,
+        "status": cycle_status(run_status, stages),
+        "ingestion_run_status": run_status,
+        "started_at": _iso(started_at),
+        "finished_at": _iso(finished_at),
+        "stage_results": stages,
+        "stages_completed": [name for name in ALL_STAGES if stages[name] == COMPLETED],
+        "stages_not_executed": [name for name in ALL_STAGES if stages[name] == NOT_EXECUTED],
+        "snapshot": dict(snapshot) if snapshot is not None else None,
+        "record_count": record_count,
+        "error": error,
+        "note": "An ingestion trigger captures and validates Bronze data only; downstream stages are reported NOT_EXECUTED.",
+    }

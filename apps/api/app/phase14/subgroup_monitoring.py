@@ -19,6 +19,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import DataSufficiencyStatus
 
 
@@ -62,9 +63,10 @@ class ModelContextualReport:
 class SubgroupMonitoringEngine:
     """Monitors model validity disaggregated across contextual slices."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._reports: dict[str, ModelContextualReport] = {}
-        self._seed_default_context_report()
+        if seed_demo:
+            self._seed_default_context_report()
 
     def generate_contextual_report(
         self,
@@ -192,4 +194,4 @@ class SubgroupMonitoringEngine:
         self.generate_contextual_report(model_id="calibrated_multinomial_logit_v1")
 
 
-subgroup_monitoring_engine = SubgroupMonitoringEngine()
+subgroup_monitoring_engine = SubgroupMonitoringEngine(seed_demo=demo_data_allowed())

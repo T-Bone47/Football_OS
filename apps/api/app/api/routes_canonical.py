@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
+import json
+import math
+from pathlib import Path
+import re
 import uuid
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.config import get_settings
 from app.db.models.canonical import (
     Club,
     ClubIdentity,
@@ -23,7 +28,9 @@ from app.db.models.canonical import (
     Player,
     PlayerIdentity,
     PlayerMatchStats,
+    PlayerRoleProfile,
     PlayerSeasonStats,
+    Season,
     Transfer,
 )
 from app.market.adapters.open_data import load_bronze_open_transfers
@@ -143,20 +150,26 @@ class PlayerIdentityResponse(BaseModel):
 
 
 class PlayerSeasonStatsResponse(BaseModel):
+    """Season statistics for one player.
+
+    The metric fields are nullable: a statistic the provider never reported is
+    unknown (null), never zero. Clients must treat null as "not measured".
+    """
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
     club_id: uuid.UUID | None
     competition_season_id: uuid.UUID
     snapshot_id: uuid.UUID | None
-    appearances: int
-    lineups: int
-    minutes: int
+    appearances: int | None
+    lineups: int | None
+    minutes: int | None
     position: str | None
     rating: float | None
-    goals: int
-    assists: int
-    conceded: int
+    goals: int | None
+    assists: int | None
+    conceded: int | None
 
 
 class PlayerResponse(BaseModel):
@@ -173,6 +186,77 @@ class PlayerResponse(BaseModel):
     photo_url: str | None = None
     identities: list[PlayerIdentityResponse] = []
     season_stats: list[PlayerSeasonStatsResponse] = []
+
+
+class PlayerPageResponse(BaseModel):
+    """Paginated player result. `total` is the count of matching records
+    before pagination, never the size of the current page."""
+
+    items: list[PlayerResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
+
+
+class PlayerFacetsResponse(BaseModel):
+    nationalities: list[str]
+    positions: list[str]
+    total_players: int
+
+
+class BatchRoleItem(BaseModel):
+    """One sampled player's latest persisted role classification."""
+
+    player_id: uuid.UUID
+    player_name: str
+    primary_position: str | None = None
+    role_status: str = "NOT_CLASSIFIED"
+    position_group: str | None = None
+    primary_archetype: str | None = None
+    secondary_archetype: str | None = None
+    archetype_confidence: float | None = None
+    sample_minutes: int | None = None
+    sample_matches: int | None = None
+    as_of: datetime | None = None
+
+
+class RoleCoverageSummary(BaseModel):
+    qualified_profiles: int
+    insufficient_profiles: int
+    total_players: int
+
+
+class BatchRoleResponse(BaseModel):
+    items: list[BatchRoleItem]
+    requested: int
+    returned: int
+    classified: int
+    insufficient: int
+    not_classified: int
+    coverage: RoleCoverageSummary
+
+
+class PlayerCompetitionCoverage(BaseModel):
+    competition: str
+    season: str
+    players: int
+
+
+class PlayerCoverageResponse(BaseModel):
+    canonical_players: int
+    provider_mappings: dict[str, int]
+    unique_mapped_players_by_provider: dict[str, int]
+    players_with_season_stats: int
+    players_with_club_association: int
+    players_missing_identity: int
+    players_missing_position: int
+    duplicate_provider_ids: int
+    by_competition_season: list[PlayerCompetitionCoverage]
+    latest_player_ingestion: dict[str, Any]
+    ingestion_completeness: dict[str, Any]
+    generated_at: str
 
 
 class ClubSummaryResponse(BaseModel):
@@ -229,9 +313,22 @@ class MatchListResponse(BaseModel):
     home_club_name: str | None = None
     away_club_id: uuid.UUID
     away_club_name: str | None = None
+    competition_name: str | None = None
+    season_name: str | None = None
     home_score: int | None = None
     away_score: int | None = None
     winner_club_id: uuid.UUID | None = None
+
+
+class MatchPageResponse(BaseModel):
+    """Server-side paginated fixture list with a true matching total."""
+
+    items: list[MatchListResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_next: bool
 
 
 class MatchDetailResponse(BaseModel):
@@ -416,23 +513,574 @@ async def get_club(
     return ClubResponse.model_validate(club)
 
 
+_PLAYER_POSITION_ALIASES: dict[str, tuple[str, ...]] = {
+    "gk": ("goalkeeper",),
+    "goalkeeper": ("goalkeeper",),
+    "d": ("defender",),
+    "defender": ("defender",),
+    "defence": ("defender",),
+    "defense": ("defender",),
+    "m": ("midfielder",),
+    "midfielder": ("midfielder",),
+    "f": ("attacker", "forward", "winger", "striker"),
+    "attacker": ("attacker", "forward", "winger", "striker"),
+    "forward": ("attacker", "forward", "winger", "striker"),
+    "striker": ("attacker", "forward", "winger", "striker"),
+    "winger": ("attacker", "forward", "winger", "striker"),
+}
+
+_PLAYER_SORT_COLUMNS = {
+    "name": Player.name,
+    "nationality": Player.nationality,
+    "date_of_birth": Player.date_of_birth,
+    "position": Player.primary_position,
+    "created_at": Player.created_at,
+}
+
+
+def _escape_like(value: str) -> str:
+    """Escape LIKE metacharacters so a search for `%` stays a search for `%`."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def _player_filters(
+    *,
+    q: str | None,
+    position: str | None,
+    nationality: str | None,
+    club_id: uuid.UUID | None,
+    competition_season_id: uuid.UUID | None,
+) -> list[Any]:
+    filters: list[Any] = []
+    if q and q.strip():
+        filters.append(Player.name.ilike(f"%{_escape_like(q.strip())}%", escape="\\"))
+    if position and position.strip():
+        terms = _PLAYER_POSITION_ALIASES.get(
+            position.strip().lower(), (position.strip().lower(),)
+        )
+        filters.append(func.lower(Player.primary_position).in_(terms))
+    if nationality and nationality.strip():
+        filters.append(func.lower(Player.nationality) == nationality.strip().lower())
+    if club_id is not None:
+        filters.append(
+            Player.id.in_(
+                select(PlayerSeasonStats.player_id).where(
+                    PlayerSeasonStats.club_id == club_id
+                )
+            )
+        )
+    if competition_season_id is not None:
+        filters.append(
+            Player.id.in_(
+                select(PlayerSeasonStats.player_id).where(
+                    PlayerSeasonStats.competition_season_id == competition_season_id
+                )
+            )
+        )
+    return filters
+
+
+@router.get("/players/search", response_model=PlayerPageResponse)
+async def search_players(
+    q: str | None = Query(None, max_length=128),
+    position: str | None = Query(None, max_length=64),
+    nationality: str | None = Query(None, max_length=64),
+    club_id: uuid.UUID | None = Query(None),
+    competition_season_id: uuid.UUID | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int | None = Query(None, ge=1, le=1000),
+    sort_by: Literal[
+        "name", "nationality", "date_of_birth", "position", "created_at"
+    ] = "name",
+    sort_dir: Literal["asc", "desc"] = "asc",
+    session: AsyncSession = Depends(get_session),
+) -> PlayerPageResponse:
+    """Server-side paginated player search.
+
+    Filters are applied before counting and pagination, so `total` is the
+    number of matching canonical players — not the size of this page.
+    """
+    settings = get_settings()
+    size = page_size or settings.players_default_page_size
+    if size > settings.players_max_page_size:
+        raise HTTPException(
+            status_code=422,
+            detail=f"page_size must be <= {settings.players_max_page_size}",
+        )
+
+    filters = _player_filters(
+        q=q,
+        position=position,
+        nationality=nationality,
+        club_id=club_id,
+        competition_season_id=competition_season_id,
+    )
+
+    total = (
+        await session.execute(select(func.count(Player.id)).where(*filters))
+    ).scalar_one()
+
+    sort_column = _PLAYER_SORT_COLUMNS[sort_by]
+    order = sort_column.desc() if sort_dir == "desc" else sort_column.asc()
+    stmt = (
+        select(Player)
+        .options(selectinload(Player.identities), selectinload(Player.season_stats))
+        .where(*filters)
+        .order_by(order.nulls_last(), Player.id.asc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    players = (await session.execute(stmt)).scalars().all()
+    total_pages = math.ceil(total / size) if total else 0
+
+    return PlayerPageResponse(
+        items=[PlayerResponse.model_validate(p) for p in players],
+        total=total,
+        page=page,
+        page_size=size,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+    )
+
+
+@router.get("/players/facets", response_model=PlayerFacetsResponse)
+async def player_facets(
+    session: AsyncSession = Depends(get_session),
+) -> PlayerFacetsResponse:
+    """Distinct filter values computed from the database, not a page of rows."""
+    nationalities = (
+        await session.execute(
+            select(Player.nationality)
+            .where(Player.nationality.is_not(None))
+            .distinct()
+            .order_by(Player.nationality)
+        )
+    ).scalars().all()
+    positions = (
+        await session.execute(
+            select(Player.primary_position)
+            .where(Player.primary_position.is_not(None))
+            .distinct()
+            .order_by(Player.primary_position)
+        )
+    ).scalars().all()
+    total = (await session.execute(select(func.count(Player.id)))).scalar_one()
+    return PlayerFacetsResponse(
+        nationalities=[n for n in nationalities if n],
+        positions=[p for p in positions if p],
+        total_players=total,
+    )
+
+
+@router.get("/players/roles", response_model=BatchRoleResponse)
+async def batch_player_roles(
+    ids: str | None = Query(
+        None, description="comma-separated player UUIDs (max 100); omit to page the canonical index"
+    ),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+) -> BatchRoleResponse:
+    """Batch role classifications, replacing one HTTP request per player.
+
+    Reads the latest persisted `player_role_profiles` row per player. A player
+    without a profile is reported as `NOT_CLASSIFIED`; nothing is computed or
+    invented here. Coverage is stated over the whole canonical index so the
+    page can distinguish "sampled" from "classified".
+    """
+    requested_ids: list[uuid.UUID] = []
+    if ids:
+        for raw in ids.split(","):
+            raw = raw.strip()
+            if not raw:
+                continue
+            try:
+                requested_ids.append(uuid.UUID(raw))
+            except ValueError as exc:
+                raise HTTPException(status_code=422, detail=f"invalid player id: {raw}") from exc
+        if len(requested_ids) > 100:
+            raise HTTPException(status_code=422, detail="at most 100 ids per request")
+        requested_ids = list(dict.fromkeys(requested_ids))
+
+    if requested_ids:
+        players = (
+            await session.execute(
+                select(Player).where(Player.id.in_(requested_ids)).order_by(Player.name, Player.id)
+            )
+        ).scalars().all()
+    else:
+        players = (
+            await session.execute(
+                select(Player)
+                .order_by(Player.name, Player.id)
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
+        ).scalars().all()
+
+    player_ids = [p.id for p in players]
+    profile_rows = []
+    if player_ids:
+        profile_rows = list(
+            (
+                await session.execute(
+                    select(PlayerRoleProfile)
+                    .where(PlayerRoleProfile.player_id.in_(player_ids))
+                    .order_by(PlayerRoleProfile.player_id, PlayerRoleProfile.as_of.desc())
+                )
+            ).scalars().all()
+        )
+    latest: dict[uuid.UUID, PlayerRoleProfile] = {}
+    for profile in profile_rows:
+        current = latest.get(profile.player_id)
+        if current is None:
+            latest[profile.player_id] = profile
+            continue
+        # Prefer a qualified classification over a newer insufficient row;
+        # otherwise the page reports 0 classified while qualified profiles exist.
+        profile_qualified = profile.role_status == "QUALIFIED"
+        current_qualified = current.role_status == "QUALIFIED"
+        if profile_qualified and not current_qualified:
+            latest[profile.player_id] = profile
+        elif profile_qualified == current_qualified and profile.as_of > current.as_of:
+            latest[profile.player_id] = profile
+
+    items: list[BatchRoleItem] = []
+    classified = insufficient = not_classified = 0
+    for player in players:
+        profile = latest.get(player.id)
+        if profile is None:
+            not_classified += 1
+            items.append(
+                BatchRoleItem(player_id=player.id, player_name=player.name, primary_position=player.primary_position)
+            )
+            continue
+        if profile.role_status == "QUALIFIED" and profile.primary_archetype:
+            classified += 1
+        else:
+            insufficient += 1
+        items.append(
+            BatchRoleItem(
+                player_id=player.id,
+                player_name=player.name,
+                primary_position=player.primary_position,
+                role_status=profile.role_status,
+                position_group=profile.position_group,
+                primary_archetype=profile.primary_archetype,
+                secondary_archetype=profile.secondary_archetype,
+                archetype_confidence=profile.archetype_confidence,
+                sample_minutes=profile.sample_minutes,
+                sample_matches=profile.sample_matches,
+                as_of=profile.as_of,
+            )
+        )
+
+    qualified_profiles = (
+        await session.execute(
+            select(func.count(func.distinct(PlayerRoleProfile.player_id))).where(
+                PlayerRoleProfile.role_status == "QUALIFIED",
+                PlayerRoleProfile.primary_archetype.is_not(None),
+            )
+        )
+    ).scalar_one()
+    # Count players that have any profile but no qualified one; counting
+    # non-qualified rows would also count players who now have a qualified
+    # season profile alongside an older insufficient row.
+    profiled_players = (
+        await session.execute(
+            select(func.count(func.distinct(PlayerRoleProfile.player_id)))
+        )
+    ).scalar_one()
+    insufficient_profiles = max(0, profiled_players - qualified_profiles)
+    total_players = (await session.execute(select(func.count(Player.id)))).scalar_one()
+
+    return BatchRoleResponse(
+        items=items,
+        requested=len(requested_ids) if requested_ids else len(players),
+        returned=len(items),
+        classified=classified,
+        insufficient=insufficient,
+        not_classified=not_classified,
+        coverage=RoleCoverageSummary(
+            qualified_profiles=qualified_profiles,
+            insufficient_profiles=insufficient_profiles,
+            total_players=total_players,
+        ),
+    )
+
+
+@router.get("/players/coverage", response_model=PlayerCoverageResponse)
+async def player_coverage(
+    session: AsyncSession = Depends(get_session),
+) -> PlayerCoverageResponse:
+    """Measured canonical player coverage and the latest ingestion state.
+
+    Nothing here is inferred from a single successful request: page counts,
+    the declared provider total and the completed pages are reported
+    separately, and completeness is only COMPLETE when they agree.
+    """
+    from app.db.models.provenance import DataSnapshot, DataSource, IngestionRun
+
+    canonical_players = (
+        await session.execute(select(func.count(Player.id)))
+    ).scalar_one()
+
+    provider_rows = (
+        await session.execute(
+            select(
+                PlayerIdentity.provider,
+                func.count(PlayerIdentity.id),
+                func.count(func.distinct(PlayerIdentity.player_id)),
+            ).group_by(PlayerIdentity.provider)
+        )
+    ).all()
+    provider_mappings = {row[0]: row[1] for row in provider_rows}
+    unique_mapped = {row[0]: row[2] for row in provider_rows}
+
+    players_with_stats = (
+        await session.execute(
+            select(func.count(func.distinct(PlayerSeasonStats.player_id)))
+        )
+    ).scalar_one()
+    players_with_club = (
+        await session.execute(
+            select(func.count(Player.id)).where(Player.club_id.is_not(None))
+        )
+    ).scalar_one()
+    players_missing_identity = (
+        await session.execute(
+            select(func.count(Player.id)).where(
+                ~select(PlayerIdentity.id)
+                .where(PlayerIdentity.player_id == Player.id)
+                .exists()
+            )
+        )
+    ).scalar_one()
+    players_missing_position = (
+        await session.execute(
+            select(func.count(Player.id)).where(Player.primary_position.is_(None))
+        )
+    ).scalar_one()
+    duplicate_provider_ids = (
+        await session.execute(
+            select(func.count()).select_from(
+                select(PlayerIdentity.provider, PlayerIdentity.provider_player_id)
+                .group_by(PlayerIdentity.provider, PlayerIdentity.provider_player_id)
+                .having(func.count(PlayerIdentity.id) > 1)
+                .subquery()
+            )
+        )
+    ).scalar_one()
+
+    competition_rows = (
+        await session.execute(
+            select(
+                Competition.name,
+                Season.name,
+                func.count(func.distinct(PlayerSeasonStats.player_id)),
+            )
+            .join(
+                CompetitionSeason,
+                CompetitionSeason.id == PlayerSeasonStats.competition_season_id,
+            )
+            .join(Competition, Competition.id == CompetitionSeason.competition_id)
+            .join(Season, Season.id == CompetitionSeason.season_id)
+            .group_by(Competition.name, Season.name)
+            .order_by(Competition.name, Season.name)
+        )
+    ).all()
+
+    runs = (
+        await session.execute(
+            select(IngestionRun, DataSource.name)
+            .join(DataSource, DataSource.id == IngestionRun.data_source_id)
+            .where(IngestionRun.endpoint == "players")
+            .order_by(
+                func.coalesce(IngestionRun.finished_at, IngestionRun.started_at).desc()
+            )
+            .limit(500)
+        )
+    ).all()
+
+    latest: dict[str, Any] = {
+        "provider": None,
+        "status": "NEVER_RUN",
+        "finished_at": None,
+        "parameters": {},
+        "record_count": None,
+        "error": None,
+    }
+    pages_by_scope: dict[str, set[int]] = {}
+    failures = 0
+    plan_page_max: int | None = None
+    plan_limit_message: str | None = None
+    for run, provider in runs:
+        params = dict(run.parameters or {})
+        page = params.get("page")
+        scope_params = {k: v for k, v in params.items() if k != "page"}
+        scope_key = f"{provider}:{sorted(scope_params.items())}"
+        status_value = getattr(run.status, "value", run.status)
+        if page is not None and status_value in ("SUCCESS", "PARTIAL"):
+            pages_by_scope.setdefault(scope_key, set()).add(int(page))
+        if status_value == "FAILED":
+            failures += 1
+            if plan_page_max is None and run.error:
+                plan_match = re.search(
+                    r"maximum value of (\d+) for the Page parameter",
+                    run.error,
+                    flags=re.IGNORECASE,
+                )
+                if plan_match:
+                    plan_page_max = int(plan_match.group(1))
+                    plan_limit_message = run.error
+        if latest["provider"] is None:
+            latest = {
+                "provider": provider,
+                "status": status_value,
+                "finished_at": (
+                    run.finished_at.isoformat() if run.finished_at else None
+                ),
+                "parameters": params,
+                "record_count": run.record_count,
+                "error": run.error,
+            }
+
+    latest_scope_key = None
+    latest_scope_params: dict[str, Any] = {}
+    if latest["provider"] is not None:
+        latest_params = latest["parameters"] or {}
+        latest_scope_params = {
+            k: v for k, v in latest_params.items() if k != "page"
+        }
+        latest_scope_key = f"{latest['provider']}:{sorted(latest_scope_params.items())}"
+
+    # Completeness must be measured against the same provider/scope as the
+    # latest run, not whichever snapshot happens to be newest globally.
+    latest_success: IngestionRun | None = None
+    if latest["provider"] is not None:
+        for run, provider in runs:
+            params = dict(run.parameters or {})
+            scope_params = {k: v for k, v in params.items() if k != "page"}
+            status_value = getattr(run.status, "value", run.status)
+            if (
+                provider == latest["provider"]
+                and scope_params == latest_scope_params
+                and status_value == "SUCCESS"
+            ):
+                latest_success = run
+                break
+
+    declared_total_pages: int | None = None
+    declared_current_page: int | None = None
+    if latest_success is not None:
+        snapshot = (
+            await session.execute(
+                select(DataSnapshot)
+                .where(DataSnapshot.ingestion_run_id == latest_success.id)
+                .order_by(DataSnapshot.retrieved_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if snapshot is not None:
+            try:
+                payload = json.loads(Path(snapshot.storage_location).read_bytes())
+                paging = payload.get("paging") or {}
+                if isinstance(paging, dict):
+                    if isinstance(paging.get("total"), int):
+                        declared_total_pages = paging["total"]
+                    if isinstance(paging.get("current"), int):
+                        declared_current_page = paging["current"]
+            except (OSError, ValueError):
+                declared_total_pages = None
+
+    completed_pages = (
+        len(pages_by_scope.get(latest_scope_key, set())) if latest_scope_key else 0
+    )
+
+    if (
+        plan_page_max is not None
+        and (declared_total_pages is None or completed_pages < declared_total_pages)
+    ):
+        completeness_status = "BLOCKED_BY_PLAN"
+    elif declared_total_pages is None:
+        completeness_status = "UNKNOWN" if completed_pages == 0 else "PARTIAL"
+    elif completed_pages >= declared_total_pages:
+        completeness_status = "COMPLETE"
+    elif completed_pages == 0:
+        completeness_status = "INCOMPLETE"
+    else:
+        completeness_status = "PARTIAL"
+
+    return PlayerCoverageResponse(
+        canonical_players=canonical_players,
+        provider_mappings=provider_mappings,
+        unique_mapped_players_by_provider=unique_mapped,
+        players_with_season_stats=players_with_stats,
+        players_with_club_association=players_with_club,
+        players_missing_identity=players_missing_identity,
+        players_missing_position=players_missing_position,
+        duplicate_provider_ids=duplicate_provider_ids,
+        by_competition_season=[
+            PlayerCompetitionCoverage(
+                competition=row[0], season=row[1], players=row[2]
+            )
+            for row in competition_rows
+        ],
+        latest_player_ingestion=latest,
+        ingestion_completeness={
+            "scope": latest_scope_params,
+            "declared_total_pages": declared_total_pages,
+            "latest_page": declared_current_page,
+            "completed_pages": completed_pages,
+            "failed_runs": failures,
+            "status": completeness_status,
+            "provider_plan_limit": (
+                {
+                    "page_max": plan_page_max,
+                    "message": plan_limit_message,
+                }
+                if plan_page_max is not None
+                else None
+            ),
+            "accessible_pages": (
+                min(plan_page_max, declared_total_pages)
+                if plan_page_max is not None and declared_total_pages is not None
+                else plan_page_max
+            ),
+            "provider_quota_note": (
+                "Provider rate limits and quotas are not inferred from a "
+                "successful request; FAILED runs carry the provider error."
+            ),
+        },
+        generated_at=datetime.now(timezone.utc).isoformat(),
+    )
+
+
 @router.get("/players", response_model=list[PlayerResponse])
 async def list_players(
     position: str | None = Query(None),
     nationality: str | None = Query(None),
-    limit: int = Query(50, le=100),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_session),
 ) -> list[PlayerResponse]:
+    """Legacy bounded list (no total metadata). Prefer `/players/search`."""
     stmt = (
         select(Player)
         .options(selectinload(Player.identities), selectinload(Player.season_stats))
-        .order_by(Player.name)
+        .order_by(Player.name, Player.id.asc())
+        .offset(offset)
         .limit(limit)
     )
-    if position:
-        stmt = stmt.where(Player.primary_position == position)
-    if nationality:
-        stmt = stmt.where(Player.nationality == nationality)
+    filters = _player_filters(
+        q=None,
+        position=position,
+        nationality=nationality,
+        club_id=None,
+        competition_season_id=None,
+    )
+    if filters:
+        stmt = stmt.where(*filters)
     players = (await session.execute(stmt)).scalars().all()
     return [PlayerResponse.model_validate(p) for p in players]
 
@@ -453,6 +1101,136 @@ async def get_player(
     return PlayerResponse.model_validate(player)
 
 
+def _match_filters(
+    *,
+    competition_id: uuid.UUID | None,
+    season_id: uuid.UUID | None,
+    competition_season_id: uuid.UUID | None,
+    club_id: uuid.UUID | None,
+    status: str | None,
+    date_from: date | None,
+    date_to: date | None,
+) -> list:
+    filters: list = []
+    if competition_season_id:
+        filters.append(Match.competition_season_id == competition_season_id)
+    if competition_id:
+        filters.append(CompetitionSeason.competition_id == competition_id)
+    if season_id:
+        filters.append(CompetitionSeason.season_id == season_id)
+    if club_id:
+        filters.append((Match.home_club_id == club_id) | (Match.away_club_id == club_id))
+    if status:
+        filters.append(Match.status == status.upper())
+    if date_from:
+        filters.append(
+            Match.date >= datetime.combine(date_from, datetime.min.time(), tzinfo=timezone.utc)
+        )
+    if date_to:
+        filters.append(
+            Match.date <= datetime.combine(date_to, datetime.max.time(), tzinfo=timezone.utc)
+        )
+    return filters
+
+
+def _match_list_item(m: Match) -> MatchListResponse:
+    competition_season = m.competition_season
+    return MatchListResponse(
+        id=m.id,
+        provider=m.provider,
+        provider_fixture_id=m.provider_fixture_id,
+        competition_season_id=m.competition_season_id,
+        date=m.date,
+        status=m.status,
+        status_detail=m.status_detail,
+        round=m.round,
+        venue_name=m.venue_name,
+        venue_city=m.venue_city,
+        home_club_id=m.home_club_id,
+        home_club_name=m.home_club.name if m.home_club else None,
+        away_club_id=m.away_club_id,
+        away_club_name=m.away_club.name if m.away_club else None,
+        competition_name=(
+            competition_season.competition.name
+            if competition_season and competition_season.competition
+            else None
+        ),
+        season_name=(
+            competition_season.season.name
+            if competition_season and competition_season.season
+            else None
+        ),
+        home_score=m.home_score,
+        away_score=m.away_score,
+        winner_club_id=m.winner_club_id,
+    )
+
+
+@router.get("/matches/search", response_model=MatchPageResponse)
+async def search_matches(
+    competition_id: uuid.UUID | None = Query(None),
+    season_id: uuid.UUID | None = Query(None),
+    competition_season_id: uuid.UUID | None = Query(None),
+    club_id: uuid.UUID | None = Query(None),
+    status: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(25, ge=1, le=100),
+    session: AsyncSession = Depends(get_session),
+) -> MatchPageResponse:
+    """Paginated fixtures with a total measured on the same filters.
+
+    `/matches` remains as a bounded legacy list (no total metadata); the UI
+    and any completeness claim use this endpoint.
+    """
+    needs_join = bool(competition_id or season_id)
+    filters = _match_filters(
+        competition_id=competition_id,
+        season_id=season_id,
+        competition_season_id=competition_season_id,
+        club_id=club_id,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    count_stmt = select(func.count(Match.id))
+    if needs_join:
+        count_stmt = count_stmt.join(
+            CompetitionSeason, Match.competition_season_id == CompetitionSeason.id
+        )
+    total = (await session.execute(count_stmt.where(*filters))).scalar_one()
+
+    stmt = (
+        select(Match)
+        .options(
+            selectinload(Match.home_club),
+            selectinload(Match.away_club),
+            selectinload(Match.competition_season).selectinload(CompetitionSeason.competition),
+            selectinload(Match.competition_season).selectinload(CompetitionSeason.season),
+        )
+        .order_by(Match.date.desc(), Match.id.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+    if needs_join:
+        stmt = stmt.join(
+            CompetitionSeason, Match.competition_season_id == CompetitionSeason.id
+        )
+    matches = (await session.execute(stmt.where(*filters))).scalars().all()
+    total_pages = math.ceil(total / page_size) if total else 0
+
+    return MatchPageResponse(
+        items=[_match_list_item(m) for m in matches],
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_next=page < total_pages,
+    )
+
+
 @router.get("/matches", response_model=list[MatchListResponse])
 async def list_matches(
     competition_id: uuid.UUID | None = Query(None),
@@ -466,61 +1244,35 @@ async def list_matches(
     offset: int = Query(0, ge=0),
     session: AsyncSession = Depends(get_session),
 ) -> list[MatchListResponse]:
+    """Legacy bounded list (no total metadata). Prefer `/matches/search`."""
+    needs_join = bool(competition_id or season_id)
+    filters = _match_filters(
+        competition_id=competition_id,
+        season_id=season_id,
+        competition_season_id=competition_season_id,
+        club_id=club_id,
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+    )
     stmt = (
         select(Match)
         .options(
             selectinload(Match.home_club),
             selectinload(Match.away_club),
-            selectinload(Match.competition_season),
+            selectinload(Match.competition_season).selectinload(CompetitionSeason.competition),
+            selectinload(Match.competition_season).selectinload(CompetitionSeason.season),
         )
-        .order_by(Match.date.desc())
+        .order_by(Match.date.desc(), Match.id.asc())
         .offset(offset)
         .limit(limit)
     )
-    if competition_season_id:
-        stmt = stmt.where(Match.competition_season_id == competition_season_id)
-    if competition_id:
-        stmt = stmt.join(CompetitionSeason, Match.competition_season_id == CompetitionSeason.id).where(
-            CompetitionSeason.competition_id == competition_id
+    if needs_join:
+        stmt = stmt.join(
+            CompetitionSeason, Match.competition_season_id == CompetitionSeason.id
         )
-    if season_id:
-        stmt = stmt.join(CompetitionSeason, Match.competition_season_id == CompetitionSeason.id).where(
-            CompetitionSeason.season_id == season_id
-        )
-    if club_id:
-        stmt = stmt.where((Match.home_club_id == club_id) | (Match.away_club_id == club_id))
-    if status:
-        stmt = stmt.where(Match.status == status.upper())
-    if date_from:
-        stmt = stmt.where(Match.date >= datetime.combine(date_from, datetime.min.time(), tzinfo=timezone.utc))
-    if date_to:
-        stmt = stmt.where(Match.date <= datetime.combine(date_to, datetime.max.time(), tzinfo=timezone.utc))
-
-    matches = (await session.execute(stmt)).scalars().all()
-    results: list[MatchListResponse] = []
-    for m in matches:
-        results.append(
-            MatchListResponse(
-                id=m.id,
-                provider=m.provider,
-                provider_fixture_id=m.provider_fixture_id,
-                competition_season_id=m.competition_season_id,
-                date=m.date,
-                status=m.status,
-                status_detail=m.status_detail,
-                round=m.round,
-                venue_name=m.venue_name,
-                venue_city=m.venue_city,
-                home_club_id=m.home_club_id,
-                home_club_name=m.home_club.name if m.home_club else None,
-                away_club_id=m.away_club_id,
-                away_club_name=m.away_club.name if m.away_club else None,
-                home_score=m.home_score,
-                away_score=m.away_score,
-                winner_club_id=m.winner_club_id,
-            )
-        )
-    return results
+    matches = (await session.execute(stmt.where(*filters))).scalars().all()
+    return [_match_list_item(m) for m in matches]
 
 
 @router.get("/matches/{match_id}", response_model=MatchDetailResponse)
@@ -1030,7 +1782,12 @@ async def get_player_role_profile(
             primary_archetype=profile.primary_archetype,
             secondary_archetype=profile.secondary_archetype,
             archetype_confidence=profile.archetype_confidence,
-            profile_scores=profile.profile_scores,
+            # Rows written before the sample gate blanked placeholder scores can
+            # still exist. Never serve neutral 0.5 dimensions as a percentile
+            # shape for a player without a qualified sample.
+            profile_scores=(
+                profile.profile_scores if profile.role_status == "QUALIFIED" else {}
+            ),
             feature_vector=profile.feature_vector,
             provenance=profile.provenance,
             created_at=profile.created_at,

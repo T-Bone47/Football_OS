@@ -254,9 +254,48 @@ class TestRecruitmentEngine:
         assert top_cand.primary_position == "DM"
         assert top_cand.performance.contribution_rating > 50.0
         assert top_cand.tactical.tactical_fit_score > 50.0
-        assert top_cand.market.estimated_value_eur > 0.0
+        # No canonical valuation and no comparables exist for this candidate, so the
+        # platform must NOT invent a market value (the old behaviour used a
+        # hardcoded cohort table). The value stays unknown and the assessment says
+        # so; the candidate is still ranked on the evidence that does exist.
+        assert top_cand.market.estimated_value_eur is None
+        assert top_cand.market.affordability_status == "UNAVAILABLE"
+        assert any("valuation" in note.lower() for note in top_cand.evidence_notes)
+        assert top_cand.minutes_played > 0
+        assert top_cand.evidence_status == "MEASURED"
         assert top_cand.risk.risk_level in ("LOW", "MEDIUM", "HIGH")
         assert len(top_cand.why_matches) > 0
+
+    @pytest.mark.asyncio
+    async def test_recruitment_uses_a_supplied_valuation_when_one_exists(self):
+        """A valuation that comes with the candidate is evidence and is used."""
+        candidates = [
+            {
+                "id": uuid.uuid4(),
+                "name": "Valued Midfielder",
+                "primary_position": "DM",
+                "age": 25.0,
+                "club_name": "Arsenal",
+                "minutes_played": 2500,
+                "matches_played": 28,
+                "estimated_value_eur": 42_000_000.0,
+            }
+        ]
+        req = RecruitmentTargetRequest(
+            target_position="DM",
+            target_role="Deep Distributor",
+            formation="4-3-3",
+            budget_eur=100_000_000.0,
+            min_age=18.0,
+            max_age=32.0,
+            min_minutes=500,
+            limit=5,
+        )
+        res = await self.engine.evaluate_recruitment(req, candidates_override=candidates)
+        assert res.top_recommendations
+        market = res.top_recommendations[0].market
+        assert market.estimated_value_eur == 42_000_000.0
+        assert market.affordability_status == "AFFORDABLE"
 
 
 # ============================================================

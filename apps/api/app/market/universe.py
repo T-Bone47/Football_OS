@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.models.canonical import Club, Player, Transfer
-from app.market.schemas import MarketCoverageResponse
+from app.market.schemas import MarketCoverageResponse, NormalizedTransfer
 from app.market.taxonomy import TransferFeeStatus, TransferType
 
 
@@ -166,15 +166,23 @@ def transfer_db_to_normalized(t: Transfer) -> NormalizedTransfer:
     raw = dict(t.raw_data) if t.raw_data else {}
     if t.player and not raw.get("position"):
         raw["position"] = t.player.primary_position
-    if t.player and not raw.get("age") and t.player.birth_date and t.transfer_date:
-        age_years = (t.transfer_date - t.player.birth_date).days / 365.25
-        raw["player_age_at_transfer"] = round(age_years, 1)
+    birth_date = t.player.date_of_birth if t.player else None
+    if birth_date and t.transfer_date:
+        transfer_day = (
+            t.transfer_date.date()
+            if hasattr(t.transfer_date, "date")
+            else t.transfer_date
+        )
+        if not raw.get("player_age_at_transfer"):
+            raw["player_age_at_transfer"] = round(
+                (transfer_day - birth_date).days / 365.25, 1
+            )
 
     return NormalizedTransfer(
         provider=t.source_provider or "api-football",
         source_record_id=t.source_record_id or str(t.id),
         provider_player_id=str(t.player_id),
-        player_name=t.player.full_name if t.player else "Unknown",
+        player_name=t.player.name if t.player else "Unknown",
         from_provider_club_id=str(t.from_club_id) if t.from_club_id else None,
         from_club_name=t.from_club.name if t.from_club else None,
         to_provider_club_id=str(t.to_club_id) if t.to_club_id else None,

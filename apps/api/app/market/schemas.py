@@ -71,7 +71,7 @@ class MarketContextResponse(BaseModel):
     current_club_id: uuid.UUID | None = None
     current_club_name: str | None = None
     role_archetype: str | None = None
-    contribution_scores: dict[str, float] = Field(default_factory=dict)
+    contribution_scores: dict[str, float | None] = Field(default_factory=dict)
     sample_minutes: int = 0
     sample_matches: int = 0
     total_career_transfers: int = 0

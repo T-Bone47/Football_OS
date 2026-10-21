@@ -111,7 +111,7 @@ class AuditLogger:
         actor: str,
         resource: str,
         details: dict[str, Any] | None = None,
-        organization_id: str = "org_arsenal",
+        organization_id: str = "unscoped",
     ) -> AuditEvent:
         """Convenience wrapper for record_event."""
         return self.record_event(

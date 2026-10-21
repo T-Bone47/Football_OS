@@ -19,6 +19,69 @@ export const apiClient = axios.create({
   },
 });
 
+// ---- Bearer token for the analytics API -----------------------------------------------------------
+// Issued by the identity service (POST /api/auth/token) after sign-in. Kept in memory only (never
+// localStorage) and attached to every request to our own API, whether it goes through axios or fetch().
+let accessToken = null;
+export const setAccessToken = (token) => { accessToken = token || null; };
+
+const attachToken = (config) => {
+  if (accessToken && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+};
+apiClient.interceptors.request.use(attachToken);
+axios.interceptors.request.use(attachToken); // pages that call axios directly
+
+// Modules that run on built-in demonstration figures answer 409 DEMO_ONLY outside demo mode. Tell the shell, so the
+// user sees why the page is empty instead of a silently blank screen.
+export const DEMO_ONLY_EVENT = "fios:demo-only";
+const announceIfDemoOnly = (status, body) => {
+  if (status === 409 && body && body.detail && body.detail.code === "DEMO_ONLY" && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(DEMO_ONLY_EVENT, { detail: body.detail }));
+  }
+};
+const onAxiosError = (err) => {
+  announceIfDemoOnly(err.response && err.response.status, err.response && err.response.data);
+  return Promise.reject(err);
+};
+apiClient.interceptors.response.use((r) => r, onAxiosError);
+axios.interceptors.response.use((r) => r, onAxiosError);
+
+const isOwnApiUrl = (url) =>
+  typeof url === "string" &&
+  (url.startsWith(BACKEND_URL) || (process.env.REACT_APP_API_URL && url.startsWith(process.env.REACT_APP_API_URL)));
+
+if (typeof window !== "undefined" && window.fetch && !window.fetch.__fiosAuth) {
+  const nativeFetch = window.fetch.bind(window);
+  const authedFetch = (input, init = {}) => {
+    const url = typeof input === "string" ? input : input && input.url;
+    if (accessToken && isOwnApiUrl(url)) {
+      const headers = new Headers(init.headers || (typeof input !== "string" && input ? input.headers : undefined));
+      if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${accessToken}`);
+      return nativeFetch(input, { ...init, headers });
+    }
+    return nativeFetch(input, init);
+  };
+  const announcingFetch = (input, init) =>
+    authedFetch(input, init).then((res) => {
+      const url = typeof input === "string" ? input : input && input.url;
+      if (res.status === 409 && isOwnApiUrl(url)) {
+        res.clone().json().then((body) => announceIfDemoOnly(res.status, body)).catch(() => {});
+      }
+      return res;
+    });
+  announcingFetch.__fiosAuth = true;
+  window.fetch = announcingFetch;
+}
+
+export const acquireAccessToken = async () => {
+  const { data } = await axios.post(`${APP_API}/auth/token`, null, { withCredentials: true });
+  setAccessToken(data.access_token);
+  return data.expires_in;
+};
+
 // Canonical Request Helper
 const request = (path, params) =>
   apiClient.get(`${CANONICAL_API}${path}`, { params }).then(({ data }) => data);
@@ -35,20 +98,16 @@ export const getHealth = () =>
 export const getHealthReady = () =>
   apiClient.get(`${BACKEND_URL}/health/ready`).then(({ data }) => data);
 
-export const getCurrentUser = async () => {
-  try {
-    const { data } = await apiClient.get(`${APP_API}/auth/me`);
-    return data;
-  } catch (err) {
-    // Default local scout identity if auth endpoint is offline
-    return {
-      user_id: "scout_01",
-      email: "scout@football-intelligence.local",
-      name: "Head of Scouting",
-      picture: null,
-    };
-  }
-};
+export const getLLMStatus = () =>
+  apiClient.get(`${BACKEND_URL}/llm-status`).then(({ data }) => data);
+
+// Measured counts, last successful ingestion and schema version.
+export const getDataStatus = () =>
+  apiClient.get(`${BACKEND_URL}/data-status`).then(({ data }) => data);
+
+// Registered model artifacts and their integrity/release state.
+export const getModelStatus = () =>
+  apiClient.get(`${BACKEND_URL}/model-status`).then(({ data }) => data);
 
 export const logout = async () => {
   try {
@@ -71,6 +130,13 @@ export const getClub = (clubId) => request(`/clubs/${clubId}`);
 export const getPlayers = (params = {}) =>
   request("/players", { limit: 100, ...params });
 
+export const getPlayerPage = (params = {}) =>
+  request("/players/search", { page: 1, page_size: 25, ...params });
+
+export const getPlayerFacets = () => request("/players/facets");
+
+export const getPlayerCoverage = () => request("/players/coverage");
+
 export const getPlayer = (playerId) => request(`/players/${playerId}`);
 
 export const getPlayerRole = async (playerId, params = {}) => {
@@ -84,6 +150,11 @@ export const getPlayerRole = async (playerId, params = {}) => {
 
 export const getPlayerRoleProfile = (playerId, params = {}) =>
   request(`/players/${playerId}/role-profile`, params);
+
+// Batch role classifications for up to 100 ids (or a page of the index).
+// Replaces the per-player fan-out that made the Roles page issue 80 requests.
+export const getPlayerRolesBatch = (params = {}) =>
+  request("/players/roles", { page: 1, page_size: 50, ...params });
 
 export const getPlayerFeatures = (playerId, params = {}) =>
   request(`/players/${playerId}/features`, params);
@@ -144,6 +215,10 @@ export const compareTacticalFit = (payload) =>
 // MATCHES & MATCH INTELLIGENCE
 // ============================================================
 export const getMatches = (params = {}) => request("/matches", params);
+
+// Paginated fixture contract: { items, total, page, page_size, total_pages, has_next }.
+// `/matches` remains a bounded legacy list and carries no total.
+export const getMatchesPage = (params = {}) => request("/matches/search", params);
 
 export const getMatch = async (matchId) => {
   const data = await request(`/matches/${matchId}`);
@@ -297,15 +372,26 @@ export const BACKEND_GAPS = {
 
 
 // Unified Error Parser
+export const apiErrorCode = (error) => {
+  const detail = error?.response?.data?.detail;
+  if (detail && typeof detail === "object" && typeof detail.code === "string") {
+    return detail.code;
+  }
+  return null;
+};
+
 export const apiErrorMessage = (error) => {
   if (error?.response?.status === 404) return "This record or capability was not found in the connected backend.";
-  if (error?.response?.status === 401) return "Session expired — please refresh or sign in again.";
+  if (error?.response?.status === 401) return "Session expired - please refresh or sign in again.";
   if (error?.code === "ERR_NETWORK" || error?.message?.includes("Network Error")) {
     return "The connected Football Intelligence OS backend could not be reached. Ensure FastAPI is running on port 8000.";
   }
   if (error?.response?.data?.detail) {
     const detail = error.response.data.detail;
-    return typeof detail === "string" ? detail : JSON.stringify(detail);
+    if (typeof detail === "string") return detail;
+    // Structured errors ({code, detail}) must surface their message, not JSON.
+    if (typeof detail.detail === "string") return detail.detail;
+    return JSON.stringify(detail);
   }
   return error?.message || "An unexpected error occurred while querying the connected service.";
 };

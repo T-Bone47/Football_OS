@@ -59,8 +59,12 @@ from app.phase14.tactical_realization import TacticalRealizationEngine
 
 # ── 1. Outcome Ledger & Cryptographic Integrity ───────────────────────
 
+# NOTE (demo fixtures): these tests exercise the mechanics of the Phase 14 engines on their built-in DEMONSTRATION
+# fixtures, which now exist only when a store is constructed with seed_demo=True. Production instances start empty
+# (tests/unit/test_demo_data_gating.py), so nothing here is evidence about real data.
+
 def test_outcome_ledger_append_and_duplicate_rejection():
-    ledger = OutcomeLedger()
+    ledger = OutcomeLedger(seed_demo=True)
     initial_count = len(ledger.list_outcomes())
 
     rec = ledger.append_outcome(
@@ -104,7 +108,7 @@ def test_outcome_ledger_append_and_duplicate_rejection():
 
 
 def test_outcome_ledger_cryptographic_verification():
-    ledger = OutcomeLedger()
+    ledger = OutcomeLedger(seed_demo=True)
     status = ledger.verify_ledger_integrity()
     assert status["is_valid"] is True
     assert status["corrupted_count"] == 0
@@ -113,7 +117,7 @@ def test_outcome_ledger_cryptographic_verification():
 # ── 2. Decision Realization & Non-Causal Evaluation ──────────────────
 
 def test_decision_realization_evaluation():
-    ledger = OutcomeLedger()
+    ledger = OutcomeLedger(seed_demo=True)
     ledger.append_outcome(
         outcome_id="eval_test_outc_min",
         decision_id="dec_eval_test",
@@ -145,7 +149,7 @@ def test_decision_realization_evaluation():
         source_snapshot_id="snap_eval_02",
     )
 
-    evaluator = DecisionRealizationEvaluator(ledger=ledger)
+    evaluator = DecisionRealizationEvaluator(ledger=ledger, seed_demo=True)
     expectations = [
         {"metric": "minutes_played", "expected": 1400.0, "tolerance_pct": 15.0, "unit": "minutes"},
         {"metric": "transfer_fee_paid_eur", "expected": 40_000_000.0, "tolerance_pct": 10.0, "unit": "EUR"},
@@ -170,8 +174,8 @@ def test_decision_realization_evaluation():
 
 
 def test_missing_outcome_sufficiency_no_zero_fabrication():
-    ledger = OutcomeLedger()
-    evaluator = DecisionRealizationEvaluator(ledger=ledger)
+    ledger = OutcomeLedger(seed_demo=True)
+    evaluator = DecisionRealizationEvaluator(ledger=ledger, seed_demo=True)
 
     expectations = [
         {"metric": "unobserved_metric_xyz", "expected": 100.0, "tolerance_pct": 10.0, "unit": "score"},
@@ -195,7 +199,7 @@ def test_missing_outcome_sufficiency_no_zero_fabrication():
 # ── 3. Prediction Calibration Feedback & Rolling Windows ─────────────
 
 def test_prediction_calibration_metrics_and_sample_threshold():
-    engine = PredictionCalibrationFeedbackEngine()
+    engine = PredictionCalibrationFeedbackEngine(seed_demo=True)
 
     # Valid window evaluation (seeded with 35 predictions)
     rep_30 = engine.compute_window_calibration(window_size=30, window_label="TEST_WINDOW_30")
@@ -220,7 +224,7 @@ def test_prediction_calibration_metrics_and_sample_threshold():
 # ── 4. Tactical Realization & Scenario Lifecycle ─────────────────────
 
 def test_tactical_realization_evaluation():
-    engine = TacticalRealizationEngine()
+    engine = TacticalRealizationEngine(seed_demo=True)
     rep = engine.evaluate_tactical_realization(
         club_id="arsenal_fc",
         scenario_id="scen_tactical_test",
@@ -239,7 +243,7 @@ def test_tactical_realization_evaluation():
 
 
 def test_scenario_lifecycle_tracking():
-    engine = TacticalRealizationEngine()
+    engine = TacticalRealizationEngine(seed_demo=True)
     engine.register_scenario_lifecycle(
         scenario_id="scen_life_01",
         decision_id="dec_life_01",
@@ -266,7 +270,7 @@ def test_scenario_lifecycle_tracking():
 # ── 5. Process Quality & Error Taxonomy Diagnosis ────────────────────
 
 def test_process_quality_audit_and_divergence_diagnosis():
-    engine = ProcessQualityEngine()
+    engine = ProcessQualityEngine(seed_demo=True)
 
     audit = engine.audit_decision_process(
         decision_id="dec_audit_01",
@@ -306,7 +310,7 @@ def test_process_quality_audit_and_divergence_diagnosis():
 # ── 6. Governed Learning Loop & Challenger Governance ────────────────
 
 def test_learning_loop_and_challenger_governance():
-    engine = DecisionLearningLoopEngine()
+    engine = DecisionLearningLoopEngine(seed_demo=True)
 
     sig = engine.generate_learning_signal(
         decision_id="dec_sig_01",
@@ -341,7 +345,7 @@ def test_learning_loop_and_challenger_governance():
 # ── 7. Subgroup Monitoring (Zero Silent Averaging) ───────────────────
 
 def test_subgroup_monitoring_exposes_sample_and_ood():
-    engine = SubgroupMonitoringEngine()
+    engine = SubgroupMonitoringEngine(seed_demo=True)
     report = engine.generate_contextual_report(model_id="calibrated_multinomial_logit_v1")
 
     assert len(report.slices) >= 6
@@ -357,7 +361,7 @@ def test_subgroup_monitoring_exposes_sample_and_ood():
 # ── 8. Benchmark Evolution & Decision Freshness V2 ───────────────────
 
 def test_benchmark_scope_isolation():
-    engine = DecisionFreshnessV2Engine()
+    engine = DecisionFreshnessV2Engine(seed_demo=True)
     bm_decision = engine.register_benchmark(
         metric_name="key_passes_per_90",
         scope=BenchmarkScope.DECISION_TIME_BENCHMARK,
@@ -379,7 +383,7 @@ def test_benchmark_scope_isolation():
 
 
 def test_decision_freshness_evaluation():
-    engine = DecisionFreshnessV2Engine()
+    engine = DecisionFreshnessV2Engine(seed_demo=True)
     assessment = engine.evaluate_decision_freshness(
         decision_id="dec_fresh_test",
         decision_timestamp="2023-01-01T00:00:00Z",
@@ -400,7 +404,7 @@ def test_decision_freshness_evaluation():
 # ── 9. Evidence Graph V3 & Cryptographic Reproducibility ─────────────
 
 def test_evidence_graph_v3_lineage_and_digest():
-    builder = EvidenceGraphV3Builder()
+    builder = EvidenceGraphV3Builder(seed_demo=True)
     graph = builder.build_decision_graph("dec_test_graph", "scen_test_graph")
 
     assert len(graph.nodes) >= 10
@@ -421,7 +425,7 @@ def test_evidence_graph_v3_lineage_and_digest():
 # ── 10. Decision Record V3 Historical Immutability ───────────────────
 
 def test_decision_record_v3_historical_immutability():
-    store = DecisionRecordStoreV3()
+    store = DecisionRecordStoreV3(seed_demo=True)
     rec = store.get_record("dec_rec_timber_2023")
     assert rec is not None
 
@@ -445,7 +449,7 @@ def test_decision_record_v3_historical_immutability():
 # ── 11. Research Workspace & Epistemic Separation ────────────────────
 
 def test_research_workspace_hypothesis_separation():
-    engine = ResearchWorkspaceEngine()
+    engine = ResearchWorkspaceEngine(seed_demo=True)
     items = [
         {"title": "Observed Stat", "modality": "OBSERVED", "content": "7.1 progressive actions/90"},
         {"title": "Conjecture", "modality": "HYPOTHESIS", "content": "High inversion prevents wide counterattacks"},
@@ -505,12 +509,12 @@ def test_copilot_v4_dispatcher_deterministic_queries():
 
 def test_adversarial_future_outcome_injection_temporal_safety():
     """Injecting a future outcome into the ledger MUST NOT alter the historical decision digest."""
-    store = DecisionRecordStoreV3()
+    store = DecisionRecordStoreV3(seed_demo=True)
     rec = store.get_record("dec_rec_timber_2023")
     assert rec is not None
     original_historical_digest = rec.historical_record.audit_digest
 
-    ledger = OutcomeLedger()
+    ledger = OutcomeLedger(seed_demo=True)
     # Inject future outcome occurring 2 years later
     ledger.append_outcome(
         outcome_id="future_outc_2026_001",
@@ -536,7 +540,7 @@ def test_adversarial_future_outcome_injection_temporal_safety():
 
 def test_adversarial_deterministic_replay_reproducibility():
     """Replaying calibration evaluation with identical inputs produces identical metrics."""
-    engine = PredictionCalibrationFeedbackEngine()
+    engine = PredictionCalibrationFeedbackEngine(seed_demo=True)
     rep1 = engine.compute_window_calibration(window_size=30, window_label="REPLAY_WINDOW_1")
     rep2 = engine.compute_window_calibration(window_size=30, window_label="REPLAY_WINDOW_2")
 

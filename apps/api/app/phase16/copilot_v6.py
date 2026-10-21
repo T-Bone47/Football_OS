@@ -36,14 +36,14 @@ class CopilotV6Response(BaseModel):
     query_family: str
     summary_answer: str
     evidence_items: list[dict[str, Any]] = Field(default_factory=list)
-    confidence: float
+    confidence: float | None = None  # None: answers are exact registry lookups; no statistical confidence applies
     data_status: str
     non_causal_statement: str
     audit_trace: dict[str, Any] = Field(default_factory=dict)
 
 
 class CopilotV6Dispatcher:
-    """Operational Copilot dispatcher resolving queries to live registered telemetry."""
+    """Operational Copilot dispatcher: answers are exact lookups in this process's in-memory registries."""
 
     def dispatch(self, query: str, context: dict[str, Any] | None = None) -> CopilotV6Response:
         q_lower = query.lower()
@@ -76,21 +76,14 @@ class CopilotV6Dispatcher:
                 conf=0.91,
             )
 
-        # 3. WHICH_COMPETITIONS_READY
+        # 3. WHICH_COMPETITIONS_READY - readiness is not asserted without evidence (was a hard-coded "4 of 5 certified")
         elif "competition" in q_lower and ("ready" in q_lower or "production-ready" in q_lower):
-            ev = [
-                {"competition": "EPL", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "La_Liga", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Bundesliga", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Serie_A", "readiness": "PRODUCTION_READY", "tier": 1},
-                {"competition": "Ligue_1", "readiness": "DATA_AVAILABLE", "tier": 1, "note": "Calibration pending"},
-            ]
             return self._build_resp(
                 query=query,
                 family="WHICH_COMPETITIONS_READY",
-                summary="4 of 5 tier-1 European competitions are certified PRODUCTION_READY. Ligue 1 is DATA_AVAILABLE with calibration in progress.",
-                ev=ev,
-                conf=0.98,
+                summary="No competition readiness assessment is available: readiness needs ingested coverage, a validated model, calibration evidence and a recorded release approval, and none is recorded.",
+                ev=[],
+                conf=None,
             )
 
         # 4. DECISIONS_REQUIRING_REVIEW
@@ -159,7 +152,7 @@ class CopilotV6Dispatcher:
                 conf=0.88,
             )
 
-    def _build_resp(self, query: str, family: str, summary: str, ev: list[dict[str, Any]], conf: float) -> CopilotV6Response:
+    def _build_resp(self, query: str, family: str, summary: str, ev: list[dict[str, Any]], conf: float | None = None) -> CopilotV6Response:
         clean_summary = CausalityGuardrail.sanitize_text(summary)
         non_causal = CausalityGuardrail.generate_statement(
             metric="operational system state",
@@ -171,8 +164,8 @@ class CopilotV6Dispatcher:
             query_family=family,
             summary_answer=clean_summary,
             evidence_items=ev,
-            confidence=conf,
-            data_status="LIVE_TELEMETRY",
+            confidence=None,
+            data_status="IN_MEMORY_REGISTRY",
             non_causal_statement=non_causal,
             audit_trace={"tool_grounded": True, "causality_audited": True},
         )

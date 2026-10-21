@@ -8,8 +8,9 @@ from sqlalchemy import engine_from_config, pool
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "apps" / "api"))
 
+import app.db.models  # noqa: E402,F401  registers EVERY ORM table (canonical, capability, provenance) on Base.metadata
 from app.db.base import Base  # noqa: E402
-from app.db.models import provenance  # noqa: E402,F401  registers tables on Base.metadata
+from app.db.urls import to_sync_url  # noqa: E402
 
 config = context.config
 if config.config_file_name is not None:
@@ -19,8 +20,8 @@ target_metadata = Base.metadata
 
 
 def _sync_url() -> str:
-    url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://fios:fios@localhost:5432/fios")
-    return url.replace("+asyncpg", "")
+    # Explicit sync driver (psycopg2): a bare "postgresql://" depends on whichever driver is installed.
+    return to_sync_url(os.environ.get("DATABASE_URL", "postgresql+asyncpg://fios:fios@localhost:5432/fios"))
 
 
 def run_migrations_offline() -> None:
@@ -34,7 +35,7 @@ def run_migrations_online() -> None:
     configuration["sqlalchemy.url"] = _sync_url()
     connectable = engine_from_config(configuration, prefix="sqlalchemy.", poolclass=pool.NullPool)
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
         with context.begin_transaction():
             context.run_migrations()
 

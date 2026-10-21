@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import "@/App.css";
+import "@/styles/fio.css";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { SessionContext } from "@/lib/session";
 import axios from "axios";
+import { acquireAccessToken } from "@/lib/footballApi";
 import { ArrowRight, CheckCircle2, CircleAlert, ShieldCheck } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import DashboardPage from "@/pages/DashboardPage";
@@ -97,13 +100,23 @@ const ProtectedRoute = ({ children }) => {
   const [status, setStatus] = useState(null);
   const [user, setUser] = useState(location.state?.user || null);
   useEffect(() => {
+    let timer = null;
     axios.get(`${API}/auth/me`, { withCredentials: true })
-      .then(({ data }) => { setUser(data); setStatus(true); })
+      .then(async ({ data }) => {
+        // Short-lived bearer token for the analytics API, refreshed before it expires. If the token endpoint
+        // is not configured the user stays signed in but API calls answer 401 (shown, not hidden).
+        await acquireAccessToken().catch(() => null);
+        timer = setInterval(() => { acquireAccessToken().catch(() => null); }, 10 * 60 * 1000);
+        setUser(data);
+        setStatus(true);
+      })
       .catch(() => setStatus(false));
+    return () => { if (timer) clearInterval(timer); };
   }, []);
   if (status === null) return <main className="loading-page" data-testid="auth-loading-state">Checking your session…</main>;
   if (!status) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
-  return children({ user });
+  // One session fetch feeds the route and the shell (user menu, sign-out) without a second /auth/me call.
+  return <SessionContext.Provider value={user}>{children({ user })}</SessionContext.Provider>;
 };
 
 const withShell = (element) => <AppShell>{element}</AppShell>;

@@ -23,7 +23,9 @@ from app.db.models.canonical import (
     PlayerIntelligenceSnapshot,
     PlayerMatchStats,
     PlayerRoleProfile,
+    PlayerSeasonStats,
     PlayerTacticalFit,
+    Season,
 )
 from app.intelligence.benchmarks import PeerBenchmarkingEngine
 from app.intelligence.context import ContextualEngine
@@ -126,7 +128,9 @@ class PlayerIntelligenceService:
         records = (await self.session.execute(stmt)).all()
         stats_list = [r[0] for r in records]
 
-        # Extract primary competition if available
+        # Extract primary competition if available. When the provider supplies
+        # no match log, use the season aggregate the contribution layer used so
+        # the context is still the player's real competition, not "unknown".
         comp_name = None
         comp_country = None
         if records:
@@ -141,6 +145,27 @@ class PlayerIntelligenceService:
                 if cs_row:
                     comp_name = cs_row[0]
                     comp_country = cs_row[1]
+        if comp_name is None:
+            season_ctx = (
+                await self.session.execute(
+                    select(Competition.name, Competition.country, Season.name)
+                    .join(
+                        CompetitionSeason,
+                        CompetitionSeason.competition_id == Competition.id,
+                    )
+                    .join(Season, Season.id == CompetitionSeason.season_id)
+                    .join(
+                        PlayerSeasonStats,
+                        PlayerSeasonStats.competition_season_id == CompetitionSeason.id,
+                    )
+                    .where(PlayerSeasonStats.player_id == player_id)
+                    .order_by(desc(PlayerSeasonStats.minutes))
+                    .limit(1)
+                )
+            ).first()
+            if season_ctx:
+                comp_name = season_ctx[0]
+                comp_country = season_ctx[1]
 
         # 5. Evaluate Context
         context_data = self.context_engine.evaluate_player_context(
@@ -214,6 +239,7 @@ class PlayerIntelligenceService:
             "as_of": cutoff.isoformat(),
             "sample_matches": contrib_profile.sample_matches,
             "sample_minutes": contrib_profile.sample_minutes,
+            "window": contrib_profile.provenance.get("window", "match_log"),
             "source_snapshots": contrib_profile.provenance.get("source_snapshots", []),
             "upstream_contribution_version": contrib_profile.calculation_version,
         }

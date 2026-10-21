@@ -169,6 +169,8 @@ class ValuationMLDatasetBuilder:
             age = float(age) if age is not None else 24.5
             age_factor = BaselineValuationEngine.get_age_adjustment(age)
 
+            # WARNING: most values below are position constants / age proxies, NOT player data.
+            # The authoritative list is app.market.ml.feature_provenance.SYNTHETIC_FEATURES.
             # Deterministic position-specific contribution and performance baselines
             is_gk = (pos == "GK")
             is_def = (pos == "DEF")

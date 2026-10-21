@@ -141,15 +141,16 @@ class ModelStatusResponse(BaseModel):
     model_version: str
     feature_version: str
     algorithm: str
-    training_matches_count: int
-    validation_matches_count: int
-    log_loss: float
-    brier_score: float
-    accuracy: float
-    macro_f1: float
-    expected_calibration_error: float
+    # Evidence-dependent fields are None when no evidence is registered (never 0 / False by default).
+    training_matches_count: int | None = None
+    validation_matches_count: int | None = None
+    log_loss: float | None = None
+    brier_score: float | None = None
+    accuracy: float | None = None
+    macro_f1: float | None = None
+    expected_calibration_error: float | None = None
     calibration_method: str
-    status: str  # MODEL_VALIDATED, MODEL_CANDIDATE, PREDICTION_FOUNDATION_COMPLETE
-    temporal_validation_passed: bool
-    leakage_tests_passed: bool
+    status: str  # MODEL_VALIDATED (evidence verified), MODEL_CANDIDATE, MODEL_UNVALIDATED, MODEL_RELEASE_BLOCKED
+    temporal_validation_passed: bool | None = None
+    leakage_tests_passed: bool | None = None
     registered_at: datetime

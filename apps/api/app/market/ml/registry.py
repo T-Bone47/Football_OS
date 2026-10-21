@@ -15,6 +15,7 @@ A model artifact cannot transition to 'MODEL_VALIDATED' or become ACTIVE unless:
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -23,12 +24,15 @@ from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import numpy as np
 
+from app.market.ml.artifact_integrity import ArtifactIntegrityError, artifact_path, sha256_file, verify_artifact
 from app.market.ml.explainability import ValuationExplainer, ValuationExplanation
 from app.market.ml.features import VALUATION_FEATURE_SET_V1, get_valuation_feature_names
 from app.market.ml.gating import SufficiencyGateDecision, ValuationDataStatus, ValuationSufficiencyGate
 from app.market.ml.target import SupervisedValuationTarget
 from app.market.ml.uncertainty import ConformalIntervalEstimator, PredictionInterval
 
+
+logger = logging.getLogger(__name__)
 
 # Default location for valuation model artifacts
 DEFAULT_MODEL_DIR = Path(__file__).resolve().parents[5] / "data" / "models" / "valuation"
@@ -216,14 +220,19 @@ class ValuationModelBundle:
 
 
 class ValuationModelRegistry:
-    """Manages persistence, retrieval, and active assignment of valuation models."""
+    """Manages persistence, retrieval, and active assignment of valuation models.
+
+    The manifest is the governance record (status, release-gate evaluation, pinned SHA-256); the
+    pickled bundle is an immutable training-time artifact. A bundle is only unpickled after its
+    bytes match the pinned hash, because unpickling executes code.
+    """
 
     def __init__(self, base_dir: Optional[Path] = None) -> None:
         self.base_dir = base_dir or DEFAULT_MODEL_DIR
         self.base_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_path = self.base_dir / "registry_manifest.json"
-        self.active_symlink = self.base_dir / "active_model.joblib"
         self._active_bundle: Optional[ValuationModelBundle] = None
+        self.last_load_error: Optional[str] = None
 
     def _load_manifest(self) -> Dict[str, Any]:
         if not self.manifest_path.exists():
@@ -232,6 +241,7 @@ class ValuationModelRegistry:
             with open(self.manifest_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
+            logger.exception("valuation registry manifest is unreadable")
             return {"active_model_id": None, "models": {}}
 
     def _save_manifest(self, manifest: Dict[str, Any]) -> None:
@@ -243,60 +253,98 @@ class ValuationModelRegistry:
         bundle: ValuationModelBundle,
         set_active: bool = False,
     ) -> Path:
-        """Serializes model bundle and updates registry manifest."""
+        """Serializes the bundle, pins its SHA-256 in the manifest, and records it.
+
+        A model is auto-activated only when nothing is active yet AND it is MODEL_VALIDATED;
+        an unvalidated candidate never becomes active implicitly.
+        """
         meta = bundle.metadata
         filename = f"{meta.model_id}.joblib"
         artifact_path = self.base_dir / filename
-        meta.artifact_location = str(artifact_path)
+        meta.artifact_location = filename  # relative to the registry directory (portable)
 
-        # Serialize bundle
         joblib.dump(bundle, artifact_path, compress=3)
 
         manifest = self._load_manifest()
-        manifest["models"][meta.model_id] = meta.to_dict()
+        entry = meta.to_dict()
+        entry["artifact_sha256"] = sha256_file(artifact_path)
+        manifest["models"][meta.model_id] = entry
 
-        if set_active or manifest.get("active_model_id") is None:
+        auto_activate = manifest.get("active_model_id") is None and meta.status == "MODEL_VALIDATED"
+        if set_active or auto_activate:
             manifest["active_model_id"] = meta.model_id
-            joblib.dump(bundle, self.active_symlink, compress=3)
             self._active_bundle = bundle
 
         self._save_manifest(manifest)
         return artifact_path
 
-    def get_active_model(self) -> Optional[ValuationModelBundle]:
-        """Loads and caches active model bundle from disk."""
-        if self._active_bundle is not None:
-            return self._active_bundle
-
-        if self.active_symlink.exists():
-            try:
-                bundle: ValuationModelBundle = joblib.load(self.active_symlink)
-                self._active_bundle = bundle
-                return bundle
-            except Exception:
-                return None
-
+    def active_manifest_entry(self) -> Dict[str, Any]:
         manifest = self._load_manifest()
         active_id = manifest.get("active_model_id")
-        if active_id and active_id in manifest.get("models", {}):
-            art_path = Path(manifest["models"][active_id]["artifact_location"])
-            if art_path.exists():
-                bundle = joblib.load(art_path)
-                self._active_bundle = bundle
-                return bundle
+        entry = manifest.get("models", {}).get(active_id) if active_id else None
+        if not entry:
+            raise ArtifactIntegrityError("NO_ACTIVE_MODEL", "no valuation model is registered as active")
+        return entry
 
-        return None
+    def load_active_or_raise(self) -> ValuationModelBundle:
+        """Hash-verified load of the active bundle. Raises ArtifactIntegrityError (fail closed)."""
+        if self._active_bundle is not None:
+            return self._active_bundle
+        entry = self.active_manifest_entry()
+        path = artifact_path(self.base_dir, entry["model_id"])
+        verify_artifact(path, entry.get("artifact_sha256"))  # BEFORE joblib.load
+        try:
+            bundle: ValuationModelBundle = joblib.load(path)
+        except Exception as exc:  # noqa: BLE001 - missing optional dep, version skew, corrupt pickle
+            raise ArtifactIntegrityError("ARTIFACT_UNLOADABLE", type(exc).__name__) from exc
+        bundle.metadata.status = entry.get("status", bundle.metadata.status)
+        bundle.metadata.release_gate_checklist = dict(entry.get("release_gate_checklist", {}))
+        self._active_bundle = bundle
+        return bundle
+
+    def set_active_model(self, model_id: str) -> Dict[str, Any]:
+        """Human-governed promotion: only a registered, MODEL_VALIDATED, hash-verified model."""
+        entry = self._load_manifest().get("models", {}).get(model_id)
+        if not entry:
+            raise ArtifactIntegrityError("MODEL_NOT_REGISTERED", f"'{model_id}' is not in the registry")
+        if entry.get("status") != "MODEL_VALIDATED":
+            raise ArtifactIntegrityError("MODEL_NOT_VALIDATED", f"status is {entry.get('status')}")
+        verify_artifact(artifact_path(self.base_dir, model_id), entry.get("artifact_sha256"))
+        manifest = self._load_manifest()
+        manifest["active_model_id"] = model_id
+        self._save_manifest(manifest)
+        self._active_bundle = None
+        return entry
+
+    def get_active_model(self) -> Optional[ValuationModelBundle]:
+        """Active bundle, or None (with last_load_error set) when it cannot be served safely."""
+        try:
+            bundle = self.load_active_or_raise()
+            self.last_load_error = None
+            return bundle
+        except ArtifactIntegrityError as exc:
+            self.last_load_error = exc.code
+            if exc.code != "NO_ACTIVE_MODEL":
+                logger.error("valuation model unavailable: %s", exc)
+            return None
 
     def get_model_status(self) -> Dict[str, Any]:
         """Returns metadata status of current active model."""
         active = self.get_active_model()
         if active is None:
+            code = self.last_load_error or "NO_ACTIVE_MODEL"
             return {
                 "active": False,
-                "status": "NO_ACTIVE_MODEL",
-                "message": "No valuation ML model has been registered or activated.",
+                "status": "NO_ACTIVE_MODEL" if code == "NO_ACTIVE_MODEL" else "ARTIFACT_UNAVAILABLE",
+                "reason": code,
+                "message": (
+                    "No valuation ML model has been registered or activated."
+                    if code == "NO_ACTIVE_MODEL"
+                    else f"The active valuation model cannot be served safely ({code})."
+                ),
             }
         meta = active.metadata
+        entry = self.active_manifest_entry()
         return {
             "active": True,
             "status": meta.status,
@@ -308,6 +356,9 @@ class ValuationModelRegistry:
             "created_at": meta.created_at,
             "test_metrics": meta.test_metrics,
             "release_gate_checklist": meta.release_gate_checklist,
+            "release_gate_evaluation": entry.get("release_gate_evaluation", {}),
+            "blocking_reasons": entry.get("blocking_reasons", []),
+            "artifact_sha256": entry.get("artifact_sha256"),
         }
 
 

@@ -8,6 +8,13 @@ Roles:
 - VIEWER: Read-only access to published reports and dashboards.
 
 Rule: Backend authorization is authoritative; never rely on frontend hiding alone.
+
+Identity comes ONLY from a verified token (app.security): this module never looks a user up by a
+caller-supplied id, and it ships no seeded users, projects or watchlists. Projects are visible to
+members of their organisation; watchlists are private to their owner. A missing or foreign object
+raises KeyError (-> 404) so existence is not leaked.
+
+STATE IS PROCESS-LOCAL IN MEMORY and is lost on restart (open issue: persistence in PostgreSQL).
 """
 
 from datetime import datetime, timezone
@@ -15,16 +22,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.phase16 import UserRole
-
-
-class UserProfile(BaseModel):
-    user_id: str
-    organization_id: str
-    name: str
-    email: str
-    role: UserRole
-    is_active: bool = True
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+from app.security.permissions import ROLE_PERMISSIONS as _PERMISSIONS_BY_ROLE_NAME
+from app.security.tokens import AuthError, Principal, require_permission
 
 
 class RecruitmentProject(BaseModel):
@@ -66,26 +65,9 @@ class ProductionWatchlist(BaseModel):
 
 
 
-# Role permission matrix
+# Role permission matrix (single source: app.security.permissions)
 ROLE_PERMISSIONS: dict[UserRole, set[str]] = {
-    UserRole.ADMIN: {
-        "data:read", "data:write", "research:execute", "research:validate",
-        "decision:create", "decision:review", "scenario:simulate",
-        "model:promote", "admin:access", "project:manage",
-    },
-    UserRole.ANALYST: {
-        "data:read", "research:execute", "decision:create", "decision:review",
-        "scenario:simulate", "project:manage",
-    },
-    UserRole.SCOUT: {
-        "data:read", "decision:create", "project:manage",
-    },
-    UserRole.RESEARCHER: {
-        "data:read", "research:execute", "research:validate",
-    },
-    UserRole.VIEWER: {
-        "data:read",
-    },
+    UserRole[name.upper()]: set(perms) for name, perms in _PERMISSIONS_BY_ROLE_NAME.items()
 }
 
 
@@ -94,95 +76,33 @@ class AuthorizationError(PermissionError):
     pass
 
 
+class DuplicateIdError(ValueError):
+    """A client-supplied id already exists; objects are never silently overwritten."""
+
+
 class ProjectAndAuthManager:
-    """Authoritative backend repository for users, projects, and permissions."""
+    """Authoritative backend repository for projects and watchlists (process-local, in memory)."""
 
     def __init__(self) -> None:
-        self._users: dict[str, UserProfile] = {}
         self._projects: dict[str, RecruitmentProject] = {}
         self._watchlists: dict[str, ProductionWatchlist] = {}
-        self._seed_default_users_and_projects()
 
-    def _seed_default_users_and_projects(self) -> None:
-        # Default Admin & Scout
-        self.register_user(
-            user_id="admin_01",
-            org_id="org_arsenal",
-            name="Technical Director",
-            email="director@arsenal.local",
-            role=UserRole.ADMIN,
-        )
-        self.register_user(
-            user_id="scout_01",
-            org_id="org_arsenal",
-            name="Head of First Team Scouting",
-            email="scout@arsenal.local",
-            role=UserRole.SCOUT,
-        )
-        self.register_user(
-            user_id="analyst_01",
-            org_id="org_arsenal",
-            name="Lead Recruitment Analyst",
-            email="analyst@arsenal.local",
-            role=UserRole.ANALYST,
-        )
-
-        # Default Project
-        self.create_project(
-            project_id="proj_summer_2024_dm",
-            org_id="org_arsenal",
-            name="Summer 2024 - Elite Defensive Midfielder Replacement",
-            description="Recruitment project identifying resilient progressive DMs in U25 bracket.",
-            target_position="MF",
-            target_role="Deep Lying Playmaker",
-            budget_eur=65000000.0,
-            competition_scope=["EPL", "Bundesliga", "La_Liga", "Serie_A"],
-            lead_scout_id="scout_01",
-        )
-
-        # Default Watchlist
-        self.create_watchlist(
-            watchlist_id="wl_scout_priority",
-            user_id="scout_01",
-            org_id="org_arsenal",
-            name="Priority Scouting & Model Operations Watchlist",
-            description="Active tracking of target recruits, decision freshness, and champion models.",
-        )
-        self.add_watchlist_item(
-            watchlist_id="wl_scout_priority",
-            item_id="item_player_timber",
-            entity_type="PLAYER",
-            entity_id="player_jurrien_timber",
-            entity_name="Jurrien Timber",
-            initial_state={"status": "FIT", "role": "Inverted Fullback", "valuation_eur": 45000000.0},
-        )
-        self.add_watchlist_item(
-            watchlist_id="wl_scout_priority",
-            item_id="item_model_val",
-            entity_type="MODEL",
-            entity_id="valuation_ml_v1",
-            entity_name="Valuation Engine Champion",
-            initial_state={"status": "ACTIVE", "drift_psi": 0.04, "calibration": "CALIBRATED"},
-        )
-
-
-    def register_user(self, user_id: str, org_id: str, name: str, email: str, role: UserRole) -> UserProfile:
-        user = UserProfile(user_id=user_id, organization_id=org_id, name=name, email=email, role=role)
-        self._users[user_id] = user
-        return user
-
-    def authorize(self, user_id: str, required_permission: str) -> None:
-        """Enforces authoritative RBAC checks. Raises AuthorizationError on violation."""
-        user = self._users.get(user_id)
-        if not user or not user.is_active:
-            raise AuthorizationError(f"User '{user_id}' is unknown or inactive.")
-
-        user_perms = ROLE_PERMISSIONS.get(user.role, set())
-        if required_permission not in user_perms:
+    # ---- authorization ------------------------------------------------------------------------
+    def authorize(self, principal: Principal, required_permission: str) -> None:
+        """Enforces role permissions for a VERIFIED principal. Raises AuthorizationError."""
+        try:
+            require_permission(principal, required_permission)
+        except AuthError as exc:
             raise AuthorizationError(
-                f"Unauthorized action: User '{user_id}' with role '{user.role.value}' lacks required permission '{required_permission}'."
-            )
+                f"Unauthorized action: user '{principal.user_id}' lacks permission '{required_permission}'."
+            ) from exc
 
+    @staticmethod
+    def _can_see_project(principal: Principal, project: RecruitmentProject) -> bool:
+        in_org = principal.org_id is not None and project.organization_id == principal.org_id
+        return in_org or project.lead_scout_id == principal.user_id
+
+    # ---- projects -----------------------------------------------------------------------------
     def create_project(
         self,
         project_id: str,
@@ -191,10 +111,12 @@ class ProjectAndAuthManager:
         description: str,
         target_position: str,
         target_role: str,
+        lead_scout_id: str,
         budget_eur: float | None = None,
         competition_scope: list[str] | None = None,
-        lead_scout_id: str = "scout_01",
     ) -> RecruitmentProject:
+        if project_id in self._projects:
+            raise DuplicateIdError(f"Project '{project_id}' already exists.")
         project = RecruitmentProject(
             project_id=project_id,
             organization_id=org_id,
@@ -209,15 +131,16 @@ class ProjectAndAuthManager:
         self._projects[project_id] = project
         return project
 
-    def get_user(self, user_id: str) -> UserProfile:
-        if user_id not in self._users:
-            raise KeyError(f"User '{user_id}' not found.")
-        return self._users[user_id]
-
     def get_project(self, project_id: str) -> RecruitmentProject:
         if project_id not in self._projects:
             raise KeyError(f"Project '{project_id}' not found.")
         return self._projects[project_id]
+
+    def get_project_for(self, principal: Principal, project_id: str) -> RecruitmentProject:
+        project = self._projects.get(project_id)
+        if project is None or not self._can_see_project(principal, project):
+            raise KeyError(f"Project '{project_id}' not found.")
+        return project
 
     def list_projects(self, org_id: str | None = None) -> list[RecruitmentProject]:
         projects = list(self._projects.values())
@@ -225,6 +148,10 @@ class ProjectAndAuthManager:
             projects = [p for p in projects if p.organization_id == org_id]
         return projects
 
+    def list_projects_for(self, principal: Principal) -> list[RecruitmentProject]:
+        return [p for p in self._projects.values() if self._can_see_project(principal, p)]
+
+    # ---- watchlists ---------------------------------------------------------------------------
     def create_watchlist(
         self,
         watchlist_id: str,
@@ -233,6 +160,8 @@ class ProjectAndAuthManager:
         name: str,
         description: str = "",
     ) -> ProductionWatchlist:
+        if watchlist_id in self._watchlists:
+            raise DuplicateIdError(f"Watchlist '{watchlist_id}' already exists.")
         wl = ProductionWatchlist(
             watchlist_id=watchlist_id,
             user_id=user_id,
@@ -303,12 +232,20 @@ class ProjectAndAuthManager:
             raise KeyError(f"Watchlist '{watchlist_id}' not found.")
         return self._watchlists[watchlist_id]
 
+    def get_watchlist_for(self, principal: Principal, watchlist_id: str) -> ProductionWatchlist:
+        wl = self._watchlists.get(watchlist_id)
+        if wl is None or wl.user_id != principal.user_id:
+            raise KeyError(f"Watchlist '{watchlist_id}' not found.")
+        return wl
+
     def list_watchlists(self, user_id: str | None = None) -> list[ProductionWatchlist]:
         wls = list(self._watchlists.values())
         if user_id:
             wls = [w for w in wls if w.user_id == user_id]
         return wls
 
+    def list_watchlists_for(self, principal: Principal) -> list[ProductionWatchlist]:
+        return [w for w in self._watchlists.values() if w.user_id == principal.user_id]
 
 
 _GLOBAL_PROJECT_AUTH_MANAGER: ProjectAndAuthManager | None = None

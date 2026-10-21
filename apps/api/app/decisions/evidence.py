@@ -137,13 +137,19 @@ class DecisionEvidenceGraphBuilder:
 
         # 6. Valuation Node
         val_node_id = f"val_{cid}"
+        valuation = candidate.market.estimated_value_eur
+        valuation_label = (
+            f"Estimated Valuation: EUR {valuation:,.0f}"
+            if valuation is not None
+            else "Estimated Valuation: not available (no canonical valuation record)"
+        )
         nodes.append(
             EvidenceGraphNode(
                 id=val_node_id,
                 node_type="VALUATION",
-                label=f"Estimated Valuation: €{candidate.market.estimated_value_eur:,.0f}",
+                label=valuation_label,
                 value={
-                    "valuation": candidate.market.estimated_value_eur,
+                    "valuation": valuation,
                     "range": [candidate.market.fee_range_low_eur, candidate.market.fee_range_high_eur],
                     "affordability": candidate.market.affordability_status,
                 },

@@ -120,7 +120,17 @@ class UnifiedDecisionService:
         if selected_candidates:
             leaders["tactical"] = max(selected_candidates, key=lambda x: x.tactical.tactical_fit_score).player_name
             leaders["performance"] = max(selected_candidates, key=lambda x: x.performance.contribution_rating).player_name
-            leaders["value_opportunity"] = max(selected_candidates, key=lambda x: x.market.value_opportunity_index).player_name
+            # A value-opportunity index only exists when a valuation is known; the
+            # leader is only reported for candidates that actually have one.
+            with_value = [
+                candidate
+                for candidate in selected_candidates
+                if candidate.market.value_opportunity_index is not None
+            ]
+            if with_value:
+                leaders["value_opportunity"] = max(
+                    with_value, key=lambda x: x.market.value_opportunity_index
+                ).player_name
             leaders["lowest_risk"] = min(selected_candidates, key=lambda x: x.risk.overall_risk_score).player_name
 
         # Trade-off analysis

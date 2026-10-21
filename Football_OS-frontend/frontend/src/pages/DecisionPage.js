@@ -12,7 +12,7 @@ import {
   analyzeTransferScenario,
   compareCandidates,
   getDecisionEvidence,
-  getPlayers,
+  getPlayerPage,
   getTacticalContexts,
   getClubs,
 } from "@/lib/footballApi";
@@ -53,7 +53,7 @@ export default function DecisionPage() {
   // Load supporting options
   const playersQuery = useQuery({
     queryKey: ["decision-roster"],
-    queryFn: () => getPlayers({ limit: 100 }),
+    queryFn: () => getPlayerPage({ page: 1, page_size: 100, sort_by: "name" }),
     retry: false,
   });
 
@@ -356,7 +356,7 @@ export default function DecisionPage() {
                 data-testid="filter-replace-player"
               >
                 <option value="">Select player to replace...</option>
-                {(playersQuery.data || []).map((p) => (
+                {(playersQuery.data?.items || []).map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.primary_position || "MF"})
                   </option>
@@ -418,7 +418,7 @@ export default function DecisionPage() {
                 data-testid="filter-scenario-in"
               >
                 <option value="">Select incoming target...</option>
-                {(playersQuery.data || []).map((p) => (
+                {(playersQuery.data?.items || []).map((p) => (
                   <option key={p.id} value={p.id}>{p.name} ({p.primary_position || "MF"})</option>
                 ))}
               </select>
@@ -433,7 +433,7 @@ export default function DecisionPage() {
                 data-testid="filter-scenario-out"
               >
                 <option value="">Select outgoing player...</option>
-                {(playersQuery.data || []).map((p) => (
+                {(playersQuery.data?.items || []).map((p) => (
                   <option key={p.id} value={p.id}>{p.name} ({p.primary_position || "MF"})</option>
                 ))}
               </select>
@@ -447,7 +447,7 @@ export default function DecisionPage() {
               Select 2 to 4 candidates from recruitment or roster to evaluate side-by-side:
             </p>
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              {(playersQuery.data || []).slice(0, 10).map((p) => {
+              {(playersQuery.data?.items || []).slice(0, 10).map((p) => {
                 const isSelected = selectedCandidateIds.includes(p.id);
                 return (
                   <button

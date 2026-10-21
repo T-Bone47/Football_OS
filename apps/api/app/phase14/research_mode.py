@@ -23,6 +23,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import EpistemicModality
 
 
@@ -77,9 +78,10 @@ class ResearchDossier:
 class ResearchWorkspaceEngine:
     """Governed research engine maintaining epistemic distinction between hypothesis and evidence."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._dossiers: dict[str, ResearchDossier] = {}
-        self._seed_default_dossiers()
+        if seed_demo:
+            self._seed_default_dossiers()
 
     def create_research_dossier(
         self,
@@ -158,4 +160,4 @@ class ResearchWorkspaceEngine:
         )
 
 
-research_workspace_engine = ResearchWorkspaceEngine()
+research_workspace_engine = ResearchWorkspaceEngine(seed_demo=demo_data_allowed())

@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.db.base import Base
+from app.db.models.expansion import CompetitionIdentity
 from app.db.models.canonical import (
     Club,
     ClubIdentity,
@@ -166,9 +167,21 @@ async def test_normalize_players_links_to_clubs_and_stats(session):
     assert p_id.provider_player_id == "5"
 
     # Verify Competition & Season
+    # The provider's competition id is resolved through the explicit identity mapping
+    # (migration 0018). When the provider catalogue has not been ingested, the
+    # competition is created with a provider-neutral name and the provider id is
+    # preserved in `competition_identities` — the normaliser never assumes that
+    # provider competition id 39 means "Premier League".
     comp = (await session.execute(select(Competition))).scalar_one()
-    assert comp.name == "Premier League"
-    assert comp.country == "England"
+    assert comp.name == "Provider competition 39"
+    assert comp.country == "Unknown"
+
+    comp_identity = (
+        await session.execute(select(CompetitionIdentity))
+    ).scalar_one()
+    assert comp_identity.provider == "api-football"
+    assert comp_identity.provider_competition_id == "39"
+    assert comp_identity.competition_id == comp.id
 
     season = (await session.execute(select(Season))).scalar_one()
     assert season.start_year == 2023

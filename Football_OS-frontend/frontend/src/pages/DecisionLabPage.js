@@ -26,13 +26,14 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import ModuleStateBanner from "@/components/ModuleStateBanner";
+import { BACKEND_URL as API_BASE } from "@/lib/footballApi";
 
 export default function DecisionLabPage() {
   const [activeTab, setActiveTab] = useState('squad');
   const [clubId, setClubId] = useState('arsenal_fc');
   const [loading, setLoading] = useState(false);
+  const [moduleState, setModuleState] = useState(null);
 
   // Surface 1: Current Squad Baseline
   const [squadBaseline, setSquadBaseline] = useState(null);
@@ -92,14 +93,37 @@ export default function DecisionLabPage() {
     loadDepthEvaluation(congestionMode);
   }, [congestionMode, clubId]);
 
+  const noteFailure = async (res) => {
+    if (res.ok) return;
+    let body = null;
+    try {
+      body = await res.clone().json();
+    } catch (err) {
+      body = null;
+    }
+    const detail = body?.detail;
+    const code = detail?.code || `HTTP_${res.status}`;
+    setModuleState({
+      kind: code === "DEMO_ONLY" ? "DISABLED" : "ERROR",
+      code,
+      message:
+        typeof detail === "string"
+          ? detail
+          : detail?.detail || `The backend refused this request (HTTP ${res.status}).`,
+    });
+  };
+
   const loadLabData = async () => {
     setLoading(true);
+    setModuleState(null);
     try {
       // 1. Squad Baseline
       const squadRes = await fetch(`${API_BASE}/api/v1/decision-lab/squad/${clubId}`);
       if (squadRes.ok) {
         const data = await squadRes.json();
         setSquadBaseline(data);
+      } else {
+        await noteFailure(squadRes);
       }
 
       // 2. Scenarios
@@ -113,6 +137,8 @@ export default function DecisionLabPage() {
           triggerRobustness(scens[0]);
           loadEvidenceGraph(scens[0].scenario_id);
         }
+      } else {
+        await noteFailure(scenRes);
       }
 
       // 3. Pareto Frontier
@@ -123,15 +149,24 @@ export default function DecisionLabPage() {
       });
       if (budgetRes.ok) {
         setParetoFrontier(await budgetRes.json());
+      } else {
+        await noteFailure(budgetRes);
       }
 
       // 4. Decision Records
       const decRes = await fetch(`${API_BASE}/api/v1/decision-lab/decisions?club_id=${clubId}`);
       if (decRes.ok) {
         setDecisionRecords(await decRes.json());
+      } else {
+        await noteFailure(decRes);
       }
     } catch (err) {
       console.error('Failed to load Decision Lab data:', err);
+      setModuleState({
+        kind: "ERROR",
+        code: "BACKEND_UNREACHABLE",
+        message: "The connected backend could not be reached.",
+      });
     } finally {
       setLoading(false);
     }
@@ -359,6 +394,8 @@ export default function DecisionLabPage() {
           </button>
         </div>
       </div>
+
+      <ModuleStateBanner state={moduleState} testId="decision-lab-module-state" />
 
       {/* Epistemic Modality Banner (§7, §36) */}
       <div className="p-3 bg-blue-950/40 border border-blue-900/60 rounded text-xs text-blue-200 flex items-start gap-2.5">

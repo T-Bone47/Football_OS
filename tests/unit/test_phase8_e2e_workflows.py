@@ -245,12 +245,15 @@ class TestWorkflowDMatchIntelligence:
     """WORKFLOW D: Match Prediction, Calibration, Scorelines & Model Governance."""
 
     def test_match_intelligence_workflow_end_to_end(self):
-        # 1. Verify Model Governance Active
-        model = governance_registry.verify_inference_eligibility(
-            "match_prediction_engine", "BivariatePoisson_v1"
-        )
-        assert model.status == "MODEL_VALIDATED"
-        assert "log_loss" in model.metrics
+        # 1. Model governance is honest: there is no trained/validated match-prediction artifact in
+        # this repository, so the registry blocks inference instead of asserting MODEL_VALIDATED
+        # with hand-typed metrics.
+        from app.observability.model_governance import ModelReleaseBlockedError
+
+        with pytest.raises(ModelReleaseBlockedError):
+            governance_registry.verify_inference_eligibility("match_prediction_engine", "BivariatePoisson_v1")
+        model = governance_registry.get_model("match_prediction_engine", "BivariatePoisson_v1")
+        assert model.status == "MODEL_UNVALIDATED" and model.metrics == {}
 
         # 2. Compute Expected Goals from Dixon-Coles/Poisson engine
         goal_engine = GoalPredictionEngine()

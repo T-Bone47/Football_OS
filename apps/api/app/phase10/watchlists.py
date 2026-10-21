@@ -15,7 +15,8 @@ Enforces strict Alert Governance (§10):
   - Alerts state observed quantitative changes, NEVER causal interpretations
   - Example VALID: "Player contribution percentile increased from 61 to 74."
   - Example INVALID: "Player has become a better player."
-  - Every alert is backed by provenance, model version, and confidence indicators.
+  - Alerts report ONLY the values they were given. They do not claim a provider, a model version, verification
+    or a confidence level: those are UNASSESSED / USER_SUPPLIED until a real detector supplies evidence.
 """
 from __future__ import annotations
 
@@ -25,6 +26,10 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+
+from app.persistence.factory import get_stores
+from app.persistence.stores import CollectionStore
+from app.security.tokens import Principal
 
 
 class WatchlistEntityType(str, Enum):
@@ -86,10 +91,10 @@ class GovernedAlert:
     delta: Any = None
 
     # Provenance & model governance
-    source_provider: str = "api-football"
-    model_version: str = "PlayerIntelligence_v1.0"
-    confidence: str = "HIGH"
-    data_status: str = "IN_DISTRIBUTION"
+    source_provider: str = "USER_SUPPLIED"
+    model_version: str | None = None
+    confidence: str = "UNASSESSED"
+    data_status: str = "UNVERIFIED_INPUT"
     evidence_summary: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -116,89 +121,70 @@ class WatchlistItem:
 class Watchlist:
     """Persistent watchlist container (§9)."""
     watchlist_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = "Priority Scouting Targets"
-    description: str = "Monitors tactical fit, valuation movements, and contribution percentiles"
+    name: str = ""
+    description: str = ""
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     items: list[WatchlistItem] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
+    owner_id: str = ""
+    organization_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class WatchlistEngine:
-    """Engine for persistent watchlists and governed change detection."""
+    """Engine for persistent watchlists and governed change detection. Backed by a CollectionStore so watchlists
+    and alerts survive a process restart."""
 
-    def __init__(self) -> None:
+    _COLLECTION = "phase10_watchlists"
+    _ALERT_COLLECTION = "phase10_alerts"
+
+    def __init__(self, store: CollectionStore | None = None) -> None:
+        self._store = store
         self._watchlists: dict[str, Watchlist] = {}
         self._alerts: list[GovernedAlert] = []
-        self._seed_default_watchlists()
+        if store is not None:
+            for record in store.list(self._COLLECTION):
+                data = record.payload
+                wl = Watchlist(
+                    watchlist_id=record.record_id,
+                    name=data.get("name", ""),
+                    description=data.get("description", ""),
+                    created_at=data.get("created_at", ""),
+                    items=[WatchlistItem(**i) for i in data.get("items", [])],
+                    tags=data.get("tags", []),
+                    owner_id=record.owner_id,
+                    organization_id=record.organization_id,
+                )
+                self._watchlists[wl.watchlist_id] = wl
+            for record in store.list(self._ALERT_COLLECTION):
+                self._alerts.append(GovernedAlert(**record.payload))
+            self._alerts.sort(key=lambda a: a.created_at)
 
-    def _seed_default_watchlists(self) -> None:
-        wl = Watchlist(
-            watchlist_id="wl_scout_priority",
-            name="European U23 Center Backs",
-            description="Monitoring progressive defenders across top 5 leagues",
-            tags=["U23", "Defenders", "Summer 2027"],
-        )
-        item1 = WatchlistItem(
-            item_id="item_saliba",
-            entity_type=WatchlistEntityType.PLAYER,
-            entity_id="p_william_saliba",
-            entity_name="William Saliba",
-            current_value_snapshot={
-                "contribution_percentile": 88.5,
-                "role": "Ball Playing Defender",
-                "estimated_value_eur": 75_000_000.0,
-                "overall_risk_score": 0.18,
-                "minutes_played": 3420,
-            },
-        )
-        item2 = WatchlistItem(
-            item_id="item_inacio",
-            entity_type=WatchlistEntityType.PLAYER,
-            entity_id="p_goncalo_inacio",
-            entity_name="Gonçalo Inácio",
-            current_value_snapshot={
-                "contribution_percentile": 81.0,
-                "role": "Ball Playing Defender",
-                "estimated_value_eur": 38_000_000.0,
-                "overall_risk_score": 0.32,
-                "minutes_played": 2840,
-            },
-        )
-        wl.items.extend([item1, item2])
-        self._watchlists[wl.watchlist_id] = wl
+    def _save(self, wl: Watchlist) -> None:
+        if self._store is not None:
+            self._store.put(self._COLLECTION, wl.watchlist_id, wl.owner_id, wl.organization_id, wl.to_dict())
 
-        # Seed sample valid governed alerts
-        alert1 = GovernedAlert(
-            watchlist_id=wl.watchlist_id,
-            entity_type=WatchlistEntityType.PLAYER,
-            entity_id="p_william_saliba",
-            entity_name="William Saliba",
-            change_type=AlertChangeType.PERFORMANCE_CHANGE,
-            what_changed="Player contribution percentile increased from 82.0 to 88.5.",
-            previous_value=82.0,
-            new_value=88.5,
-            delta=6.5,
-            source_provider="api-football",
-            model_version="PlayerIntelligence_v1.0",
-            confidence="HIGH",
-            data_status="IN_DISTRIBUTION",
-            evidence_summary=[
-                "Observed sample increased by 360 minutes across 4 matches",
-                "Progressive pass completion rate rose from 87.2% to 91.4%",
-                "Non-causal phrasing verified: purely metric shift reported",
-            ],
-        )
-        self._alerts.append(alert1)
-
-    def create_watchlist(self, name: str, description: str = "", tags: list[str] | None = None) -> Watchlist:
+    def create_watchlist(
+        self,
+        name: str,
+        description: str = "",
+        tags: list[str] | None = None,
+        owner_id: str = "",
+        organization_id: str | None = None,
+    ) -> Watchlist:
+        if not str(name or "").strip():
+            raise ValueError("watchlist name is required")
+        if not owner_id:
+            raise ValueError("owner_id is required")
         wl = Watchlist(
             watchlist_id=f"wl_{uuid.uuid4().hex[:8]}",
-            name=name,
+            name=name.strip(),
             description=description,
             tags=tags or [],
+            owner_id=owner_id,
+            organization_id=organization_id,
         )
         self._watchlists[wl.watchlist_id] = wl
         return wl
@@ -206,22 +192,35 @@ class WatchlistEngine:
     def get_watchlist(self, watchlist_id: str) -> Watchlist | None:
         return self._watchlists.get(watchlist_id)
 
+    def get_watchlist_for(self, principal: Principal, watchlist_id: str) -> Watchlist:
+        """Watchlists are private to their owner; KeyError (-> 404) otherwise."""
+        wl = self._watchlists.get(watchlist_id)
+        if wl is None or wl.owner_id != principal.user_id:
+            raise KeyError(f"Watchlist '{watchlist_id}' not found")
+        return wl
+
     def list_watchlists(self) -> list[dict[str, Any]]:
         return [w.to_dict() for w in self._watchlists.values()]
+
+    def list_watchlists_for(self, principal: Principal) -> list[dict[str, Any]]:
+        return [w.to_dict() for w in self._watchlists.values() if w.owner_id == principal.user_id]
 
     def add_item(self, watchlist_id: str, item_data: dict[str, Any]) -> WatchlistItem | None:
         wl = self._watchlists.get(watchlist_id)
         if not wl:
             return None
+        if not str(item_data.get("entity_id") or "").strip() or not str(item_data.get("entity_name") or "").strip():
+            raise ValueError("entity_id and entity_name are required")
         item = WatchlistItem(
             item_id=f"item_{uuid.uuid4().hex[:8]}",
             entity_type=item_data.get("entity_type", WatchlistEntityType.PLAYER),
-            entity_id=item_data.get("entity_id", "p_unknown"),
-            entity_name=item_data.get("entity_name", "Unknown Entity"),
+            entity_id=item_data["entity_id"],
+            entity_name=item_data["entity_name"],
             current_value_snapshot=item_data.get("current_value_snapshot", {}),
             notes=item_data.get("notes", ""),
         )
         wl.items.append(item)
+        self._save(wl)
         return item
 
     def remove_item(self, watchlist_id: str, item_id: str) -> bool:
@@ -230,7 +229,10 @@ class WatchlistEngine:
             return False
         orig_len = len(wl.items)
         wl.items = [i for i in wl.items if i.item_id != item_id]
-        return len(wl.items) < orig_len
+        removed = len(wl.items) < orig_len
+        if removed:
+            self._save(wl)
+        return removed
 
     def evaluate_change(
         self,
@@ -264,19 +266,19 @@ class WatchlistEngine:
             previous_value=previous_val,
             new_value=new_val,
             delta=round(delta, 3),
-            source_provider="api-football",
-            model_version="OperationalWatcher_v1.0",
-            confidence="HIGH",
-            data_status="IN_DISTRIBUTION",
             evidence_summary=[
-                f"Metric delta computed over verified operational window",
-                f"Pre-change value: {previous_val}",
-                f"Post-change value: {new_val}",
-                "Alert governance verified: zero causal speculation",
+                f"Supplied previous value: {previous_val}",
+                f"Supplied new value: {new_val}",
+                "Both values were supplied by the caller and have not been checked against a provider snapshot.",
             ],
         )
 
         self._alerts.append(alert)
+        if self._store is not None:
+            wl = self._watchlists.get(watchlist_id)
+            owner = wl.owner_id if wl else ""
+            org = wl.organization_id if wl else None
+            self._store.put(self._ALERT_COLLECTION, alert.alert_id, owner, org, alert.to_dict())
         return alert
 
     def list_alerts(
@@ -285,9 +287,13 @@ class WatchlistEngine:
         entity_id: str | None = None,
         change_type: str | None = None,
         limit: int = 50,
+        watchlist_ids: set[str] | None = None,
     ) -> list[dict[str, Any]]:
-        """Returns filtered evidence-backed alerts in reverse chronological order."""
+        """Alerts in reverse chronological order. `watchlist_ids` restricts to the caller's own watchlists
+        (None = no restriction, for internal use only; routes always pass the caller's visible ids)."""
         res = self._alerts
+        if watchlist_ids is not None:
+            res = [a for a in res if a.watchlist_id in watchlist_ids]
         if watchlist_id:
             res = [a for a in res if a.watchlist_id == watchlist_id]
         if entity_id:
@@ -297,4 +303,8 @@ class WatchlistEngine:
         return [a.to_dict() for a in reversed(res[-limit:])]
 
 
-watchlist_engine = WatchlistEngine()
+def _default_engine() -> WatchlistEngine:
+    return WatchlistEngine(store=get_stores()[0])
+
+
+watchlist_engine = _default_engine()

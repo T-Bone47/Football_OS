@@ -33,8 +33,20 @@ class ProviderRateLimitError(ProviderError):
 
 class ProviderBadRequestError(ProviderError):
     """400/422, or HTTP 200 with a non-empty `errors` envelope field (doc
-    §18: HTTP 200 != usable data). Never retried — retrying a malformed
+    §18: HTTP 200 != usable data). Never retried - retrying a malformed
     request doesn't fix it."""
+
+
+class ProviderPlanLimitError(ProviderBadRequestError):
+    """The request is valid but the subscription plan caps it.
+
+    `page_max` is the provider's declared maximum page, when it states one.
+    Callers must report this as a plan limitation, not as ingested data.
+    """
+
+    def __init__(self, message: str, *, page_max: int | None = None) -> None:
+        super().__init__(message)
+        self.page_max = page_max
 
 
 class ProviderServerError(ProviderError):

@@ -9,6 +9,11 @@ Candidate workflow states:
   DISCOVERED → REVIEWING → SHORTLISTED → SCENARIO_TESTED → DECISION_RECORDED → ARCHIVED.
 
 Scout notes and annotations are preserved independently and never alter underlying analytical metrics.
+
+Truth rules: nothing is defaulted. A fact nobody supplied stays None (or "") and is reported as unknown;
+a constraint that cannot be verified is None, never "met"; confidence/status are UNASSESSED because no
+validated engine computes them here; assessment numbers are recorded as USER_SUPPLIED, never as model
+output. Every project has an owner and an organisation (404 across tenants).
 """
 from __future__ import annotations
 
@@ -17,6 +22,10 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
+
+from app.persistence.factory import get_stores
+from app.persistence.stores import CollectionStore
+from app.security.tokens import Principal
 
 
 class ProjectStatus(str, Enum):
@@ -35,24 +44,46 @@ class CandidateState(str, Enum):
     ARCHIVED = "ARCHIVED"
 
 
+def _opt_float(value: Any) -> float | None:
+    return None if value is None else float(value)
+
+
+def _opt_int(value: Any) -> int | None:
+    return None if value is None else int(value)
+
+
+def _within(value: float | None, low: float | None, high: float | None) -> bool | None:
+    """True/False when checkable; None when a bound exists but the value is unknown; True when unconstrained."""
+    if low is None and high is None:
+        return True
+    if value is None:
+        return None
+    return (low is None or value >= low) and (high is None or value <= high)
+
+
+_REQUIRED_PROJECT_FIELDS = ("name", "club", "season", "position", "target_role")
+_ASSESSMENT_KEYS = ("tactical_fit_score", "contribution_rating", "estimated_value_eur", "overall_risk_score", "role_compatibility")
+BUDGET_STRETCH = 1.15  # existing policy constant: up to 15% over budget still counts as within budget
+
+
 @dataclass
 class CandidateEntry:
-    """A candidate player tracked inside a recruitment project."""
+    """A candidate player tracked inside a recruitment project. Unknown facts stay None / ""."""
     candidate_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     player_id: str = ""
     player_name: str = ""
     current_club: str = ""
     current_competition: str = ""
     position: str = ""
-    age: int = 24
+    age: int | None = None
     state: str = CandidateState.DISCOVERED
     added_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-    # Analytical outputs (Immutable from manual edits)
+    # Assessment values exactly as supplied by a user (source USER_SUPPLIED) or None. No engine computes them here.
     analytical_assessment: dict[str, Any] = field(default_factory=dict)
-    hard_constraints_passed: bool = True
-    overall_confidence: str = "HIGH"
-    data_status: str = "IN_DISTRIBUTION"
+    hard_constraints_passed: bool | None = None  # True all verified, False at least one violated, None not fully verifiable
+    overall_confidence: str = "UNASSESSED"
+    data_status: str = "UNASSESSED"
 
     # Scout annotations (isolated from analytical scores)
     scout_notes: list[str] = field(default_factory=list)
@@ -65,20 +96,20 @@ class CandidateEntry:
 
 @dataclass
 class RecruitmentProject:
-    """Persistent recruitment project specification (§6)."""
+    """Persistent recruitment project specification (§6). Unstated constraints are None / empty, not invented."""
     project_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = "Summer 2027 CB Recruitment"
-    club: str = "Arsenal"
-    season: str = "2024/2025"
-    position: str = "CB"
-    target_role: str = "Ball Playing Defender"
-    formation: str = "4-3-3"
-    budget_eur: float = 40_000_000.0
-    min_age: int = 19
-    max_age: int = 27
-    risk_tolerance: str = "MODERATE"  # LOW, MODERATE, HIGH
-    competition_constraints: list[str] = field(default_factory=lambda: ["EPL", "LaLiga", "SerieA", "Bundesliga", "Ligue1"])
-    min_minutes_played: int = 900
+    name: str = ""
+    club: str = ""
+    season: str = ""
+    position: str = ""
+    target_role: str = ""
+    formation: str = ""
+    budget_eur: float | None = None
+    min_age: int | None = None
+    max_age: int | None = None
+    risk_tolerance: str | None = None  # LOW, MODERATE, HIGH
+    competition_constraints: list[str] = field(default_factory=list)
+    min_minutes_played: int | None = None
     status: str = ProjectStatus.ACTIVE
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -87,104 +118,81 @@ class RecruitmentProject:
     decision_record_id: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    owner_id: str = ""
+    organization_id: str | None = None
+
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class RecruitmentProjectManager:
-    """In-memory persistent project and shortlist store with pipeline evaluation."""
+    """Recruitment project store. Backed by a CollectionStore (PostgreSQL in production, in-memory otherwise),
+    so projects and their candidates survive a process restart. Starts empty; nothing is seeded."""
 
-    def __init__(self) -> None:
+    _COLLECTION = "phase10_projects"
+
+    def __init__(self, store: CollectionStore | None = None) -> None:
+        self._store = store
         self._projects: dict[str, RecruitmentProject] = {}
-        self._seed_default_projects()
+        if store is not None:
+            for record in store.list(self._COLLECTION):
+                self._projects[record.record_id] = self._from_payload(record.record_id, record.payload)
 
-    def _seed_default_projects(self) -> None:
-        """Seed demo recruitment project matching Phase 10 spec."""
-        proj = RecruitmentProject(
-            project_id="proj_cb_summer_2027",
-            name="Summer 2027 CB Recruitment",
-            club="Arsenal",
-            season="2024/2025",
-            position="CB",
-            target_role="Ball Playing Defender",
-            formation="4-3-3",
-            budget_eur=40_000_000.0,
-            min_age=20,
-            max_age=26,
-            risk_tolerance="MODERATE",
-            competition_constraints=["EPL", "LaLiga", "Bundesliga", "SerieA"],
-            min_minutes_played=1200,
-        )
+    @staticmethod
+    def _from_payload(project_id: str, data: dict[str, Any]) -> RecruitmentProject:
+        candidates = [CandidateEntry(**c) for c in data.get("candidates", [])]
+        fields = {k: v for k, v in data.items() if k not in ("project_id", "candidates")}
+        return RecruitmentProject(project_id=project_id, candidates=candidates, **fields)
 
-        # Seed sample discovered candidates
-        c1 = CandidateEntry(
-            candidate_id="cand_saliba",
-            player_id="p_william_saliba",
-            player_name="William Saliba",
-            current_club="Arsenal",
-            current_competition="EPL",
-            position="CB",
-            age=23,
-            state=CandidateState.SHORTLISTED,
-            hard_constraints_passed=True,
-            overall_confidence="HIGH",
-            data_status="IN_DISTRIBUTION",
-            analytical_assessment={
-                "tactical_fit_score": 92.4,
-                "contribution_rating": 88.5,
-                "estimated_value_eur": 75_000_000.0,
-                "overall_risk_score": 0.18,
-                "role_compatibility": 94.0,
-            },
-            scout_notes=["Elite progression and 1v1 defensive ground duels."],
-            tags=["Internal Baseline", "Elite"],
-        )
+    def _save(self, project: RecruitmentProject) -> None:
+        if self._store is not None:
+            self._store.put(self._COLLECTION, project.project_id, project.owner_id, project.organization_id, project.to_dict())
 
-        c2 = CandidateEntry(
-            candidate_id="cand_inacio",
-            player_id="p_goncalo_inacio",
-            player_name="Gonçalo Inácio",
-            current_club="Sporting CP",
-            current_competition="Liga Portugal",
-            position="CB",
-            age=22,
-            state=CandidateState.REVIEWING,
-            hard_constraints_passed=True,
-            overall_confidence="HIGH",
-            data_status="IN_DISTRIBUTION",
-            analytical_assessment={
-                "tactical_fit_score": 86.2,
-                "contribution_rating": 81.0,
-                "estimated_value_eur": 38_000_000.0,
-                "overall_risk_score": 0.32,
-                "role_compatibility": 89.0,
-            },
-            scout_notes=["Left-footed progressive passer; fits 4-3-3 build-up."],
-            tags=["Target Option", "Left-Footed"],
-        )
+    # ---- access control ----------------------------------------------------------------------
+    @staticmethod
+    def _can_see(principal: Principal, project: RecruitmentProject) -> bool:
+        in_org = principal.org_id is not None and project.organization_id == principal.org_id
+        return in_org or project.owner_id == principal.user_id
 
-        proj.candidates.extend([c1, c2])
-        self._projects[proj.project_id] = proj
+    def get_project_for(self, principal: Principal, project_id: str) -> RecruitmentProject:
+        """KeyError (-> 404) for a missing project AND for another tenant's project, so existence is not leaked."""
+        project = self._projects.get(project_id)
+        if project is None or not self._can_see(principal, project):
+            raise KeyError(f"Project '{project_id}' not found")
+        return project
 
-    def create_project(self, data: dict[str, Any]) -> RecruitmentProject:
-        """Create and store a new persistent recruitment project."""
-        p_id = data.get("project_id") or f"proj_{uuid.uuid4().hex[:12]}"
+    def list_projects_for(self, principal: Principal) -> list[RecruitmentProject]:
+        return [p for p in self._projects.values() if self._can_see(principal, p)]
+
+    # ---- projects ----------------------------------------------------------------------------
+    def create_project(self, data: dict[str, Any], owner_id: str, organization_id: str | None = None) -> RecruitmentProject:
+        missing = [k for k in _REQUIRED_PROJECT_FIELDS if not str(data.get(k) or "").strip()]
+        if missing:
+            raise ValueError(f"missing required project field(s): {', '.join(missing)}")
+        if not owner_id:
+            raise ValueError("owner_id is required")
+        project_id = data.get("project_id") or f"proj_{uuid.uuid4().hex[:12]}"
+        if project_id in self._projects:
+            raise ValueError(f"project '{project_id}' already exists")
         project = RecruitmentProject(
-            project_id=p_id,
-            name=data.get("name", "New Recruitment Project"),
-            club=data.get("club", "Arsenal"),
-            season=data.get("season", "2024/2025"),
-            position=data.get("position", "CB"),
-            target_role=data.get("target_role", "Ball Playing Defender"),
-            formation=data.get("formation", "4-3-3"),
-            budget_eur=float(data.get("budget_eur", 40_000_000.0)),
-            min_age=int(data.get("min_age", 18)),
-            max_age=int(data.get("max_age", 32)),
-            risk_tolerance=data.get("risk_tolerance", "MODERATE"),
-            competition_constraints=data.get("competition_constraints", ["EPL", "LaLiga"]),
-            min_minutes_played=int(data.get("min_minutes_played", 900)),
+            project_id=project_id,
+            name=str(data["name"]).strip(),
+            club=str(data["club"]).strip(),
+            season=str(data["season"]).strip(),
+            position=str(data["position"]).strip(),
+            target_role=str(data["target_role"]).strip(),
+            formation=str(data.get("formation") or ""),
+            budget_eur=_opt_float(data.get("budget_eur")),
+            min_age=_opt_int(data.get("min_age")),
+            max_age=_opt_int(data.get("max_age")),
+            risk_tolerance=data.get("risk_tolerance"),
+            competition_constraints=list(data.get("competition_constraints") or []),
+            min_minutes_played=_opt_int(data.get("min_minutes_played")),
+            owner_id=owner_id,
+            organization_id=organization_id,
         )
-        self._projects[p_id] = project
+        self._projects[project_id] = project
+        self._save(project)
         return project
 
     def get_project(self, project_id: str) -> RecruitmentProject | None:
@@ -197,67 +205,60 @@ class RecruitmentProjectManager:
         p = self._projects.get(project_id)
         if not p:
             return None
+        protected = ("project_id", "created_at", "candidates", "owner_id", "organization_id")
         for k, v in updates.items():
-            if hasattr(p, k) and k not in ("project_id", "created_at", "candidates"):
+            if hasattr(p, k) and k not in protected:
                 setattr(p, k, v)
         p.updated_at = datetime.now(timezone.utc).isoformat()
+        self._save(p)
         return p
 
+    # ---- candidates --------------------------------------------------------------------------
     def add_candidate(self, project_id: str, candidate_data: dict[str, Any]) -> CandidateEntry | None:
+        """Hard constraints run first, tri-state; analytical labels are never taken from the caller."""
         p = self._projects.get(project_id)
         if not p:
             return None
+        player_id = str(candidate_data.get("player_id") or "").strip()
+        player_name = str(candidate_data.get("player_name") or "").strip()
+        if not player_id or not player_name:
+            raise ValueError("player_id and player_name are required")
 
-        # Hard constraints execution (§7: Hard constraints execute BEFORE soft scoring)
-        age = int(candidate_data.get("age", 24))
-        val = float(candidate_data.get("estimated_value_eur", 20_000_000.0))
-        comp = candidate_data.get("current_competition", "EPL")
+        age = _opt_int(candidate_data.get("age"))
+        value = _opt_float(candidate_data.get("estimated_value_eur"))
+        competition = candidate_data.get("current_competition") or ""
 
-        age_ok = p.min_age <= age <= p.max_age
-        budget_ok = val <= p.budget_eur * 1.15  # Up to 15% stretch buffer
-        comp_ok = not p.competition_constraints or comp in p.competition_constraints
+        age_ok = _within(age, p.min_age, p.max_age)
+        budget_ok = True if p.budget_eur is None else (None if value is None else value <= p.budget_eur * BUDGET_STRETCH)
+        competition_ok = True if not p.competition_constraints else (None if not competition else competition in p.competition_constraints)
+        checks = [age_ok, budget_ok, competition_ok]
+        passed = False if any(c is False for c in checks) else (None if any(c is None for c in checks) else True)
 
-        passed_hard_constraints = age_ok and budget_ok and comp_ok
+        assessment: dict[str, Any] = {k: _opt_float(candidate_data.get(k)) for k in _ASSESSMENT_KEYS}
+        assessment["source"] = "USER_SUPPLIED" if any(v is not None for v in assessment.values()) else "NONE"
+        assessment["hard_constraints_breakdown"] = {"age_valid": age_ok, "budget_valid": budget_ok, "competition_valid": competition_ok}
 
-        cand = CandidateEntry(
+        candidate = CandidateEntry(
             candidate_id=candidate_data.get("candidate_id") or f"cand_{uuid.uuid4().hex[:8]}",
-            player_id=candidate_data.get("player_id", "p_unknown"),
-            player_name=candidate_data.get("player_name", "Unknown Player"),
-            current_club=candidate_data.get("current_club", "Unknown Club"),
-            current_competition=comp,
-            position=candidate_data.get("position", p.position),
+            player_id=player_id,
+            player_name=player_name,
+            current_club=candidate_data.get("current_club") or "",
+            current_competition=competition,
+            position=candidate_data.get("position") or "",
             age=age,
-            state=candidate_data.get("state", CandidateState.DISCOVERED),
-            hard_constraints_passed=passed_hard_constraints,
-            overall_confidence=candidate_data.get("overall_confidence", "HIGH"),
-            data_status=candidate_data.get("data_status", "IN_DISTRIBUTION"),
-            analytical_assessment=candidate_data.get("analytical_assessment", {
-                "tactical_fit_score": float(candidate_data.get("tactical_fit_score", 75.0)),
-                "contribution_rating": float(candidate_data.get("contribution_rating", 70.0)),
-                "estimated_value_eur": val,
-                "overall_risk_score": float(candidate_data.get("overall_risk_score", 0.35)),
-                "hard_constraints_breakdown": {
-                    "age_valid": age_ok,
-                    "budget_valid": budget_ok,
-                    "competition_valid": comp_ok,
-                },
-            }),
-            scout_notes=candidate_data.get("scout_notes", []),
-            tags=candidate_data.get("tags", []),
-            scout_priority=candidate_data.get("scout_priority", "NORMAL"),
+            analytical_assessment=assessment,
+            hard_constraints_passed=passed,
+            scout_notes=list(candidate_data.get("scout_notes") or []),
+            tags=list(candidate_data.get("tags") or []),
         )
-
-        p.candidates.append(cand)
+        if any(c.candidate_id == candidate.candidate_id for c in p.candidates):
+            raise ValueError(f"candidate '{candidate.candidate_id}' already exists in this project")
+        p.candidates.append(candidate)
         p.updated_at = datetime.now(timezone.utc).isoformat()
-        return cand
+        self._save(p)
+        return candidate
 
-    def update_candidate_state(
-        self,
-        project_id: str,
-        candidate_id: str,
-        new_state: str,
-    ) -> CandidateEntry | None:
-        """Transitions candidate along workflow states without altering analytical results."""
+    def update_candidate_state(self, project_id: str, candidate_id: str, new_state: str) -> CandidateEntry | None:
         p = self._projects.get(project_id)
         if not p:
             return None
@@ -265,6 +266,7 @@ class RecruitmentProjectManager:
             if c.candidate_id == candidate_id:
                 c.state = new_state
                 p.updated_at = datetime.now(timezone.utc).isoformat()
+                self._save(p)
                 return c
         return None
 
@@ -289,6 +291,7 @@ class RecruitmentProjectManager:
                 if priority is not None:
                     c.scout_priority = priority
                 p.updated_at = datetime.now(timezone.utc).isoformat()
+                self._save(p)
                 return c
         return None
 
@@ -300,11 +303,12 @@ class RecruitmentProjectManager:
         p.candidates = [c for c in p.candidates if c.candidate_id != candidate_id]
         if len(p.candidates) < orig_len:
             p.updated_at = datetime.now(timezone.utc).isoformat()
+            self._save(p)
             return True
         return False
 
     def compare_candidates(self, project_id: str, candidate_ids: list[str]) -> dict[str, Any]:
-        """Multi-dimensional side-by-side comparison across all analytical dimensions (§8)."""
+        """Side-by-side comparison; unknown values are None, never 0."""
         p = self._projects.get(project_id)
         if not p:
             return {"error": "Project not found"}
@@ -313,18 +317,25 @@ class RecruitmentProjectManager:
         if not candidates:
             return {"error": "No matching candidates found"}
 
+        def dim(key: str) -> dict[str, Any]:
+            return {c.player_name: c.analytical_assessment.get(key) for c in candidates}
+
         return {
             "project_id": p.project_id,
             "project_name": p.name,
             "compared_count": len(candidates),
             "candidates": [c.to_dict() for c in candidates],
             "dimension_comparison": {
-                "tactical_fit": {c.player_name: c.analytical_assessment.get("tactical_fit_score", 0.0) for c in candidates},
-                "contribution_rating": {c.player_name: c.analytical_assessment.get("contribution_rating", 0.0) for c in candidates},
-                "estimated_value_eur": {c.player_name: c.analytical_assessment.get("estimated_value_eur", 0.0) for c in candidates},
-                "risk_score": {c.player_name: c.analytical_assessment.get("overall_risk_score", 0.0) for c in candidates},
+                "tactical_fit": dim("tactical_fit_score"),
+                "contribution_rating": dim("contribution_rating"),
+                "estimated_value_eur": dim("estimated_value_eur"),
+                "risk_score": dim("overall_risk_score"),
             },
         }
 
 
-recruitment_manager = RecruitmentProjectManager()
+def _default_manager() -> RecruitmentProjectManager:
+    return RecruitmentProjectManager(store=get_stores()[0])
+
+
+recruitment_manager = _default_manager()

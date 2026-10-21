@@ -98,17 +98,30 @@ class TestModelGovernance:
         models = registry.list_all_models()
         assert len(models) >= 5
 
-        # Check required analytical models exist
-        val_model = registry.get_model("valuation_model", "GBR_ValuationEngine_v1.0")
-        assert val_model.status == "MODEL_VALIDATED"
-        assert val_model.feature_set == "fset_v2"
-        assert "mae" in val_model.metrics
+        # The one trained artifact: status, metrics and hash are DERIVED from the real registry manifest.
+        val_ml = registry.get_model("valuation_model", "VALUATION_ML_V1")
+        assert val_ml.status in ("MODEL_VALIDATED", "MODEL_CANDIDATE_ONLY", "MODEL_RELEASE_BLOCKED")
+        assert "mae" in val_ml.metrics
+        assert len(val_ml.artifact_hash) == 64  # SHA-256 of the artifact file, not a hashed spec string
 
-        match_model = registry.get_model("match_prediction_engine", "BivariatePoisson_v1")
-        assert match_model.status == "MODEL_VALIDATED"
+        # Components with no trained artifact and no recorded validation run claim nothing (the old
+        # bootstrap marked all of them MODEL_VALIDATED with hand-typed metrics).
+        for name, version in [
+            ("valuation_model", "GBR_ValuationEngine_v1.0"),
+            ("match_prediction_engine", "BivariatePoisson_v1"),
+            ("tactical_fit_engine", "TacticalFitCalculator_v1.0"),
+            ("risk_engine", "TransferRiskEngine_v2"),
+            ("similarity_engine", "RoleSimilarity_v2"),
+        ]:
+            rec = registry.get_model(name, version)
+            assert rec.status == "MODEL_UNVALIDATED" and rec.metrics == {} and rec.artifact_hash == "NO_ARTIFACT"
+            with pytest.raises(ModelReleaseBlockedError):
+                registry.verify_inference_eligibility(name, version)
 
-        tactical_model = registry.get_model("tactical_fit_engine", "TacticalFitCalculator_v1.0")
-        assert tactical_model.status == "MODEL_VALIDATED"
+    def test_validated_status_requires_a_real_artifact_hash(self):
+        for rec in ModelGovernanceRegistry().list_all_models():
+            if rec["status"] == "MODEL_VALIDATED":
+                assert len(rec["artifact_hash"]) == 64
 
     def test_unknown_model_version_rejected(self):
         registry = ModelGovernanceRegistry()
@@ -235,24 +248,27 @@ class TestModelMonitoringPrimitives:
 class TestSystemHealthEndpoints:
     async def test_application_health(self):
         res = await check_application_health()
-        assert res["status"] == "HEALTHY"
+        assert res["status"] == "ALIVE"  # liveness only; "HEALTHY" was a hard-coded claim
         assert "pid" in res
         assert "memory_rss_mb" in res
         assert "service" in res
 
     async def test_readiness_no_session(self):
         res = await check_readiness(None)
-        assert res["status"] == "READY"
+        assert res["status"] == "UNKNOWN"  # no session => unmeasured; it used to report READY
         assert res["database"]["status"] == "UNKNOWN"
 
     async def test_model_health(self):
         res = await check_model_health()
-        assert res["status"] == "HEALTHY"
-        assert res["total_models_registered"] >= 5
-        assert "valuation" in res["active_engines"]
-        assert "match_prediction" in res["active_engines"]
+        # Measured, not asserted: the shipped valuation artifact is not MODEL_VALIDATED, so health cannot be OK,
+        # and the old hard-coded "active_engines" list (engines with no artifact) is gone.
+        assert res["status"] in ("DEGRADED", "UNKNOWN", "UNAVAILABLE")
+        assert "active_engines" not in res
+        assert res["governance_records_validated"] == sum(1 for r in res["governance_records"] if r["status"] == "MODEL_VALIDATED")
+        assert all(a["integrity"] in ("VERIFIED", "ARTIFACT_MISSING", "ARTIFACT_HASH_NOT_PINNED", "ARTIFACT_HASH_MISMATCH") for a in res["artifacts"])
 
     async def test_data_health(self):
         res = await check_data_health(None)
-        assert res["status"] == "HEALTHY"
-        assert res["zero_fabrication_policy"] == "ENFORCED"
+        assert res["status"] == "UNKNOWN"  # no session => unmeasured
+        assert "zero_fabrication_policy" not in res  # a hard-coded claim, not a measurement
+        assert res["metrics"]["canonical_players_count"] is None

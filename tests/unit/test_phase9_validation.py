@@ -26,12 +26,19 @@ from pathlib import Path
 import pytest
 import numpy as np
 
+# data/bronze is gitignored (locally ingested provider data). On a clean checkout the tests that
+# assert on "real" bronze data cannot hold; they skip with an explicit reason instead of failing
+# (R1). TestCoverageAuditMechanics covers the same audit code with a synthetic tmp fixture.
+_BRONZE_PRESENT = any((Path(__file__).resolve().parents[2] / "data" / "bronze" / "api-football").glob("**/*.json"))
+_BRONZE_REASON = "requires locally ingested data/bronze/api-football (gitignored); see docs/PRODUCTION_TRUTH_AUDIT.md"
+
 
 # ── §2 Data Coverage Audit ──────────────────────────────────────────
 
 class TestDataCoverageAudit:
     """Tests for the data coverage audit module."""
 
+    @pytest.mark.skipif(not _BRONZE_PRESENT, reason=_BRONZE_REASON)
     def test_coverage_matrix_from_real_data(self):
         """Coverage matrix is built from actual repository data."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -46,6 +53,7 @@ class TestDataCoverageAudit:
         assert matrix.total_bronze_files > 0
         assert matrix.total_bronze_bytes > 0
 
+    @pytest.mark.skipif(not _BRONZE_PRESENT, reason=_BRONZE_REASON)
     def test_coverage_dimensions_present(self):
         """All required dimensions are present in coverage matrix."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -97,6 +105,7 @@ class TestDataCoverageAudit:
             # Seasons dimension has PARTIAL quality by design (inferred), which raises average
             assert matrix.overall_quality in ("ABSENT", "MINIMAL", "SPARSE")
 
+    @pytest.mark.skipif(not _BRONZE_PRESENT, reason=_BRONZE_REASON)
     def test_coverage_preserves_provider_provenance(self):
         """Each dimension tracks its provider provenance."""
         from app.phase9.coverage_audit import build_coverage_matrix
@@ -649,8 +658,9 @@ class TestModelRegistry:
         assert m.model_id == "test_model"
         assert m.model_version == "1.0.0"
         assert m.feature_version == "v1"
-        assert m.status in ("MODEL_VALIDATED", "MODEL_CANDIDATE",
+        assert m.status in ("MODEL_VALIDATED", "MODEL_CANDIDATE", "MODEL_UNVALIDATED",
                             "PREDICTION_FOUNDATION_COMPLETE", "MODEL_RELEASE_BLOCKED")
+        assert m.status == "MODEL_UNVALIDATED"  # the default claims no validation
 
     def test_valuation_registry_manifest_exists(self):
         """Valuation model registry manifest exists on disk."""
@@ -667,18 +677,23 @@ class TestModelRegistry:
         active_id = manifest["active_model_id"]
         assert active_id in manifest["models"]
         model = manifest["models"][active_id]
-        assert model["status"] == "MODEL_VALIDATED"
+        # The shipped artifact is NOT validated: re-measured against the project's own release
+        # policy it is MODEL_RELEASE_BLOCKED (tests/unit/test_release_gate.py). This test only
+        # requires an honest status, the gate checklist, and a pinned artifact hash; it used to
+        # assert the hard-coded "MODEL_VALIDATED" claim.
+        assert model["status"] in ("MODEL_VALIDATED", "MODEL_CANDIDATE_ONLY", "MODEL_RELEASE_BLOCKED")
         assert "release_gate_checklist" in model
+        assert model.get("artifact_sha256"), "artifact hash must be pinned in the manifest"
 
     def test_prediction_registry_has_active_model(self):
-        """Prediction model registry has an active validated model."""
+        """Prediction model registry has an active model, honestly unvalidated (no fitted artifact or evaluation exists)."""
         from app.prediction.registry import PredictionModelRegistry
 
         registry = PredictionModelRegistry()
         active = registry.get_active_model()
-        assert active.status == "MODEL_VALIDATED"
-        assert active.temporal_validation_passed is True
-        assert active.leakage_tests_passed is True
+        assert active.status == "MODEL_UNVALIDATED"
+        assert active.temporal_validation_passed is None
+        assert active.leakage_tests_passed is None
 
 
 # ── Provenance Tests ──────────────────────────────────────────────────
@@ -776,36 +791,30 @@ class TestEngineValidationStructure:
 # ── §9 Match Prediction Validation ────────────────────────────────
 
 class TestMatchPredictionValidation:
-    """Validate match prediction model metrics."""
+    """Match prediction model claims are evidence-derived. The previous tests asserted typed log-loss / Brier / ECE
+    constants (0.9418 vs baselines, ECE 0.0385), i.e. they verified the constants against themselves."""
 
-    def test_active_model_beats_frequency_baseline(self):
-        """Active model has lower log_loss than frequency baseline."""
+    def test_registry_holds_no_metrics_so_it_claims_no_baseline_comparison(self):
         from app.prediction.registry import PredictionModelRegistry
 
         registry = PredictionModelRegistry()
-        active = registry.get_active_model()
-        baseline = registry.get_model("baseline_class_frequency_v1")
+        for model_id in ("calibrated_multinomial_logit_v1", "baseline_class_frequency_v1", "baseline_elo_deterministic_v1"):
+            assert registry.get_model(model_id).metrics == {}, f"{model_id} carries typed metrics"
 
-        assert active.metrics["log_loss"] < baseline.metrics["log_loss"]
-        assert active.metrics["brier_score"] < baseline.metrics["brier_score"]
-
-    def test_active_model_beats_elo_baseline(self):
-        """Active model has lower log_loss than Elo baseline."""
+    def test_calibration_error_is_unknown_not_reasonable(self):
         from app.prediction.registry import PredictionModelRegistry
 
-        registry = PredictionModelRegistry()
-        active = registry.get_active_model()
-        elo = registry.get_model("baseline_elo_deterministic_v1")
+        active = PredictionModelRegistry().get_active_model()
+        assert active.metrics.get("ece") is None and active.calibration_method == "NONE"
 
-        assert active.metrics["log_loss"] < elo.metrics["log_loss"]
+    def test_a_validated_claim_without_evidence_is_refused(self):
+        from app.prediction.registry import ModelMetadata, PredictionModelRegistry
 
-    def test_calibration_error_reasonable(self):
-        """ECE is within acceptable range."""
-        from app.prediction.registry import PredictionModelRegistry
-
-        registry = PredictionModelRegistry()
-        active = registry.get_active_model()
-        assert active.metrics["ece"] < 0.10, "ECE should be < 10%"
+        bogus = ModelMetadata(model_id="bogus", model_version="1", feature_version="f", algorithm="a",
+                              metrics={"log_loss": 0.5}, status="MODEL_VALIDATED",
+                              temporal_validation_passed=True, leakage_tests_passed=True)
+        with pytest.raises(ValueError):
+            PredictionModelRegistry().register(bogus)
 
 
 # ── Unified Report ────────────────────────────────────────────────
@@ -826,6 +835,7 @@ class TestPhase9UnifiedReport:
             "MODEL_VALIDATION_COMPLETE",
         )
 
+    @pytest.mark.skipif(not _BRONZE_PRESENT, reason=_BRONZE_REASON)
     def test_report_contains_all_sections(self):
         """Report contains all required sections."""
         from app.phase9.validation_engine import generate_phase9_report
@@ -979,3 +989,24 @@ class TestDataCoverageSurfaceRoutes:
         assert "summary" in data
         assert data["summary"]["total_stages"] == 7
 
+
+
+class TestCoverageAuditMechanics:
+    """Audit logic on a SYNTHETIC tmp fixture (clearly test scaffolding, not data): runs on a clean checkout."""
+
+    def test_counts_providers_dimensions_and_bytes_from_the_files_it_finds(self, tmp_path):
+        from app.phase9.coverage_audit import build_coverage_matrix
+
+        fixtures = tmp_path / "bronze" / "api-football" / "fixtures"
+        fixtures.mkdir(parents=True)
+        (fixtures / "f1.json").write_text(json.dumps({"response": [{}, {}, {}]}))
+        matrix = build_coverage_matrix(tmp_path)
+        assert "api-football" in matrix.providers_used
+        assert matrix.dimensions["matches"].record_count == 3
+        assert matrix.total_bronze_files == 1 and matrix.total_bronze_bytes > 0
+
+    def test_empty_data_root_reports_no_providers(self, tmp_path):
+        from app.phase9.coverage_audit import build_coverage_matrix
+
+        matrix = build_coverage_matrix(tmp_path)
+        assert len(matrix.providers_used) == 0 and matrix.total_bronze_files == 0

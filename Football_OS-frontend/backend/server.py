@@ -14,6 +14,8 @@ from datetime import datetime, timezone, timedelta
 import requests
 import asyncio
 
+from auth_tokens import email_allowed, mint_access_token, parse_csv
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,17 +27,6 @@ db = client[os.environ['DB_NAME']]
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
-
-
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
 
 class User(BaseModel):
@@ -58,19 +49,6 @@ class ProviderIdentity(BaseModel):
     session_token: str = Field(min_length=1)
     name: str | None = None
     picture: str | None = None
-
-
-class CopilotContextPlayer(BaseModel):
-    id: Optional[str] = None
-    name: str
-    primary_position: Optional[str] = None
-    nationality: Optional[str] = None
-
-
-class CopilotRequest(BaseModel):
-    session_id: str = Field(min_length=1, max_length=128)
-    query: str = Field(min_length=1, max_length=2000)
-    context_players: List[CopilotContextPlayer] = Field(default_factory=list)
 
 
 class ShortlistPlayer(BaseModel):
@@ -126,11 +104,6 @@ class SharedShortlist(BaseModel):
     updated_at: datetime
 
 
-@api_router.get("/")
-async def root():
-    return {"message": "Football Intelligence OS API"}
-
-
 def _session_token(request: Request, authorization: str | None) -> str | None:
     cookie_token = request.cookies.get("session_token")
     if cookie_token:
@@ -180,6 +153,10 @@ async def exchange_session(payload: SessionExchangeRequest, response: Response):
     except (ValidationError, ValueError) as exc:
         logger.warning("Google provider returned an invalid identity payload")
         raise HTTPException(status_code=502, detail="Google sign-in returned incomplete account data") from exc
+    # Any Google account can complete the provider flow; only allow-listed addresses/domains get in (fail closed).
+    if not email_allowed(identity.email, parse_csv(os.environ.get("AUTH_ALLOWED_EMAILS")), parse_csv(os.environ.get("AUTH_ALLOWED_EMAIL_DOMAINS"))):
+        logger.warning("sign-in refused: address is not on the allowlist")
+        raise HTTPException(status_code=403, detail="This account is not authorised for this workspace")
     identity_data = identity.model_dump()
     user = await db.users.find_one({"email": identity.email}, {"_id": 0})
     if user:
@@ -215,6 +192,24 @@ async def get_current_user(request: Request, authorization: str | None = Header(
     return await _user_for_session(request, authorization)
 
 
+@api_router.post("/auth/token")
+async def issue_access_token(request: Request, authorization: str | None = Header(default=None)):
+    """Short-lived bearer token for the analytics API (apps/api verifies it with the shared AUTH_JWT_SECRET)."""
+    user = await _user_for_session(request, authorization)
+    try:
+        token = mint_access_token(
+            user=user,
+            secret=os.environ.get("AUTH_JWT_SECRET"),
+            issuer=os.environ.get("AUTH_JWT_ISSUER", "football-os-identity"),
+            audience=os.environ.get("AUTH_JWT_AUDIENCE", "football-os-api"),
+            default_role=os.environ.get("AUTH_DEFAULT_ROLE", "viewer"),
+        )
+    except (RuntimeError, ValueError) as exc:
+        logger.error("access token not issued: %s", exc)
+        raise HTTPException(status_code=503, detail="Access tokens are not configured") from exc
+    return {"access_token": token, "token_type": "bearer", "expires_in": 900}
+
+
 @api_router.post("/auth/logout")
 async def logout(request: Request, response: Response, authorization: str | None = Header(default=None)):
     token = _session_token(request, authorization)
@@ -235,73 +230,6 @@ COPILOT_SYSTEM = (
     "concise, professional, and calibrated: distinguish FACT, MODEL OUTPUT, and ESTIMATE. "
     "Never present a prediction as a certainty."
 )
-
-
-@api_router.post("/copilot/query")
-async def copilot_query(request: Request, payload: CopilotRequest, authorization: str | None = Header(default=None)):
-    await _user_for_session(request, authorization)
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        raise HTTPException(status_code=503, detail="Copilot is not configured on this environment.")
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
-    except ImportError as exc:
-        logger.exception("emergentintegrations import failed")
-        raise HTTPException(status_code=503, detail="Copilot library is unavailable.") from exc
-
-    context_lines = []
-    if payload.context_players:
-        context_lines.append("Connected data context (players supplied by the Football Intelligence OS API):")
-        for entry in payload.context_players[:20]:
-            context_lines.append(
-                f"- {entry.name} · {entry.primary_position or 'position unknown'} · {entry.nationality or 'nationality unknown'}"
-            )
-    else:
-        context_lines.append("Connected data context: none — the live Football Intelligence OS API has not returned player rows yet.")
-
-    prompt = f"Question: {payload.query.strip()}\n\n" + "\n".join(context_lines)
-
-    async def event_generator():
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=payload.session_id,
-            system_message=COPILOT_SYSTEM,
-        ).with_model("anthropic", "claude-sonnet-5")
-        try:
-            async for event in chat.stream_message(UserMessage(text=prompt)):
-                if isinstance(event, TextDelta):
-                    yield f"data: {json.dumps({'delta': event.content})}\n\n"
-                elif isinstance(event, StreamDone):
-                    yield f"data: {json.dumps({'done': True})}\n\n"
-                    break
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Copilot stream error")
-            yield f"data: {json.dumps({'error': str(exc)})}\n\n"
-
-    return StreamingResponse(
-        event_generator(),
-        media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no", "Connection": "keep-alive"},
-    )
-
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    return status_checks
 
 
 # ============================================================
@@ -469,13 +397,21 @@ async def get_shared_shortlist(token: str):
 
 app.include_router(api_router)
 
+def _cors_origins() -> list[str]:
+    """Explicit origins only. A wildcard (or an allow-all regex) with credentials lets any website read
+    authenticated responses, so it is a startup error rather than a default."""
+    origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+    if any("*" in origin for origin in origins):
+        raise RuntimeError("CORS_ORIGINS must list explicit origins; wildcards are not allowed with credentials")
+    return origins
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=[] if os.environ.get('CORS_ORIGINS') == '*' else os.environ['CORS_ORIGINS'].split(','),
-    allow_origin_regex='.*' if os.environ.get('CORS_ORIGINS') == '*' else None,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_cors_origins(),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
 )
 
 logging.basicConfig(

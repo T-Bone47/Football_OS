@@ -26,14 +26,19 @@ class HardConstraintsEngine:
         max_age: float | None,
         minutes_played: int,
         min_minutes: int | None,
-        estimated_value_eur: float,
+        estimated_value_eur: float | None,
         budget_eur: float | None,
         risk_level: str,
         risk_tolerance: str = "MEDIUM",
     ) -> HardConstraintResult:
-        """Evaluates whether candidate strictly meets all hard parameters."""
+        """Evaluates whether candidate strictly meets all hard parameters.
+
+        A constraint that cannot be evaluated (an unknown market value against a
+        budget) is reported as unevaluated, never as passed and never as failed.
+        """
         checks: dict[str, bool] = {}
         exclusion_reasons: list[str] = []
+        unevaluated_checks: list[str] = []
 
         # 1. Positional Constraint
         cand_group = map_position_to_group(candidate_position)
@@ -73,7 +78,10 @@ class HardConstraintsEngine:
         budget_passed = True
         if budget_eur is not None and budget_eur > 0:
             hard_ceiling = budget_eur * 1.10
-            if estimated_value_eur > hard_ceiling:
+            if estimated_value_eur is None:
+                # No canonical valuation: the budget ceiling cannot be evaluated.
+                unevaluated_checks.append("budget_ceiling")
+            elif estimated_value_eur > hard_ceiling:
                 budget_passed = False
                 exclusion_reasons.append(
                     f"Financial ceiling exceeded: estimated valuation €{estimated_value_eur:,.0f} "
@@ -100,4 +108,5 @@ class HardConstraintsEngine:
             passed=all_passed,
             checks=checks,
             exclusion_reasons=exclusion_reasons,
+            unevaluated_checks=unevaluated_checks,
         )

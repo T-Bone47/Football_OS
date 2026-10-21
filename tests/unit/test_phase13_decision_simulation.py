@@ -101,6 +101,10 @@ client = TestClient(app)
 
 # ── 1. G3: Squad Baseline Roster & Financial Integrity ─────────────────
 
+# NOTE (demo fixtures): these tests exercise the mechanics of the Phase 13 engines on their built-in DEMONSTRATION
+# fixtures, which now exist only when a store is constructed with seed_demo=True. Production instances start empty
+# (tests/unit/test_demo_data_gating.py), so nothing here is evidence about real data.
+
 def test_squad_baseline_integrity() -> None:
     baseline = squad_baseline_registry.get_baseline("arsenal_fc")
     assert baseline.club_id == "arsenal_fc"
@@ -157,7 +161,7 @@ def test_tactical_gap_detection() -> None:
 # ── 3. Role Dependency Graph (Non-Causal) ─────────────────────────────
 
 def test_role_dependency_graph_non_causality() -> None:
-    engine = RoleDependencyEngine()
+    engine = RoleDependencyEngine(seed_demo=True)
     deps = engine.get_dependencies_for_role("Ball Playing Centre Back")
     assert len(deps) >= 2
     for d in deps:
@@ -202,7 +206,7 @@ def test_squad_depth_and_congestion_scenarios() -> None:
 # ── 6. G6, G14: Multi-Transfer Scenarios & Match Boundary Contract ────
 
 def test_multi_transfer_scenario_execution() -> None:
-    engine = MultiTransferScenarioEngine()
+    engine = MultiTransferScenarioEngine(seed_demo=True)
     movements = [
         ScenarioMovement(action="SELL", player_id="p1", player_name="Player 1", position="DM", fee_eur=15_000_000, weekly_wage_eur=180_000),
         ScenarioMovement(action="BUY", player_id="p2", player_name="Player 2", position="CB", fee_eur=40_000_000, weekly_wage_eur=100_000),
@@ -229,7 +233,7 @@ def test_multi_transfer_scenario_execution() -> None:
 
 def test_match_prediction_boundary_enforcement() -> None:
     """If roster alterations exceed calibrated domain (>4 changes), must return SCENARIO_UNSUPPORTED."""
-    engine = MultiTransferScenarioEngine()
+    engine = MultiTransferScenarioEngine(seed_demo=True)
     # 5 movements exceeds threshold of 4
     movements = [
         ScenarioMovement(action="BUY", player_id=f"p_{i}", player_name=f"Player {i}", position="CM", fee_eur=10_000_000)
@@ -249,7 +253,7 @@ def test_match_prediction_boundary_enforcement() -> None:
 # ── 7. G11: Side-by-Side Pareto Comparison ─────────────────────────────
 
 def test_side_by_side_scenario_comparison() -> None:
-    engine = MultiTransferScenarioEngine()
+    engine = MultiTransferScenarioEngine(seed_demo=True)
     comp = engine.compare_scenarios(
         scenario_ids=["scen_sell_buy_inacio", "scen_multi_buy_cb_dm"],
         club_id="arsenal_fc",
@@ -264,7 +268,7 @@ def test_side_by_side_scenario_comparison() -> None:
 # ── 8. G7, G14: Squad Construction Pareto Frontier ─────────────────────
 
 def test_squad_construction_pareto_frontier() -> None:
-    engine = SquadConstructionEngineV2()
+    engine = SquadConstructionEngineV2(seed_demo=True)
     frontier = engine.generate_pareto_frontier("arsenal_fc", formation="4-3-3", budget_ceiling_eur=65_000_000.0)
     assert len(frontier) >= 2
     # Verify non-collapse into single score: strategies show trade-offs
@@ -340,7 +344,7 @@ def test_unified_scenario_graph_lineage() -> None:
 # ── 12. G16, G17: Decision Record V2 & Retrospective Follow-Up ─────────
 
 def test_decision_record_v2_and_immutability() -> None:
-    store = DecisionRecordStoreV2()
+    store = DecisionRecordStoreV2(seed_demo=True)
     record = DecisionRecordV2(
         decision_id="dec_test_001",
         project_id="rec_proj_001",
@@ -358,7 +362,7 @@ def test_decision_record_v2_and_immutability() -> None:
 
 
 def test_decision_follow_up_evaluation() -> None:
-    store = DecisionRecordStoreV2()
+    store = DecisionRecordStoreV2(seed_demo=True)
     # Use seeded decision dec_rec_arsenal_cb_001
     follow_up = store.evaluate_follow_up_alignment(
         decision_id="dec_rec_arsenal_cb_001",
@@ -424,7 +428,7 @@ def test_copilot_v3_deterministic_dispatch() -> None:
 # ── 14. G26: Deterministic Scenario Replay ─────────────────────────────
 
 def test_deterministic_scenario_replay() -> None:
-    engine = MultiTransferScenarioEngine()
+    engine = MultiTransferScenarioEngine(seed_demo=True)
     movements = [
         ScenarioMovement(action="BUY", player_id="replay_cand", player_name="Replay Candidate", position="CB", fee_eur=30_000_000)
     ]

@@ -20,6 +20,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase14 import (
     DataSufficiencyStatus,
     EpistemicModality,
@@ -115,11 +116,12 @@ class ScenarioRealizationRecord:
 class TacticalRealizationEngine:
     """Evaluates tactical fidelity and tracks scenario lifecycle realization."""
 
-    def __init__(self, ledger: OutcomeLedger | None = None) -> None:
+    def __init__(self, ledger: OutcomeLedger | None = None, seed_demo: bool = False) -> None:
         self._ledger = ledger or outcome_ledger
         self._tactical_reports: dict[str, TacticalRealizationReport] = {}
         self._scenario_realizations: dict[str, ScenarioRealizationRecord] = {}
-        self._seed_default_reports()
+        if seed_demo:
+            self._seed_default_reports()
 
     def evaluate_tactical_realization(
         self,
@@ -340,4 +342,4 @@ class TacticalRealizationEngine:
         )
 
 
-tactical_realization_engine = TacticalRealizationEngine()
+tactical_realization_engine = TacticalRealizationEngine(seed_demo=demo_data_allowed())

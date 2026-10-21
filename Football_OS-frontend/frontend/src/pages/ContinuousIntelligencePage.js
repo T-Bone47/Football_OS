@@ -14,8 +14,8 @@ import {
   ShieldCheck,
   Zap
 } from 'lucide-react';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import ModuleStateBanner from "@/components/ModuleStateBanner";
+import { BACKEND_URL as API_BASE } from "@/lib/footballApi";
 
 export default function ContinuousIntelligencePage() {
   const [activeTab, setActiveTab] = useState('emerging');
@@ -28,6 +28,7 @@ export default function ContinuousIntelligencePage() {
   const [learningJobs, setLearningJobs] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [moduleState, setModuleState] = useState(null);
   const [copilotQuery, setCopilotQuery] = useState('');
   const [copilotResponse, setCopilotResponse] = useState(null);
   const [copilotLoading, setCopilotLoading] = useState(false);
@@ -38,34 +39,71 @@ export default function ContinuousIntelligencePage() {
 
   const fetchOperationalData = async () => {
     setLoading(true);
+    setModuleState(null);
+    const endpoints = {
+      emerging: `${API_BASE}/api/phase12/emerging`,
+      roleTransitions: `${API_BASE}/api/phase12/role-transitions`,
+      marketOpportunities: `${API_BASE}/api/phase12/market/opportunities`,
+      decisionFreshness: `${API_BASE}/api/phase12/decisions/freshness`,
+      challengers: `${API_BASE}/api/phase12/models/challengers`,
+      learningJobs: `${API_BASE}/api/phase12/learning/jobs`,
+      alerts: `${API_BASE}/api/phase12/alerts`,
+    };
+    const keys = Object.keys(endpoints);
     try {
-      const [
-        resEmg,
-        resTrans,
-        resMkt,
-        resFresh,
-        resChall,
-        resJobs,
-        resAlerts
-      ] = await Promise.all([
-        fetch(`${API_BASE}/api/phase12/emerging`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/role-transitions`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/market/opportunities`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/decisions/freshness`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/models/challengers`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/learning/jobs`).then(r => r.ok ? r.json() : []),
-        fetch(`${API_BASE}/api/phase12/alerts`).then(r => r.ok ? r.json() : []),
-      ]);
+      const results = await Promise.all(
+        keys.map(async (key) => {
+          try {
+            const res = await fetch(endpoints[key]);
+            if (!res.ok) {
+              const body = await res.json().catch(() => null);
+              const detail = body?.detail;
+              return {
+                error: {
+                  status: res.status,
+                  code: detail?.code || `HTTP_${res.status}`,
+                  message:
+                    typeof detail === "string"
+                      ? detail
+                      : detail?.detail || `The backend refused this request (HTTP ${res.status}).`,
+                },
+              };
+            }
+            return { data: await res.json() };
+          } catch (error) {
+            return {
+              error: {
+                status: 0,
+                code: "BACKEND_UNREACHABLE",
+                message: "The connected backend could not be reached.",
+              },
+            };
+          }
+        }),
+      );
 
-      setEmergingPlayers(resEmg);
-      setRoleTransitions(resTrans);
-      setMarketOpportunities(resMkt);
-      setDecisionFreshness(resFresh);
-      setChallengerComparisons(resChall);
-      setLearningJobs(resJobs);
-      setAlerts(resAlerts);
-    } catch (e) {
-      console.warn('API error, falling back to local operational telemetry:', e);
+      const failures = results.filter((r) => r.error);
+      if (failures.length > 0) {
+        const first = failures[0].error;
+        setModuleState({
+          kind: first.code === "DEMO_ONLY" ? "DISABLED" : "ERROR",
+          code: first.code,
+          message: `${first.message} (${failures.length} of ${results.length} module endpoints refused the request)`,
+        });
+      }
+
+      const value = (key, fallback) => {
+        const result = results[keys.indexOf(key)];
+        return result && result.data !== undefined ? result.data : fallback;
+      };
+
+      setEmergingPlayers(value("emerging", []));
+      setRoleTransitions(value("roleTransitions", []));
+      setMarketOpportunities(value("marketOpportunities", []));
+      setDecisionFreshness(value("decisionFreshness", []));
+      setChallengerComparisons(value("challengers", []));
+      setLearningJobs(value("learningJobs", []));
+      setAlerts(value("alerts", []));
     } finally {
       setLoading(false);
     }
@@ -120,6 +158,8 @@ export default function ContinuousIntelligencePage() {
           </button>
         </div>
       </div>
+
+      <ModuleStateBanner state={moduleState} testId="continuous-module-state" />
 
       {/* Scout Copilot V2 Dispatch Bar */}
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-4">

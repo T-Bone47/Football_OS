@@ -15,6 +15,8 @@ export default function OperationsPage() {
   const [loading, setLoading] = useState(true);
   const [triggering, setTriggering] = useState(false);
   const [triggerResult, setTriggerResult] = useState(null);
+  const [triggerError, setTriggerError] = useState(null);
+  const [panelErrors, setPanelErrors] = useState({});
 
   useEffect(() => {
     fetchData();
@@ -22,25 +24,31 @@ export default function OperationsPage() {
   }, []);
 
   const fetchData = async () => {
-    try {
-      const [readinessRes, runsRes, modelsRes] = await Promise.all([
-        axios.get(`${BACKEND_URL}/api/phase10/operations/competition-readiness`),
-        axios.get(`${BACKEND_URL}/api/phase10/operations/ingestion/runs`),
-        axios.get(`${BACKEND_URL}/api/phase10/operations/model-lifecycle`),
-      ]);
-      setReadinessList(readinessRes.data);
-      setIngestionRuns(runsRes.data);
-      setLifecycleModels(modelsRes.data);
-    } catch (err) {
-      console.error("Failed to load operations data", err);
-    } finally {
-      setLoading(false);
-    }
+    // Each panel loads independently: one failing (or demo-only) endpoint must not blank the others.
+    const [readinessRes, runsRes, modelsRes] = await Promise.allSettled([
+      axios.get(`${BACKEND_URL}/api/phase10/operations/competition-readiness`),
+      axios.get(`${BACKEND_URL}/api/phase10/operations/ingestion/runs`),
+      axios.get(`${BACKEND_URL}/api/phase10/models/lifecycle`),
+    ]);
+    const messageOf = (r) => {
+      const detail = r.reason?.response?.data?.detail;
+      return typeof detail === "string" ? detail : detail?.detail || r.reason?.message || "request failed";
+    };
+    const errors = {};
+    if (readinessRes.status === "fulfilled") setReadinessList(readinessRes.value.data);
+    else errors.readiness = messageOf(readinessRes);
+    if (runsRes.status === "fulfilled") setIngestionRuns(runsRes.value.data);
+    else errors.runs = messageOf(runsRes);
+    if (modelsRes.status === "fulfilled") setLifecycleModels(modelsRes.value.data);
+    else errors.models = messageOf(modelsRes);
+    setPanelErrors(errors);
+    setLoading(false);
   };
 
   const handleTriggerIngestion = async () => {
     setTriggering(true);
     setTriggerResult(null);
+    setTriggerError(null);
     try {
       const res = await axios.post(`${BACKEND_URL}/api/phase10/operations/ingestion/trigger`, {
         provider: "api-football",
@@ -53,6 +61,8 @@ export default function OperationsPage() {
       setIngestionRuns(runsRes.data);
     } catch (err) {
       console.error("Failed to trigger ingestion", err);
+      const detail = err.response?.data?.detail;
+      setTriggerError(typeof detail === "string" ? detail : detail ? JSON.stringify(detail) : err.message);
     } finally {
       setTriggering(false);
     }
@@ -78,7 +88,7 @@ export default function OperationsPage() {
           </div>
           <h1 data-testid="operations-title">Continuous Operations & Readiness</h1>
           <p className="page-subtitle">
-            Controlled 11-stage ingestion, competition readiness gates, and formal model lifecycle tracking.
+            Ingestion runs (Bronze capture and validation), competition readiness, and model lifecycle tracking.
           </p>
         </div>
         <div className="header-actions">
@@ -88,32 +98,51 @@ export default function OperationsPage() {
             disabled={triggering}
             data-testid="trigger-ingestion-btn"
           >
-            <Play size={14} /> {triggering ? "Executing 11-Stage Pipeline…" : "Trigger Operational Ingestion"}
+            <Play size={14} /> {triggering ? "Running ingestion…" : "Trigger Operational Ingestion"}
           </button>
         </div>
       </header>
 
-      {/* Trigger Feedback Banner */}
-      {triggerResult && (
-        <section className="result-card" style={{ marginBottom: "1.25rem", padding: "1rem", background: "rgba(16, 185, 129, 0.08)", border: "1px solid #10b981", borderRadius: "6px" }} data-testid="trigger-result-banner">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <CheckCircle2 size={18} color="#10b981" />
-              <strong style={{ color: "#10b981" }}>Cycle Complete: {triggerResult.status}</strong>
-            </div>
-            <span style={{ fontSize: "0.75rem", fontFamily: "monospace", color: "var(--text-muted, #94a3b8)" }}>
-              Run ID: {triggerResult.ingestion_run_id}
-            </span>
-          </div>
-          <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--text-bright, #fff)" }}>
-            <span>Seen: {triggerResult.records_seen}</span>
-            <span>Accepted: {triggerResult.records_accepted}</span>
-            <span>Gate: {triggerResult.validation_status}</span>
-            <span>Snapshot: {triggerResult.snapshot_id}</span>
-            <span style={{ fontFamily: "monospace" }}>SHA-256: {triggerResult.checksum?.slice(0, 16)}…</span>
+      {/* Trigger feedback: the colour follows the real outcome (SUCCESS green, PARTIAL amber, FAILED red) */}
+      {triggerError && (
+        <section className="result-card" style={{ marginBottom: "1.25rem", padding: "1rem", background: "rgba(239, 68, 68, 0.08)", border: "1px solid #ef4444", borderRadius: "6px" }} data-testid="trigger-error-banner">
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <AlertTriangle size={18} color="#ef4444" />
+            <strong style={{ color: "#ef4444" }}>Ingestion request failed: {triggerError}</strong>
           </div>
         </section>
       )}
+      {triggerResult && (() => {
+        const tone = { SUCCESS: "#10b981", PARTIAL: "#f59e0b", FAILED: "#ef4444" }[triggerResult.status] || "#94a3b8";
+        const muted = { fontSize: "0.8rem", marginTop: "0.4rem", color: "var(--text-muted, #94a3b8)" };
+        return (
+          <section className="result-card" style={{ marginBottom: "1.25rem", padding: "1rem", background: "rgba(148, 163, 184, 0.08)", border: `1px solid ${tone}`, borderRadius: "6px" }} data-testid="trigger-result-banner">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {triggerResult.status === "SUCCESS" ? <CheckCircle2 size={18} color={tone} /> : <AlertTriangle size={18} color={tone} />}
+                <strong style={{ color: tone }}>Ingestion {triggerResult.status}</strong>
+              </div>
+              <span style={{ fontSize: "0.75rem", fontFamily: "monospace", color: "var(--text-muted, #94a3b8)" }}>
+                Run ID: {triggerResult.run_id}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.5rem", fontSize: "0.8rem", color: "var(--text-bright, #fff)" }}>
+              <span>Validation: {triggerResult.snapshot?.validation_status ?? "n/a"}</span>
+              <span>Records: {triggerResult.record_count ?? "not measured"}</span>
+              <span style={{ fontFamily: "monospace" }}>SHA-256: {triggerResult.snapshot?.sha256 ? `${triggerResult.snapshot.sha256.slice(0, 16)}…` : "—"}</span>
+            </div>
+            <div style={muted}>Completed: {triggerResult.stages_completed.join(", ") || "none"}</div>
+            <div style={muted}>Not executed: {triggerResult.stages_not_executed.join(", ") || "none"}</div>
+            {triggerResult.error && <div style={{ ...muted, color: tone }}>Error: {triggerResult.error}</div>}
+          </section>
+        );
+      })()}
+
+      {Object.entries(panelErrors).map(([panel, message]) => (
+        <div key={panel} style={{ color: "#fbbf24", fontSize: "0.8rem", marginBottom: "0.5rem" }} data-testid={`panel-error-${panel}`}>
+          Could not load {panel}: {message}
+        </div>
+      ))}
 
       {/* Tabs */}
       <div className="tab-bar" style={{ display: "flex", gap: "1rem", borderBottom: "1px solid var(--border-subtle, #1e293b)", paddingBottom: "0.5rem", marginBottom: "1.5rem" }}>
@@ -228,39 +257,39 @@ export default function OperationsPage() {
                   <th style={{ padding: "0.6rem 0.5rem" }}>Run ID</th>
                   <th style={{ padding: "0.6rem 0.5rem" }}>Provider / Resource</th>
                   <th style={{ padding: "0.6rem 0.5rem" }}>Status</th>
-                  <th style={{ padding: "0.6rem 0.5rem" }}>Records (Seen/Acc)</th>
+                  <th style={{ padding: "0.6rem 0.5rem" }}>Stages done</th>
                   <th style={{ padding: "0.6rem 0.5rem" }}>Validation</th>
                   <th style={{ padding: "0.6rem 0.5rem" }}>Snapshot SHA-256</th>
-                  <th style={{ padding: "0.6rem 0.5rem" }}>Requested At</th>
+                  <th style={{ padding: "0.6rem 0.5rem" }}>Started At</th>
                 </tr>
               </thead>
               <tbody>
                 {ingestionRuns.map(run => (
-                  <tr key={run.ingestion_run_id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }} data-testid={`run-row-${run.ingestion_run_id}`}>
+                  <tr key={run.run_id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }} data-testid={`run-row-${run.run_id}`}>
                     <td style={{ padding: "0.6rem 0.5rem", fontFamily: "monospace", fontWeight: 600 }}>
-                      {run.ingestion_run_id}
+                      {run.run_id}
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem" }}>
                       <span className="badge micro neutral">{run.provider}</span> / {run.resource}
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem" }}>
-                      <span className={`badge micro ${run.status === "COMPLETED" ? "success" : "warning"}`}>
+                      <span className={`badge micro ${run.status === "SUCCESS" ? "success" : "warning"}`}>
                         {run.status}
                       </span>
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem" }}>
-                      {run.records_seen} / {run.records_accepted}
+                      {run.stages_completed.length} / {Object.keys(run.stage_results).length}
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem" }}>
-                      <span className={`badge micro ${run.validation_status === "PASSED" ? "success" : "neutral"}`}>
-                        {run.validation_status}
+                      <span className={`badge micro ${run.snapshot?.validation_status === "VALID" ? "success" : "neutral"}`}>
+                        {run.snapshot?.validation_status ?? "—"}
                       </span>
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem", fontFamily: "monospace", fontSize: "0.75rem", color: "var(--text-muted, #94a3b8)" }}>
-                      {run.checksum ? `${run.checksum.slice(0, 16)}…` : "—"}
+                      {run.snapshot?.sha256 ? `${run.snapshot.sha256.slice(0, 16)}…` : "—"}
                     </td>
                     <td style={{ padding: "0.6rem 0.5rem", fontSize: "0.75rem", color: "var(--text-muted, #94a3b8)" }}>
-                      {new Date(run.requested_at).toLocaleTimeString()}
+                      {run.started_at ? new Date(run.started_at).toLocaleTimeString() : "—"}
                     </td>
                   </tr>
                 ))}

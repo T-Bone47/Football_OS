@@ -1,6 +1,7 @@
 """Phase 10 — Competition Readiness & Governance Engine (§4, §5).
 
 Enforces explicit competition operational readiness states:
+  - NOT_ASSESSED      (no evidence recorded: the honest default)
   - NOT_AVAILABLE
   - INSUFFICIENT_DATA
   - DATA_AVAILABLE
@@ -19,6 +20,7 @@ from typing import Any
 
 
 class CompetitionReadinessState(str, Enum):
+    NOT_ASSESSED = "NOT_ASSESSED"
     NOT_AVAILABLE = "NOT_AVAILABLE"
     INSUFFICIENT_DATA = "INSUFFICIENT_DATA"
     DATA_AVAILABLE = "DATA_AVAILABLE"
@@ -32,12 +34,13 @@ class CompetitionEvidenceProfile:
     competition_code: str
     competition_name: str
     country: str
-    readiness_state: str = CompetitionReadinessState.NOT_AVAILABLE
-    matches_count: int = 0
-    transfers_count: int = 0
-    players_tracked: int = 0
+    readiness_state: str = CompetitionReadinessState.NOT_ASSESSED
+    # None = not measured. (They used to be hand-typed constants, e.g. EPL "760 matches", and 0 for "unknown".)
+    matches_count: int | None = None
+    transfers_count: int | None = None
+    players_tracked: int | None = None
     freshness_date: str | None = None
-    ood_status: str = "IN_DISTRIBUTION"
+    ood_status: str = "UNKNOWN"
     engine_readiness: dict[str, str] = field(default_factory=dict)
     evidence_checklist: list[str] = field(default_factory=list)
     limitations: list[str] = field(default_factory=list)
@@ -52,176 +55,32 @@ class CompetitionReadinessManager:
     def __init__(self) -> None:
         self._profiles: dict[str, CompetitionEvidenceProfile] = self._initialize_profiles()
 
+    # Competitions in scope. Nothing about their readiness is asserted here: the previous version hand-typed
+    # PRODUCTION_READY / MODEL_VALIDATED states, match counts and metrics (EPL "760 matches, log loss 0.9418",
+    # La Liga valuation "MODEL_VALIDATED" while the valuation model is MODEL_RELEASE_BLOCKED). A competition
+    # becomes ready only through an evidence-derived assessment, which is not implemented yet (open issue).
+    _IN_SCOPE = (
+        ("EPL", "EPL", "Premier League", "England"),
+        ("LALIGA", "LaLiga", "La Liga", "Spain"),
+        ("SERIEA", "SerieA", "Serie A", "Italy"),
+        ("BUNDESLIGA", "Bundesliga", "Bundesliga", "Germany"),
+        ("LIGUE1", "Ligue1", "Ligue 1", "France"),
+        ("UCL", "UCL", "UEFA Champions League", "Europe"),
+        ("MLS", "MLS", "Major League Soccer", "USA"),
+    )
+    _ENGINES = ("match_prediction", "valuation", "tactical_fit", "player_intelligence", "similarity", "transfer_risk")
+
     def _initialize_profiles(self) -> dict[str, CompetitionEvidenceProfile]:
-        profiles = {}
-
-        # 1. Premier League (EPL): Full end-to-end evidence
-        profiles["EPL"] = CompetitionEvidenceProfile(
-            competition_code="EPL",
-            competition_name="Premier League",
-            country="England",
-            readiness_state=CompetitionReadinessState.PRODUCTION_READY,
-            matches_count=760,
-            transfers_count=350,
-            players_tracked=550,
-            freshness_date="2024-05-19",
-            ood_status="IN_DISTRIBUTION",
-            engine_readiness={
-                "match_prediction": "PRODUCTION_READY",
-                "valuation": "MODEL_VALIDATED",
-                "tactical_fit": "PRODUCTION_READY",
-                "player_intelligence": "PRODUCTION_READY",
-                "similarity": "PRODUCTION_READY",
-                "transfer_risk": "PRODUCTION_READY",
-            },
-            evidence_checklist=[
-                "760 finished matches with scores and lineups verified",
-                "Multi-class Log Loss 0.9418 beats baseline",
-                "Temperature scaled calibration (ECE 0.0385)",
-                "20 club rosters completely normalized",
-            ],
-            limitations=[
-                "Valuation model test R2 is -0.0904; anchored by comparable baseline",
-            ],
-        )
-
-        # 2. La Liga: High transfer coverage, but fixtures not in Bronze
-        profiles["LALIGA"] = CompetitionEvidenceProfile(
-            competition_code="LaLiga",
-            competition_name="La Liga",
-            country="Spain",
-            readiness_state=CompetitionReadinessState.DATA_AVAILABLE,
-            matches_count=0,
-            transfers_count=220,
-            players_tracked=120,
-            freshness_date="2024-05-01",
-            ood_status="PARTIAL_EVIDENCE",
-            engine_readiness={
-                "match_prediction": "INSUFFICIENT_DATA",
-                "valuation": "MODEL_VALIDATED",
-                "tactical_fit": "INSUFFICIENT_DATA",
-                "player_intelligence": "INSUFFICIENT_DATA",
-                "similarity": "INSUFFICIENT_DATA",
-                "transfer_risk": "DATA_AVAILABLE",
-            },
-            evidence_checklist=[
-                "220 verified historical transfer records in bronze layer",
-                "Log MAE of 0.495 consistent with European top-tier valuation bounds",
-            ],
-            limitations=[
-                "Fixtures and player match event data not staged in local bronze storage",
-                "Match prediction must not be executed on La Liga fixtures",
-            ],
-        )
-
-        # 3. Serie A: Transfer data available, match data missing
-        profiles["SERIEA"] = CompetitionEvidenceProfile(
-            competition_code="SerieA",
-            competition_name="Serie A",
-            country="Italy",
-            readiness_state=CompetitionReadinessState.DATA_AVAILABLE,
-            matches_count=0,
-            transfers_count=180,
-            players_tracked=95,
-            freshness_date="2024-05-01",
-            ood_status="PARTIAL_EVIDENCE",
-            engine_readiness={
-                "match_prediction": "INSUFFICIENT_DATA",
-                "valuation": "MODEL_VALIDATED",
-                "tactical_fit": "INSUFFICIENT_DATA",
-                "player_intelligence": "INSUFFICIENT_DATA",
-                "similarity": "INSUFFICIENT_DATA",
-                "transfer_risk": "DATA_AVAILABLE",
-            },
-            evidence_checklist=[
-                "180 verified historical transfers normalized",
-            ],
-            limitations=[
-                "Match and event data absent from bronze storage",
-            ],
-        )
-
-        # 4. Bundesliga
-        profiles["BUNDESLIGA"] = CompetitionEvidenceProfile(
-            competition_code="Bundesliga",
-            competition_name="Bundesliga",
-            country="Germany",
-            readiness_state=CompetitionReadinessState.DATA_AVAILABLE,
-            matches_count=0,
-            transfers_count=160,
-            players_tracked=80,
-            freshness_date="2024-05-01",
-            ood_status="PARTIAL_EVIDENCE",
-            engine_readiness={
-                "match_prediction": "INSUFFICIENT_DATA",
-                "valuation": "MODEL_VALIDATED",
-                "tactical_fit": "INSUFFICIENT_DATA",
-                "player_intelligence": "INSUFFICIENT_DATA",
-                "similarity": "INSUFFICIENT_DATA",
-                "transfer_risk": "DATA_AVAILABLE",
-            },
-            evidence_checklist=[
-                "160 transfer records in bronze storage",
-            ],
-            limitations=[
-                "Match prediction disabled due to missing fixtures",
-            ],
-        )
-
-        # 5. Ligue 1
-        profiles["LIGUE1"] = CompetitionEvidenceProfile(
-            competition_code="Ligue1",
-            competition_name="Ligue 1",
-            country="France",
-            readiness_state=CompetitionReadinessState.DATA_AVAILABLE,
-            matches_count=0,
-            transfers_count=140,
-            players_tracked=70,
-            freshness_date="2024-05-01",
-            ood_status="PARTIAL_EVIDENCE",
-            engine_readiness={
-                "match_prediction": "INSUFFICIENT_DATA",
-                "valuation": "MODEL_VALIDATED",
-                "tactical_fit": "INSUFFICIENT_DATA",
-                "player_intelligence": "INSUFFICIENT_DATA",
-                "similarity": "INSUFFICIENT_DATA",
-                "transfer_risk": "DATA_AVAILABLE",
-            },
-            evidence_checklist=[
-                "140 transfer records in bronze storage",
-            ],
-            limitations=[
-                "Match prediction disabled",
-            ],
-        )
-
-        # 6. UCL / UEL
-        profiles["UCL"] = CompetitionEvidenceProfile(
-            competition_code="UCL",
-            competition_name="UEFA Champions League",
-            country="Europe",
-            readiness_state=CompetitionReadinessState.NOT_AVAILABLE,
-            matches_count=0,
-            transfers_count=0,
-            ood_status="OUT_OF_DISTRIBUTION",
-            engine_readiness={e: "NOT_AVAILABLE" for e in ["match_prediction", "valuation", "tactical_fit", "player_intelligence", "similarity", "transfer_risk"]},
-            limitations=["Tournament knockout dynamics distinct from regular season leagues"],
-        )
-
-        # 7. Other / MLS / Non-European
-        profiles["MLS"] = CompetitionEvidenceProfile(
-            competition_code="MLS",
-            competition_name="Major League Soccer",
-            country="USA",
-            readiness_state=CompetitionReadinessState.NOT_AVAILABLE,
-            matches_count=0,
-            transfers_count=12,
-            ood_status="OUT_OF_DISTRIBUTION",
-            engine_readiness={e: "NOT_AVAILABLE" for e in ["match_prediction", "valuation", "tactical_fit", "player_intelligence", "similarity", "transfer_risk"]},
-            limitations=["Non-European league outside calibrated feature parameter space"],
-        )
-
-        return profiles
+        return {
+            key: CompetitionEvidenceProfile(
+                competition_code=code,
+                competition_name=name,
+                country=country,
+                engine_readiness={e: CompetitionReadinessState.NOT_ASSESSED.value for e in self._ENGINES},
+                limitations=["No readiness assessment has been recorded; counts and engine states are not measured here."],
+            )
+            for key, code, name, country in self._IN_SCOPE
+        }
 
     def get_profile(self, code: str) -> dict[str, Any]:
         """Returns competition evidence profile, defaulting to NOT_AVAILABLE for unknown leagues."""

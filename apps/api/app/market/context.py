@@ -20,6 +20,7 @@ from app.db.models.canonical import (
     PlayerRoleProfile,
     Transfer,
 )
+from app.market.dimension_scores import dimension_scores_by_dimension
 from app.market.schemas import MarketContextResponse
 from app.roles.registry import map_position_to_group
 
@@ -90,7 +91,13 @@ async def build_player_market_context(
     )
     contrib_snap = (await session.execute(contrib_stmt)).scalar_one_or_none()
 
-    contrib_scores = contrib_snap.dimension_scores if contrib_snap else {}
+    # `dimension_scores` stores one record per dimension:
+    # {"duels": {"score": ..., "summary": ..., "key_metrics": {...}}, ...}.
+    # The market contract exposes the score per dimension. An absent score stays
+    # unknown (None) — it is never coerced to 0.0.
+    contrib_scores = dimension_scores_by_dimension(
+        contrib_snap.dimension_scores if contrib_snap else {}
+    )
     sample_mins = contrib_snap.sample_minutes if contrib_snap else 0
     sample_matches = contrib_snap.sample_matches if contrib_snap else 0
 

@@ -10,9 +10,11 @@ Strictly distinguishes across all representations:
   - MODELLED: Statistical engine inferences (expected valuation, calibrated probability, tactical fit)
   - SCENARIO: Hypothetical simulations conditional on scout assumptions
 
-Integrates with validated match prediction engine:
-  - When modified scenario inputs exceed model parameter contracts, returns explicit SCENARIO_UNSUPPORTED
-  - Never fabricates match forecasts for uncalibrated formations or invalid squad counts.
+Truth rules: a scenario computes ARITHMETIC ONLY on what the user entered (net spend, wage delta). Anything that
+would need a validated model (squad rating, tactical balance, points, win probability) is None / NOT_MODELLED,
+because no validated match-prediction model exists. The previous version returned constants chosen by the sign of
+the spend (+1.2 / -0.5 rating, +2.5 balance, +1.8 / -0.8 points) and a formula labelled as a
+"calibrated_multinomial_logit_v1" output, with HIGH confidence.
 """
 from __future__ import annotations
 
@@ -22,7 +24,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 
-from app.prediction.registry import PredictionModelRegistry
+from app.persistence.factory import get_stores
+from app.persistence.stores import CollectionStore
+from app.security.tokens import Principal
 
 
 class DataModality(str, Enum):
@@ -38,14 +42,25 @@ class ScenarioType(str, Enum):
     CUSTOM = "CUSTOM"
 
 
+VALID_ACTIONS = ("BUY", "SELL", "RETAIN", "PROMOTE_ACADEMY")
+_NOT_MODELLED = {
+    "status": "NOT_MODELLED",
+    "reason": "No validated match-prediction model exists; no forecast is produced.",
+}
+
+
+def _opt_float(value: Any) -> float | None:
+    return None if value is None else float(value)
+
+
 @dataclass
 class ScenarioPlayerMovement:
-    """A simulated in/out player movement within a scenario."""
+    """A simulated in/out player movement within a scenario. Fee/wage None = unknown (not zero)."""
     player_id: str
     player_name: str
     action: str  # 'BUY', 'SELL', 'RETAIN', 'PROMOTE_ACADEMY'
-    fee_eur: float = 0.0
-    wage_eur_weekly: float = 0.0
+    fee_eur: float | None = None
+    wage_eur_weekly: float | None = None
     modality: str = DataModality.SCENARIO
     tactical_role: str = ""
     notes: str = ""
@@ -53,15 +68,15 @@ class ScenarioPlayerMovement:
 
 @dataclass
 class ScenarioSimulationResult:
-    """Quantitative outputs of a simulated scenario."""
-    net_transfer_spend_eur: float = 0.0
-    wage_bill_delta_weekly: float = 0.0
-    squad_overall_rating_delta: float = 0.0
-    tactical_balance_delta: float = 0.0
-    projected_league_points_delta: float = 0.0
-    match_prediction_impact: dict[str, Any] = field(default_factory=dict)
-    confidence: str = "HIGH"
-    data_status: str = "SCENARIO_SIMULATED"
+    """Arithmetic outputs of a scenario. None = not computed / not computable from the inputs."""
+    net_transfer_spend_eur: float | None = None
+    wage_bill_delta_weekly: float | None = None
+    squad_overall_rating_delta: float | None = None
+    tactical_balance_delta: float | None = None
+    projected_league_points_delta: float | None = None
+    match_prediction_impact: dict[str, Any] = field(default_factory=lambda: dict(_NOT_MODELLED))
+    confidence: str = "UNASSESSED"
+    data_status: str = "ARITHMETIC_ONLY"
     evidence_nodes: list[str] = field(default_factory=list)
 
 
@@ -70,7 +85,7 @@ class PersistentScenario:
     """Persistent recruitment / squad scenario record (§11)."""
     scenario_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     project_id: str = ""
-    name: str = "Scenario A: Sell Partey / Buy Inácio"
+    name: str = ""
     scenario_type: str = ScenarioType.SELL_BUY
     created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
@@ -78,112 +93,100 @@ class PersistentScenario:
     assumptions: list[str] = field(default_factory=list)
     movements: list[ScenarioPlayerMovement] = field(default_factory=list)
     results: ScenarioSimulationResult = field(default_factory=ScenarioSimulationResult)
-    model_versions: dict[str, str] = field(default_factory=dict)
+    model_versions: dict[str, str] = field(default_factory=dict)  # empty: no model is used
     provenance_hash: str | None = None
+    owner_id: str = ""
+    organization_id: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class ScenarioEngine:
-    """Manages persistent scenario lifecycle and match model simulation."""
+    """Scenario store backed by a CollectionStore so scenarios survive a process restart. Starts empty; nothing is seeded."""
 
-    def __init__(self) -> None:
+    _COLLECTION = "phase10_scenarios"
+
+    def __init__(self, store: CollectionStore | None = None) -> None:
+        self._store = store
         self._scenarios: dict[str, PersistentScenario] = {}
-        self._prediction_registry = PredictionModelRegistry()
-        self._seed_default_scenarios()
+        if store is not None:
+            for record in store.list(self._COLLECTION):
+                data = record.payload
+                movements = [ScenarioPlayerMovement(**m) for m in data.get("movements", [])]
+                results = ScenarioSimulationResult(**data.get("results", {}))
+                self._scenarios[record.record_id] = PersistentScenario(
+                    scenario_id=record.record_id,
+                    project_id=data.get("project_id", ""),
+                    name=data.get("name", ""),
+                    scenario_type=data.get("scenario_type", ScenarioType.SELL_BUY),
+                    created_at=data.get("created_at", ""),
+                    updated_at=data.get("updated_at", ""),
+                    assumptions=data.get("assumptions", []),
+                    movements=movements,
+                    results=results,
+                    model_versions=data.get("model_versions", {}),
+                    provenance_hash=data.get("provenance_hash"),
+                    owner_id=record.owner_id,
+                    organization_id=record.organization_id,
+                )
 
-    def _seed_default_scenarios(self) -> None:
-        s1 = PersistentScenario(
-            scenario_id="scen_sell_partey_buy_inacio",
-            project_id="proj_cb_summer_2027",
-            name="Scenario A: Sell Outgoing Midfielder / Buy Inácio",
-            scenario_type=ScenarioType.SELL_BUY,
-            assumptions=[
-                "Target acquired at €38.0M release clause",
-                "Outgoing player amortized recoup of €18.0M",
-                "Wage neutral transition (€120k/wk outgoing vs €115k/wk incoming)",
-            ],
-            movements=[
-                ScenarioPlayerMovement(
-                    player_id="p_thomas_partey",
-                    player_name="Thomas Partey",
-                    action="SELL",
-                    fee_eur=18_000_000.0,
-                    wage_eur_weekly=120_000.0,
-                    tactical_role="Defensive Midfielder",
-                ),
-                ScenarioPlayerMovement(
-                    player_id="p_goncalo_inacio",
-                    player_name="Gonçalo Inácio",
-                    action="BUY",
-                    fee_eur=38_000_000.0,
-                    wage_eur_weekly=115_000.0,
-                    tactical_role="Ball Playing Defender",
-                ),
-            ],
-            results=ScenarioSimulationResult(
-                net_transfer_spend_eur=20_000_000.0,
-                wage_bill_delta_weekly=-5_000.0,
-                squad_overall_rating_delta=+1.4,
-                tactical_balance_delta=+3.2,
-                projected_league_points_delta=+2.1,
-                match_prediction_impact={
-                    "model_id": "calibrated_multinomial_logit_v1",
-                    "status": "EVALUATED",
-                    "win_probability_delta": +0.024,
-                },
-                confidence="HIGH",
-                data_status="SCENARIO_SIMULATED",
-                evidence_nodes=[
-                    "OBSERVED: Historical wage budget parameters verified",
-                    "MODELLED: Tactical fit score 86.2 from TacticalFitCalculator_v1.0",
-                    "SCENARIO: Net capital requirement of €20.0M within project budget",
-                ],
-            ),
-            model_versions={
-                "match_prediction": "calibrated_multinomial_logit_v1",
-                "tactical_fit": "TacticalFitCalculator_v1.0",
-                "valuation": "val_lightgbm_20260920",
-            },
-        )
-        self._scenarios[s1.scenario_id] = s1
+    def _save(self, scenario: PersistentScenario) -> None:
+        if self._store is not None:
+            self._store.put(self._COLLECTION, scenario.scenario_id, scenario.owner_id, scenario.organization_id, scenario.to_dict())
 
-    def create_scenario(self, project_id: str, data: dict[str, Any]) -> PersistentScenario:
-        s_id = data.get("scenario_id") or f"scen_{uuid.uuid4().hex[:8]}"
-        movements = [
-            ScenarioPlayerMovement(
-                player_id=m.get("player_id", ""),
-                player_name=m.get("player_name", ""),
-                action=m.get("action", "BUY"),
-                fee_eur=float(m.get("fee_eur", 0.0)),
-                wage_eur_weekly=float(m.get("wage_eur_weekly", 0.0)),
-                tactical_role=m.get("tactical_role", ""),
+    @staticmethod
+    def _can_see(principal: Principal, scenario: PersistentScenario) -> bool:
+        in_org = principal.org_id is not None and scenario.organization_id == principal.org_id
+        return in_org or scenario.owner_id == principal.user_id
+
+    def create_scenario(self, project_id: str, data: dict[str, Any], owner_id: str = "", organization_id: str | None = None) -> PersistentScenario:
+        if not str(data.get("name") or "").strip():
+            raise ValueError("scenario name is required")
+        if not owner_id:
+            raise ValueError("owner_id is required")
+        movements = []
+        for m in data.get("movements", []):
+            if not str(m.get("player_id") or "").strip() or not str(m.get("player_name") or "").strip():
+                raise ValueError("every movement needs player_id and player_name")
+            if m.get("action") not in VALID_ACTIONS:
+                raise ValueError(f"movement action must be one of {VALID_ACTIONS}")
+            movements.append(
+                ScenarioPlayerMovement(
+                    player_id=m["player_id"],
+                    player_name=m["player_name"],
+                    action=m["action"],
+                    fee_eur=_opt_float(m.get("fee_eur")),
+                    wage_eur_weekly=_opt_float(m.get("wage_eur_weekly")),
+                    tactical_role=m.get("tactical_role", ""),
+                )
             )
-            for m in data.get("movements", [])
-        ]
-
+        s_id = data.get("scenario_id") or f"scen_{uuid.uuid4().hex[:8]}"
+        if s_id in self._scenarios:
+            raise ValueError(f"scenario '{s_id}' already exists")
         scenario = PersistentScenario(
             scenario_id=s_id,
             project_id=project_id,
-            name=data.get("name", "New Planning Scenario"),
+            name=str(data["name"]).strip(),
             scenario_type=data.get("scenario_type", ScenarioType.SELL_BUY),
-            assumptions=data.get("assumptions", []),
+            assumptions=list(data.get("assumptions", [])),
             movements=movements,
-            model_versions={
-                "match_prediction": "calibrated_multinomial_logit_v1",
-                "tactical_fit": "TacticalFitCalculator_v1.0",
-                "valuation": "val_lightgbm_20260920",
-            },
+            owner_id=owner_id,
+            organization_id=organization_id,
         )
-
-        # Run simulation computation
         scenario.results = self.simulate(scenario)
         self._scenarios[s_id] = scenario
+        self._save(scenario)
         return scenario
 
     def get_scenario(self, scenario_id: str) -> PersistentScenario | None:
         return self._scenarios.get(scenario_id)
+
+    def get_scenario_for(self, principal: Principal, scenario_id: str) -> PersistentScenario:
+        scenario = self._scenarios.get(scenario_id)
+        if scenario is None or not self._can_see(principal, scenario):
+            raise KeyError(f"Scenario '{scenario_id}' not found")
+        return scenario
 
     def list_scenarios(self, project_id: str | None = None) -> list[dict[str, Any]]:
         res = list(self._scenarios.values())
@@ -191,62 +194,47 @@ class ScenarioEngine:
             res = [s for s in res if s.project_id == project_id]
         return [s.to_dict() for s in res]
 
-    def simulate(self, scenario: PersistentScenario) -> ScenarioSimulationResult:
-        """Executes simulation with explicit match prediction contract enforcement (§12)."""
-        net_spend = 0.0
-        wage_delta = 0.0
-
-        for m in scenario.movements:
-            if m.action in ("BUY", "PROMOTE_ACADEMY"):
-                net_spend += m.fee_eur
-                wage_delta += m.wage_eur_weekly
-            elif m.action == "SELL":
-                net_spend -= m.fee_eur
-                wage_delta -= m.wage_eur_weekly
-
-        # Evaluate match prediction engine compatibility (§12)
-        match_impact = self._simulate_match_impact(scenario)
-
-        evidence = [
-            f"OBSERVED: Base squad configuration prior to scenario execution",
-            f"MODELLED: Valuation baseline applied for fee verification",
-            f"SCENARIO: Net cash outlay computed at €{net_spend:,.2f}",
+    def list_scenarios_for(self, principal: Principal, project_id: str | None = None) -> list[dict[str, Any]]:
+        return [
+            s.to_dict()
+            for s in self._scenarios.values()
+            if self._can_see(principal, s) and (not project_id or s.project_id == project_id)
         ]
 
+    def simulate(self, scenario: PersistentScenario) -> ScenarioSimulationResult:
+        """Sums what the user entered. A missing fee/wage makes the corresponding total unknown (None), not zero."""
+        net_spend: float | None = 0.0
+        wage_delta: float | None = 0.0
+        missing_fee: list[str] = []
+        for m in scenario.movements:
+            if m.action == "RETAIN":
+                continue
+            sign = -1.0 if m.action == "SELL" else 1.0
+            if m.fee_eur is None:
+                net_spend = None
+                missing_fee.append(m.player_name)
+            elif net_spend is not None:
+                net_spend += sign * m.fee_eur
+            if m.wage_eur_weekly is None:
+                wage_delta = None
+            elif wage_delta is not None:
+                wage_delta += sign * m.wage_eur_weekly
+
+        evidence = [f"SUPPLIED: {len(scenario.movements)} movement(s) exactly as entered by the user"]
+        if net_spend is None:
+            evidence.append(f"UNKNOWN: net transfer spend, fee missing for {', '.join(missing_fee)}")
+        else:
+            evidence.append(f"COMPUTED: net transfer spend EUR {net_spend:,.2f} (sum of supplied fees)")
+        evidence.append("NOT_MODELLED: squad rating, tactical balance, league points and match impact (no validated model)")
         return ScenarioSimulationResult(
             net_transfer_spend_eur=net_spend,
             wage_bill_delta_weekly=wage_delta,
-            squad_overall_rating_delta=+1.2 if net_spend > 0 else -0.5,
-            tactical_balance_delta=+2.5,
-            projected_league_points_delta=+1.8 if net_spend > 0 else -0.8,
-            match_prediction_impact=match_impact,
-            confidence="HIGH" if match_impact.get("status") != "SCENARIO_UNSUPPORTED" else "LOW",
-            data_status="SCENARIO_SIMULATED",
             evidence_nodes=evidence,
         )
 
-    def _simulate_match_impact(self, scenario: PersistentScenario) -> dict[str, Any]:
-        """Integrates match prediction engine; strictly returns SCENARIO_UNSUPPORTED if inputs exceed model contract."""
-        # Contract rule 1: Match model requires standard 11v11 squad size
-        # If scenario assumes unrealistic 15-player lineup, return SCENARIO_UNSUPPORTED
-        total_incoming = sum(1 for m in scenario.movements if m.action == "BUY")
-        total_outgoing = sum(1 for m in scenario.movements if m.action == "SELL")
 
-        # If net movement leaves squad with < 11 players or > 30 players, model contract violated
-        if abs(total_incoming - total_outgoing) > 5:
-            return {
-                "status": "SCENARIO_UNSUPPORTED",
-                "reason": "Extreme squad turnover violates multinomial logit parameter distribution bounds.",
-                "action": "Suppressing automated match forecast to prevent analytical hallucination.",
-            }
-
-        return {
-            "status": "EVALUATED",
-            "model_id": "calibrated_multinomial_logit_v1",
-            "model_version": "1.2.0",
-            "win_probability_delta": round(0.015 * (total_incoming - total_outgoing + 1), 3),
-            "home_advantage_preserved": True,
-        }
+def _default_engine() -> ScenarioEngine:
+    return ScenarioEngine(store=get_stores()[0])
 
 
-scenario_engine = ScenarioEngine()
+scenario_engine = _default_engine()

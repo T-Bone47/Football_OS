@@ -16,6 +16,7 @@ Executes the complete production workflow:
 from __future__ import annotations
 
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -24,6 +25,7 @@ import numpy as np
 from app.market.ml.baselines import calculate_metrics, evaluate_all_baselines
 from app.market.ml.dataset import TemporalDatasetSplit, ValuationMLDatasetBuilder, ValuationMLSample
 from app.market.ml.explainability import ValuationExplainer
+from app.market.ml.feature_provenance import training_features_observed
 from app.market.ml.features import FEATURE_NAMES, FEATURE_SET_NAME, FEATURE_SET_VERSION
 from app.market.ml.gating import ValuationSufficiencyGate
 from app.market.ml.models import BaseValuationMLModel, ValuationModelTrainer
@@ -33,6 +35,7 @@ from app.market.ml.registry import (
     ValuationModelRegistry,
     get_valuation_registry,
 )
+from app.market.ml.release_gate import PASS, evaluate_release_gate
 from app.market.ml.target import SupervisedValuationTarget
 from app.market.ml.uncertainty import ConformalIntervalEstimator, ValuationCalibrationAnalyzer
 
@@ -180,35 +183,44 @@ class ValuationMLPipeline:
         explainer.initialize_explainer(background_data=split.X_train)
         global_importance = explainer.compute_global_importance()
 
-        # Step 9: Release Gate Verification
-        comp_baseline = baseline_test_eval.get("comparable_baseline", {})
-        comp_mae = comp_baseline.get("mae", 999e6)
-        pos_baseline = baseline_test_eval.get("position_median", {})
-        pos_mae = pos_baseline.get("mae", 999e6)
-
-        beats_comparable = test_eval["mae"] < comp_mae
-        beats_position_median = test_eval["mae"] < pos_mae
-        coverage_valid = uncertainty_report.empirical_coverage >= 0.70
-
-        release_gate_checklist = {
-            "target_policy_verified": True,
-            "feature_contract_documented": True,
-            "temporal_split_chronological": True,
-            "test_set_untouched_during_tuning": True,
-            "beats_comparable_baseline": beats_comparable,
-            "beats_position_median_baseline": beats_position_median,
-            "uncertainty_empirical_coverage_valid": coverage_valid,
-            "explainability_deterministic_non_causal": True,
-            "sufficiency_and_ood_gate_operational": True,
-            "reproducibility_verified": True,
+        # Step 9: Release Gate Verification - every check is measured or reported NOT_EVALUATED.
+        # (It used to hard-code 7 of 10 checks to True and compare MAE only.)
+        position_counts = Counter(test_positions)
+        band_counts = {b: v.get("count", 0) for b, v in calibration_analysis.get("fee_band_calibration", {}).items()}
+        coverage_groups = {
+            f"position:{p}": (c, position_counts.get(p, 0)) for p, c in uncertainty_report.coverage_by_position.items()
         }
+        coverage_groups.update(
+            {f"fee_band:{b}": (c, band_counts.get(b, 0)) for b, c in uncertainty_report.coverage_by_fee_band.items()}
+        )
 
-        all_passed = all(release_gate_checklist.values())
-        final_status = "MODEL_VALIDATED" if all_passed else "MODEL_RELEASE_BLOCKED"
+        def _span(samples):
+            dates = [x.transfer_date for x in samples]
+            return (min(dates), max(dates)) if dates else None
+
+        spans = [_span(split.train_samples), _span(split.val_samples), _span(split.test_samples)]
+        chronological = all(spans) and spans[0][1] <= spans[1][0] and spans[1][1] <= spans[2][0]
+
+        final_status, gate_checks = evaluate_release_gate(
+            test_metrics=test_eval,
+            comparable_baseline=baseline_test_eval.get("comparable_baseline"),
+            position_median_baseline=baseline_test_eval.get("position_median"),
+            empirical_coverage=uncertainty_report.empirical_coverage,
+            coverage_by_group=coverage_groups,
+            evidence={
+                "temporal_split_chronological": bool(chronological),
+                "training_features_observed": training_features_observed(),
+                # Not established by this pipeline -> NOT_EVALUATED (never defaulted to True):
+                # target_policy_verified, feature_contract_documented, test_set_untouched_during_tuning,
+                # explainability_deterministic_non_causal, sufficiency_and_ood_gate_operational,
+                # reproducibility_verified, training_data_provenance_verified
+            },
+        )
+        release_gate_checklist = {name: result == PASS for name, result in gate_checks.items()}
 
         print(f"\nRelease Gate Status: {final_status}")
-        for check, passed in release_gate_checklist.items():
-            print(f"  [{'PASS' if passed else 'FAIL'}] {check}")
+        for check, result in gate_checks.items():
+            print(f"  [{result}] {check}")
 
         # Step 10: Model Bundle & Registration
         train_eval = champion.predict_eur(split.X_train)
@@ -260,5 +272,6 @@ class ValuationMLPipeline:
             "global_feature_importance": global_importance,
             "release_gate_status": final_status,
             "release_gate_checklist": release_gate_checklist,
+            "release_gate_evaluation": gate_checks,
             "artifact_path": str(artifact_path),
         }

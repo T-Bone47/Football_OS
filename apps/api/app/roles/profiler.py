@@ -40,14 +40,24 @@ class RoleProfiler:
         self,
         raw_features: dict[str, Any],
         position_group: PositionGroup,
+        window: str = "last_5",
     ) -> dict[str, float]:
-        """Extracts and validates features pertinent to the player's position family."""
+        """Extracts and validates features pertinent to the player's position family.
+
+        ``window`` selects the feature window exposed by the registry: the
+        default is the per-match ``last_5`` window; ``season`` reads the
+        season-aggregate snapshot keys (``*_season``). Absent keys fall back
+        to the registry default rather than a fabricated measurement.
+        """
         extracted: dict[str, float] = {}
         for feat_name, feat_def in ROLE_FEATURE_REGISTRY.items():
             if position_group not in feat_def.position_groups:
                 continue
 
-            val = raw_features.get(feat_def.source_feature)
+            source_key = feat_def.source_feature
+            if window != "last_5":
+                source_key = source_key.replace("_last_5", f"_{window}")
+            val = raw_features.get(source_key)
             if val is None or not isinstance(val, (int, float)) or math.isnan(val):
                 extracted[feat_name] = float(feat_def.default_value)
             else:

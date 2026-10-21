@@ -28,6 +28,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase13 import EpistemicModality
 
 
@@ -129,9 +130,10 @@ class ScenarioComparison:
 class MultiTransferScenarioEngine:
     """Executes multi-transfer simulations and enforces match prediction boundaries."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._scenarios: dict[str, MultiTransferScenario] = {}
-        self._seed_default_scenarios()
+        if seed_demo:
+            self._seed_default_scenarios()
 
     def _seed_default_scenarios(self) -> None:
         # Scenario A: Sell Partey / Buy Inácio
@@ -354,4 +356,4 @@ class MultiTransferScenarioEngine:
         }
 
 
-multi_transfer_scenario_engine = MultiTransferScenarioEngine()
+multi_transfer_scenario_engine = MultiTransferScenarioEngine(seed_demo=demo_data_allowed())

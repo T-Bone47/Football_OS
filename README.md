@@ -1,12 +1,15 @@
 # Football Intelligence OS
 
-AI-powered football recruitment, valuation, tactical and match decision-intelligence platform. Architecture spec: `FOOTBALL_INTELLIGENCE_OS_ARCHITECTURE.md` (source of truth — not duplicated here).
+AI-powered football recruitment, valuation, tactical and match decision-intelligence platform. Architecture spec: `FOOTBALL_INTELLIGENCE_OS_ARCHITECTURE.md` (intended source of truth — **not present in this checkout**; ADRs are in `docs/ARCHITECTURE_DECISIONS.md`).
 
 ## Status
 
-**Certified Release**: `ADAPTIVE_INTELLIGENCE_VALIDATED` (Phase 15)  
-**Test Suite**: **564 passed**, 0 failures, 0 regressions (+20 Phase 15 unit & adversarial tests)  
-**Operational Capabilities**: Global Football Research, Adaptive Intelligence & Cross-Competition Generalization. Includes Governed Global Research Data Model (ResearchQuestion, ResearchHypothesis, ResearchCohort, ResearchExperiment, ResearchResult, ResearchValidation, FeatureCandidate, ResearchPromotionRecord), 8-State Research Lifecycle (DISCOVERED -> HYPOTHESIS -> TESTING -> VALIDATED / REJECTED / INSUFFICIENT_EVIDENCE -> PRODUCTION_CANDIDATE -> PROMOTED), Pattern Discovery across 10 pattern families under sample gating, immutable versioned research cohorts with SHA-256 fingerprinting, Cross-Competition Generalization Engine evaluating train-same, cross-league, and held-out transferability without silent pooling, descriptive League Translation Intelligence tracking 8 operational transition dimensions under non-causal policy, multi-tier Player Trajectory Research separating PAST_OBSERVED, CURRENT_OBSERVED, MODELLED_TREND, and PROJECTED_RANGE with breakout detection, evidence-gated Role Transition Engine (450-min / 5-app gating), Tactical Pattern Research strictly segregating observed structures from modelled interpretations and counterfactual scenarios, Transfer Market Research preserving strict 9-state fee taxonomy with zero fee fabrication, Unified Model Error Research disaggregated across 8 contextual slices preventing silent aggregate smoothing, Governed Feature Discovery and Adaptive Model Candidate review with human promotion authorization, automated Causality Guardrail enforcing associative terminology, Global Validation Matrix tracking operational boundaries across 9 dimensions, Scout Copilot V5 Dispatcher deterministically handling 12 research query classes, and the Global Scout Research Workspace (`/research`) delivering 12 distinct analytical views in the frontend. See `docs/PHASE_15_RELEASE_REPORT.md` for full certification details.
+**Pre-production prototype.** An independent audit (2026-10-11, `docs/PRODUCTION_TRUTH_AUDIT.md`) found fabricated outputs, an unauthenticated API and a valuation model that fails its own release gate; the first remediation pass is in this tree. The earlier "certified release" and `564 passed` claims were **not reproduced** — run `pytest -v` (see the audit doc §7) and record the real result in `docs/DEVELOPMENT_STATUS.md`.
+
+- Valuation model: `MODEL_RELEASE_BLOCKED` — served with labels by the exploratory market API, refused by the production serving path.
+- Match prediction: no trained artifact exists.
+- All API routes except `/health`, `/readiness`, `/health/ready` and `/api/status` require a bearer token (`AUTH_JWT_SECRET`, see `.env.example`).
+- Phase 9–16 operational state is in memory and is lost on restart.
 
 ## Running locally (without Docker)
 

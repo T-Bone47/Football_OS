@@ -1,0 +1,110 @@
+{
+  "page_1": {
+    "total": 109,
+    "total_pages": 5,
+    "page": 1,
+    "page_size": 25,
+    "has_next": true,
+    "count": 25,
+    "first": "A. Areola",
+    "last": "C. Nkunku"
+  },
+  "page_3": {
+    "total": 109,
+    "total_pages": 5,
+    "page": 3,
+    "page_size": 25,
+    "has_next": true,
+    "count": 25,
+    "first": "J. Aguilar",
+    "last": "M. Akanji",
+    "names": [
+      "J. Aguilar",
+      "J. Bruun Larsen",
+      "J. Gomez",
+      "J. Henderson",
+      "J. Matip",
+      "J. Mendez",
+      "J. Milner",
+      "J. Navarro",
+      "Josildo Barata",
+      "J. Pinto",
+      "J. Sancho",
+      "J. Valverde",
+      "J. Venegas",
+      "K. Cerdas",
+      "K. Espinoza",
+      "K. Fernandez",
+      "K. Hoever",
+      "K. Trippier",
+      "K. Veje",
+      "L. Mbe Soh",
+      "L. M. Romero Torres",
+      "Lucas Guilherme",
+      "Lucas Moura",
+      "LuquEt4",
+      "M. Akanji"
+    ]
+  },
+  "page_3_repeat_is_stable": true,
+  "page_2_page_size_50": {
+    "total": 109,
+    "page": 2,
+    "count": 50,
+    "first": "J. Aguilar",
+    "last": "Thiago Silva",
+    "contains_akanji": true
+  },
+  "search_akanji": {
+    "total": 1,
+    "count": 1,
+    "names": [
+      "M. Akanji"
+    ]
+  },
+  "facets": {
+    "total_players": 109,
+    "positions": [
+      "Attacker",
+      "Defender",
+      "Forward",
+      "Goalkeeper",
+      "Midfielder"
+    ],
+    "nationalities": 25
+  },
+  "coverage": {
+    "canonical_players": 109,
+    "provider_mappings": {
+      "api-football": 109
+    },
+    "players_with_season_stats": 60,
+    "players_with_club_association": 60,
+    "duplicate_provider_ids": 0,
+    "players_missing_identity": 0,
+    "ingestion_completeness": {
+      "scope": {
+        "league": 39,
+        "season": 2023
+      },
+      "declared_total_pages": 51,
+      "latest_page": 3,
+      "completed_pages": 3,
+      "failed_runs": 1,
+      "status": "BLOCKED_BY_PLAN",
+      "provider_plan_limit": {
+        "page_max": 3,
+        "message": "ProviderBadRequestError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}"
+      },
+      "accessible_pages": 3,
+      "provider_quota_note": "Provider rate limits and quotas are not inferred from a successful request; FAILED runs carry the provider error."
+    }
+  },
+  "legacy_list_limit_100_count": 100,
+  "legacy_list_is_array": true,
+  "invalid_params": {
+    "page_0": 422,
+    "page_size_101": 422,
+    "sort_by_unknown": 422
+  }
+}

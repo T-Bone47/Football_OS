@@ -3,15 +3,24 @@ is genuinely live (network + real data); API-Football/football-data.org
 paths use a mocked provider registry, since those two domains aren't
 reachable from wherever this suite runs without real keys (see
 docs/DEVELOPMENT_STATUS.md) — LIVE_PROVIDER_TESTS gates the real versions.
+
+Isolation: this file used to create the schema with `create_all` and drop it
+with `drop_all` in teardown. Because it shares the disposable test database
+with every other integration suite, that teardown deleted the migrated tables
+(`club_identities`, `operational_records`, `ledger_entries`, ...) and made
+later suites error with `UndefinedTableError`. The file now uses the shared
+transaction-rollback fixture, so nothing is dropped and nothing leaks.
 """
 import os
 
 import httpx
 import pytest
 import pytest_asyncio
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.db.base import Base
+from app.db.models.capability import ProviderCapability
 from app.db.models.provenance import IngestionStatus
 from app.ingestion.capability_registry import CapabilityRegistry
 from app.ingestion.service import IngestionService
@@ -21,19 +30,9 @@ from app.providers.statsbomb import StatsBombProvider
 
 
 @pytest_asyncio.fixture
-async def session(postgres_url):
-    engine = create_async_engine(postgres_url)
-    try:
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-    except Exception as exc:  # pragma: no cover
-        pytest.skip(f"fios_test not reachable: {exc}")
-    Session = async_sessionmaker(engine, expire_on_commit=False)
-    async with Session() as s:
-        yield s
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await engine.dispose()
+async def session(integration_session):
+    """The shared transaction-rollback session (no create_all / drop_all)."""
+    yield integration_session
 
 
 async def test_statsbomb_run_reaches_success(session, tmp_path):
@@ -53,7 +52,9 @@ async def test_statsbomb_run_reaches_success(session, tmp_path):
     run = await service.run("statsbomb", "competitions")
 
     assert run.status == IngestionStatus.SUCCESS
-    assert run.record_count == 1
+    # The record count is measured from the payload (a StatsBomb competitions
+    # response is a top-level list), never invented.
+    assert run.record_count is not None and run.record_count > 0
     assert run.error is None
 
 
@@ -61,7 +62,16 @@ async def test_capability_check_blocks_unsupported_resource(session, tmp_path):
     registry = ProviderRegistry()
     registry.register("statsbomb", StatsBombProvider)
     capabilities = CapabilityRegistry(session)
-    # Nothing seeded in this throwaway schema, so everything is unsupported
+    # Deterministic precondition: the capability must not be marked verified
+    # for this scope, whatever a previous run left in the shared database.
+    await session.execute(
+        delete(ProviderCapability).where(
+            ProviderCapability.provider == "statsbomb",
+            ProviderCapability.resource == "competitions",
+        )
+    )
+    await session.flush()
+    # Nothing seeded in this scope, so everything is unsupported
     # until mark_verified has run once — this proves the gate actually gates.
     service = IngestionService(
         session=session,

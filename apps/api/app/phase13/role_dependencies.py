@@ -23,6 +23,7 @@ Epistemic Non-Causal Policy:
 """
 from __future__ import annotations
 
+from app.demo import demo_data_allowed
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -74,9 +75,10 @@ class RoleDependencyGraph:
 class RoleDependencyEngine:
     """Evaluates how changes to one tactical role perturb adjacent roles in the system."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._graphs: dict[str, RoleDependencyGraph] = {}
-        self._seed_default_graphs()
+        if seed_demo:
+            self._seed_default_graphs()
 
     def _seed_default_graphs(self) -> None:
         edges = [
@@ -127,4 +129,4 @@ class RoleDependencyEngine:
         return matches or graph.edges
 
 
-role_dependency_engine = RoleDependencyEngine()
+role_dependency_engine = RoleDependencyEngine(seed_demo=demo_data_allowed())

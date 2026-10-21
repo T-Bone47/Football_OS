@@ -14,6 +14,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from app.demo import demo_data_allowed
 from app.phase13 import EpistemicModality
 
 
@@ -99,9 +100,10 @@ class ClubSquadBaseline:
 class SquadBaselineRegistry:
     """Manages verified club baseline states."""
 
-    def __init__(self) -> None:
+    def __init__(self, seed_demo: bool = False) -> None:
         self._baselines: dict[str, ClubSquadBaseline] = {}
-        self._seed_default_baseline()
+        if seed_demo:
+            self._seed_default_baseline()
 
     def _seed_default_baseline(self) -> None:
         # Seed: Arsenal FC baseline roster
@@ -138,4 +140,4 @@ class SquadBaselineRegistry:
         return baseline
 
 
-squad_baseline_registry = SquadBaselineRegistry()
+squad_baseline_registry = SquadBaselineRegistry(seed_demo=demo_data_allowed())

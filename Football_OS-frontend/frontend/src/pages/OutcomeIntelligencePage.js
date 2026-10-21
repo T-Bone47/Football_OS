@@ -30,6 +30,8 @@ import {
   BookOpen,
 } from 'lucide-react';
 import axios from 'axios';
+import ModuleStateBanner from "@/components/ModuleStateBanner";
+import { apiErrorCode, apiErrorMessage } from "@/lib/footballApi";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const OUTCOMES_API = `${BACKEND_URL}/api/v1/outcomes`;
@@ -37,6 +39,7 @@ const OUTCOMES_API = `${BACKEND_URL}/api/v1/outcomes`;
 export default function OutcomeIntelligencePage() {
   const [activeTab, setActiveTab] = useState('outcomes');
   const [loading, setLoading] = useState(false);
+  const [moduleState, setModuleState] = useState(null);
   const [selectedDecisionId, setSelectedDecisionId] = useState('dec_rec_timber_2023');
 
   // Surface 1: Decision Outcomes & Evaluations
@@ -84,18 +87,58 @@ export default function OutcomeIntelligencePage() {
 
   const fetchInitialData = async () => {
     setLoading(true);
+    setModuleState(null);
+    const requests = [
+      [`${OUTCOMES_API}/decisions`, []],
+      [`${OUTCOMES_API}/models/calibrated_multinomial_logit_v1/calibration?window_size=30`, null],
+      [`${OUTCOMES_API}/transfers`, []],
+      [`${OUTCOMES_API}/tactical`, []],
+      [`${OUTCOMES_API}/scenarios`, []],
+      [`${OUTCOMES_API}/models/calibrated_multinomial_logit_v1/subgroups`, null],
+      [`${OUTCOMES_API}/freshness`, []],
+      [`${OUTCOMES_API}/learning-signals`, { learning_signals: [], pattern_reports: [], challenger_evaluations: [] }],
+      [`${OUTCOMES_API}/research`, []],
+    ];
     try {
-      const [decRes, calRes, transRes, tacRes, scenRes, subRes, freshRes, learnRes, resRes] = await Promise.all([
-        axios.get(`${OUTCOMES_API}/decisions`).catch(() => ({ data: [] })),
-        axios.get(`${OUTCOMES_API}/models/calibrated_multinomial_logit_v1/calibration?window_size=30`).catch(() => ({ data: null })),
-        axios.get(`${OUTCOMES_API}/transfers`).catch(() => ({ data: [] })),
-        axios.get(`${OUTCOMES_API}/tactical`).catch(() => ({ data: [] })),
-        axios.get(`${OUTCOMES_API}/scenarios`).catch(() => ({ data: [] })),
-        axios.get(`${OUTCOMES_API}/models/calibrated_multinomial_logit_v1/subgroups`).catch(() => ({ data: null })),
-        axios.get(`${OUTCOMES_API}/freshness`).catch(() => ({ data: [] })),
-        axios.get(`${OUTCOMES_API}/learning-signals`).catch(() => ({ data: { learning_signals: [], pattern_reports: [], challenger_evaluations: [] } })),
-        axios.get(`${OUTCOMES_API}/research`).catch(() => ({ data: [] })),
-      ]);
+      // Failures are recorded, not swallowed: an empty table must not be shown
+      // when the backend actually refused the request.
+      const results = await Promise.all(
+        requests.map(async ([url, fallback]) => {
+          try {
+            const res = await axios.get(url);
+            return { data: res.data, fallback };
+          } catch (error) {
+            return { error, fallback };
+          }
+        }),
+      );
+
+      const failures = results.filter((r) => r.error);
+      if (failures.length > 0) {
+        const first = failures[0].error;
+        const code = apiErrorCode(first);
+        setModuleState({
+          kind: code === "DEMO_ONLY" ? "DISABLED" : "ERROR",
+          code,
+          message: `${apiErrorMessage(first)} (${failures.length} of ${results.length} endpoints refused the request)`,
+        });
+      }
+
+      const value = (index) => {
+        const result = results[index];
+        if (result.error) return result.fallback;
+        return result.data ?? result.fallback;
+      };
+
+      const decRes = { data: value(0) };
+      const calRes = { data: value(1) };
+      const transRes = { data: value(2) };
+      const tacRes = { data: value(3) };
+      const scenRes = { data: value(4) };
+      const subRes = { data: value(5) };
+      const freshRes = { data: value(6) };
+      const learnRes = { data: value(7) };
+      const resRes = { data: value(8) };
 
       setDecisions(decRes.data || []);
       setCalibrationReport(calRes.data || null);
@@ -113,6 +156,11 @@ export default function OutcomeIntelligencePage() {
       }
     } catch (e) {
       console.error('Failed to load outcome intelligence telemetry:', e);
+      setModuleState({
+        kind: "ERROR",
+        code: "LOAD_FAILED",
+        message: apiErrorMessage(e),
+      });
     } finally {
       setLoading(false);
     }
@@ -205,6 +253,8 @@ export default function OutcomeIntelligencePage() {
           <span style={{ fontSize: '11px', color: '#ec4899', fontWeight: 700 }}>● HYPOTHESIS</span>
         </div>
       </header>
+
+      <ModuleStateBanner state={moduleState} testId="outcomes-module-state" />
 
       {/* Scout Copilot V4 Quick Inquiry Strip */}
       <section style={{ backgroundColor: '#131b2a', border: '1px solid #1e293b', borderRadius: '8px', padding: '14px 16px', marginBottom: '20px' }}>

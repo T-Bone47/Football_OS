@@ -38,75 +38,33 @@ class ValuationMLService:
     """Production service for ML transfer valuations, explanations, and evidence."""
 
     @staticmethod
-    def _extract_feature_vector(ctx: MarketContextResponse) -> np.ndarray:
-        """Transforms point-in-time player context into the 23-feature model vector."""
-        pos = ctx.position_group or "MID"
-        pos_code = ValuationMLDatasetBuilder.POSITION_ENCODING.get(pos, 2.0)
-        age = float(ctx.age_at_as_of) if ctx.age_at_as_of is not None else 24.5
-        age_factor = BaselineValuationEngine.get_age_adjustment(age)
+    def _extract_feature_vector(ctx: MarketContextResponse) -> tuple[np.ndarray, int]:
+        """Model input vector from REAL point-in-time context only, plus the count of missing values.
 
-        mins = float(ctx.sample_minutes or 0)
-        matches = float(ctx.sample_matches or 0)
-        mins_per_match = round(mins / max(1.0, matches), 1)
-
-        # Dimension scores from PlayerContributionSnapshot
-        contrib = ctx.dimension_scores or {}
-        prog = float(contrib.get("progression", 0.50))
-        creat = float(contrib.get("creation", 0.50))
-        fin = float(contrib.get("finishing", 0.50))
-        defense = float(contrib.get("defending", 0.50))
-
-        # Rates
-        g_per90 = 0.35 if pos == "ATT" else 0.15 if pos == "MID" else 0.03
-        a_per90 = 0.25 if pos in ("ATT", "MID") else 0.05
-        gi_per90 = g_per90 + a_per90
-        rating = 7.15
-
-        # Trend & Trajectory
-        trend_slope = 0.02 if age < 25.0 else -0.01
-        dev_traj = 0.75 if age < 23.0 else 0.55 if age < 28.0 else 0.35
-
-        # Club tier & starter exposure
-        starter_rate = min(1.0, round(mins / max(1.0, matches * 90.0), 2)) if matches > 0 else 0.85
-        club_tier = 1.0
-
-        # Market benchmarks
-        cohort_med = 25_000_000.0 if pos in ("ATT", "MID") else 18_000_000.0
-        comp_med = cohort_med * age_factor
-
-        # Transfer history
-        prior_tx_count = float(ctx.total_transfers_recorded or 0)
-        days_prior = 365.0
-
-        feat_dict: Dict[str, float] = {
-            "age_at_transfer": age,
-            "age_curve_factor": age_factor,
-            "position_group_encoded": pos_code,
-            "observed_minutes_as_of": mins,
-            "observed_matches_as_of": matches,
-            "minutes_per_match": mins_per_match,
-            "goals_per90_as_of": g_per90,
-            "assists_per90_as_of": a_per90,
-            "goal_involvement_per90_as_of": gi_per90,
-            "mean_rating_as_of": rating,
-            "progression_contribution_as_of": prog,
-            "creation_contribution_as_of": creat,
-            "finishing_contribution_as_of": fin,
-            "defending_contribution_as_of": defense,
-            "primary_role_confidence": 0.85,
-            "role_dimension_count": 4.0,
-            "performance_trend_slope": trend_slope,
-            "development_trajectory_score": dev_traj,
-            "selling_club_tier": club_tier,
-            "starter_exposure_rate": starter_rate,
-            "cohort_median_fee_eur": cohort_med,
-            "comparable_median_fee_eur": comp_med,
-            "prior_transfers_count": prior_tx_count,
-            "days_since_prior_transfer": days_prior,
-        }
-
-        # Return aligned in FEATURE_NAMES order
-        return np.array([feat_dict.get(name, 0.0) for name in FEATURE_NAMES], dtype=np.float32)
+        Anything the context cannot supply is NaN and is counted so the sufficiency gate can refuse.
+        This replaces a builder that invented values (rating 7.15, goals/90 by position, club tier
+        1.0, cohort medians of 25M/18M) and then zero-filled 23 mis-named features via
+        ``.get(name, 0.0)``, hiding all of it from the gate.
+        """
+        pos = getattr(ctx, "position_group", None)
+        age = getattr(ctx, "age_at_as_of", None)
+        real: Dict[str, float] = {}
+        if age is not None:
+            real["age_at_transfer"] = float(age)
+            real["age_curve_factor"] = float(BaselineValuationEngine.get_age_adjustment(float(age)))
+        pos_code = ValuationMLDatasetBuilder.POSITION_ENCODING.get(pos) if pos else None
+        if pos_code is not None:
+            real["position_group_encoded"] = float(pos_code)
+        for name, attr in (
+            ("observed_minutes_as_of", "sample_minutes"),
+            ("appearances_as_of", "sample_matches"),
+            ("total_career_transfers_prior", "total_career_transfers"),
+        ):
+            value = getattr(ctx, attr, None)
+            if value is not None:
+                real[name] = float(value)
+        vector = np.array([real.get(name, np.nan) for name in FEATURE_NAMES], dtype=np.float32)
+        return vector, int(np.isnan(vector).sum())
 
     @classmethod
     async def get_player_valuation(
@@ -126,7 +84,7 @@ class ValuationMLService:
         if not active_bundle:
             raise RuntimeError("No active transfer valuation ML model is registered.")
 
-        features = cls._extract_feature_vector(ctx)
+        features, null_count = cls._extract_feature_vector(ctx)
         inference_res = active_bundle.predict_player(
             player_id=str(player_id),
             features=features,
@@ -134,6 +92,7 @@ class ValuationMLService:
             minutes_played=ctx.sample_minutes,
             age=ctx.age_at_as_of,
             position_group=ctx.position_group,
+            null_count=null_count,
         )
 
         return ValuationMLPredictionResponse(
@@ -154,6 +113,10 @@ class ValuationMLService:
                 "dataset_version": active_bundle.metadata.dataset_version,
                 "training_period": active_bundle.metadata.training_period,
                 "created_at": active_bundle.metadata.created_at,
+                "model_release_status": active_bundle.metadata.status,
+                "artifact_sha256": registry.active_manifest_entry().get("artifact_sha256"),
+                "missing_feature_count": null_count,
+                "feature_count": len(FEATURE_NAMES),
             },
         )
 
@@ -175,7 +138,12 @@ class ValuationMLService:
         if not active_bundle:
             raise RuntimeError("No active transfer valuation ML model is registered.")
 
-        features = cls._extract_feature_vector(ctx)
+        features, null_count = cls._extract_feature_vector(ctx)
+        if null_count:
+            raise RuntimeError(
+                f"Explanation unavailable: {null_count} of {len(FEATURE_NAMES)} model features cannot be "
+                "computed from the data currently available for this player."
+            )
         exp = active_bundle.explainer.explain_instance(
             player_id=str(player_id),
             features=features,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import uuid
+from types import SimpleNamespace
 from typing import Any
 
 from sqlalchemy import desc, select
@@ -14,7 +15,13 @@ from app.actions.normalizer import normalize_match_event, normalize_player_match
 from app.contributions.calculator import compute_player_contribution_metrics
 from app.contributions.models import PlayerContributionSnapshot
 from app.contributions.schemas import ContributionDimensionItem, PlayerContributionResponse
-from app.db.models.canonical import Match, MatchEvent, Player, PlayerMatchStats
+from app.db.models.canonical import (
+    Match,
+    MatchEvent,
+    Player,
+    PlayerMatchStats,
+    PlayerSeasonStats,
+)
 from app.roles.registry import map_position_to_group
 
 
@@ -85,8 +92,19 @@ class ContributionService:
         res = await self.session.execute(stmt)
         stats_list = list(res.scalars().all())
 
+        # 3b. No per-match rows do not mean no evidence. The provider supplies
+        # season aggregates for every indexed player, so fall back to the
+        # season window and label it as such instead of reporting zero minutes.
+        season_row: PlayerSeasonStats | None = None
+        stats_list, season_row = await self._with_season_fallback(player_id, stats_list)
+        window = "season_aggregate" if season_row is not None else "match_log"
+
         # 4. Compute metrics using pure deterministic calculator
         calc_result = compute_player_contribution_metrics(stats_list, pos_group)
+        if season_row is not None:
+            appearances = max(int(season_row.appearances or 0), 1)
+            calc_result["sample_matches"] = appearances
+            calc_result["raw_metrics"]["matches"] = float(appearances)
 
         dimensions_dict = {k: v.model_dump() for k, v in calc_result["dimensions"].items()}
 
@@ -94,9 +112,16 @@ class ContributionService:
             "calculation_version": CALCULATION_VERSION,
             "feature_set_version": FEATURE_SET_VERSION,
             "match_count": len(stats_list),
+            "window": window,
             "as_of": cutoff.isoformat(),
-            "source_snapshots": [str(s.snapshot_id) for s in stats_list if s.snapshot_id],
+            "source_snapshots": [
+                str(s.snapshot_id) for s in stats_list if getattr(s, "snapshot_id", None)
+            ],
         }
+        if season_row is not None:
+            provenance["source"] = "player_season_stats"
+            provenance["season_stats_id"] = str(season_row.id)
+            provenance["season_minutes"] = int(season_row.minutes or 0)
 
         # 5. Persist snapshot
         snapshot = PlayerContributionSnapshot(
@@ -134,6 +159,82 @@ class ContributionService:
             weaknesses=calc_result["weaknesses"],
             calculation_version=CALCULATION_VERSION,
             provenance=provenance,
+        )
+
+    async def _with_season_fallback(
+        self,
+        player_id: uuid.UUID,
+        stats_list: list[PlayerMatchStats],
+    ) -> tuple[list[Any], PlayerSeasonStats | None]:
+        """Returns match rows, or one aggregate row built from the player's latest season.
+
+        The aggregate is a real provider total (minutes, appearances and
+        counting stats) expressed once so the same deterministic calculator can
+        run on it. Nothing is imputed: absent provider fields stay at zero in
+        the total, and the response is labelled ``season_aggregate``.
+        """
+        if stats_list:
+            return stats_list, None
+
+        stmt = (
+            select(PlayerSeasonStats)
+            .where(
+                PlayerSeasonStats.player_id == player_id,
+                PlayerSeasonStats.minutes > 0,
+            )
+            .order_by(desc(PlayerSeasonStats.minutes))
+            .limit(1)
+        )
+        season_row = (await self.session.execute(stmt)).scalar_one_or_none()
+        if season_row is None:
+            return stats_list, None
+        return [self._season_aggregate(season_row)], season_row
+
+    @staticmethod
+    def _season_aggregate(row: PlayerSeasonStats) -> Any:
+        """Adapter exposing season totals through the per-match stats contract."""
+        raw = row.raw_stats or {}
+        goals = raw.get("goals") or {}
+        shots = raw.get("shots") or {}
+        passes = raw.get("passes") or {}
+        tackles = raw.get("tackles") or {}
+        duels = raw.get("duels") or {}
+        dribbles = raw.get("dribbles") or {}
+        fouls = raw.get("fouls") or {}
+
+        def _num(value: Any) -> float | None:
+            if value is None or value == "":
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        def _int(value: Any) -> int:
+            parsed = _num(value)
+            return int(parsed) if parsed is not None else 0
+
+        return SimpleNamespace(
+            minutes=int(row.minutes or 0),
+            goals=int(row.goals or 0),
+            assists=int(row.assists or 0),
+            shots_total=_int(shots.get("total")),
+            shots_on_target=_int(shots.get("on")),
+            passes_total=_int(passes.get("total")),
+            passes_key=_int(passes.get("key")),
+            tackles_total=_int(tackles.get("total")),
+            interceptions=_int(tackles.get("interceptions")),
+            blocks=_int(tackles.get("blocks")),
+            duels_total=_int(duels.get("total")),
+            duels_won=_int(duels.get("won")),
+            dribbles_attempts=_int(dribbles.get("attempts")),
+            dribbles_success=_int(dribbles.get("success")),
+            fouls_committed=_int(fouls.get("committed")),
+            fouls_drawn=_int(fouls.get("drawn")),
+            saves=_int(goals.get("saves")),
+            goals_conceded=_int(goals.get("conceded") or row.conceded),
+            pass_accuracy=_num(passes.get("accuracy")),
+            snapshot_id=row.snapshot_id,
         )
 
     async def get_player_actions(

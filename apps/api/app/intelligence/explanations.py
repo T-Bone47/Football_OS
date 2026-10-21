@@ -23,9 +23,13 @@ class DeterministicExplanationGenerator:
         why_strong: list[str] = []
         why_different: list[str] = []
         why_low_confidence: list[str] = []
+        insufficient = status in {
+            "INSUFFICIENT_SAMPLE",
+            "INSUFFICIENT_DATA",
+        } or confidence in {"INSUFFICIENT_SAMPLE", "INSUFFICIENT_DATA"}
 
         # 1. Why Low Confidence / Data Sufficiency Explanations
-        if status in {"INSUFFICIENT_SAMPLE", "INSUFFICIENT_DATA"} or confidence in {"LOW", "INSUFFICIENT_SAMPLE", "INSUFFICIENT_DATA"}:
+        if insufficient or confidence == "LOW":
             if sample_minutes == 0:
                 why_low_confidence.append("Zero competitive match minutes recorded in canonical evaluation window.")
             elif sample_minutes < 270:
@@ -66,8 +70,15 @@ class DeterministicExplanationGenerator:
                     f"Subdued {clean_metric} output ({val}/90, P{pct:.0f}) compared to position baseline."
                 )
 
+        # A player without a sufficient sample has no strength or divergence
+        # evidence at all. Returning a baseline sentence here would read as an
+        # assessment the data cannot support.
+        if insufficient:
+            why_strong = []
+            why_different = []
+
         return {
-            "why_strong": why_strong[:4] if why_strong else ["Metrics align with standard position baselines."],
-            "why_different": why_different[:4] if why_different else ["Balanced profile without severe positional outliers."],
+            "why_strong": why_strong[:4] if why_strong else ([] if insufficient else ["Metrics align with standard position baselines."]),
+            "why_different": why_different[:4] if why_different else ([] if insufficient else ["Balanced profile without severe positional outliers."]),
             "why_low_confidence": why_low_confidence,
         }

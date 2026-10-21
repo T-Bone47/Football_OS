@@ -1,0 +1,975 @@
+﻿{
+  "started_at": "2026-10-21T08:52:18.947396+00:00",
+  "mode": "execute",
+  "provider": "api-football",
+  "competition": "la-liga",
+  "seasons": [
+    2023
+  ],
+  "scopes": [
+    {
+      "scope_key": "{\"league\": \"140\", \"season\": 2023}",
+      "params": {
+        "league": "140",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"league\": \"140\", \"season\": 2023}",
+        "params": {
+          "league": "140",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "teams",
+          "scope_key": "{\"league\": \"140\", \"season\": 2023}",
+          "page": 1,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 20,
+          "records_written": 0,
+          "declared_total_pages": 1,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:48:04.717872+00:00"
+        },
+        "runs": [
+          {
+            "page": null,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:48:04.461912+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"529\"}",
+      "params": {
+        "team": "529",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"529\"}",
+        "params": {
+          "team": "529",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"529\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 59,
+          "records_written": 59,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:49:15.443071+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 19,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:11.123613+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:04.292009+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:48:56.816476+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"530\"}",
+      "params": {
+        "team": "530",
+        "season": 2023
+      },
+      "status": "BLOCKED_BY_PLAN",
+      "checkpoint_status": "BLOCKED_BY_PLAN",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_PLAN_LIMIT",
+      "plan_page_max": 3,
+      "errors": [
+        "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}"
+      ],
+      "note": "club squad: Atletico Madrid"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"531\"}",
+      "params": {
+        "team": "531",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"531\"}",
+        "params": {
+          "team": "531",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"531\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 47,
+          "records_written": 47,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:49:57.958398+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 7,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:54.657982+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:47.672006+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:40.679813+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"532\"}",
+      "params": {
+        "team": "532",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"532\"}",
+        "params": {
+          "team": "532",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"532\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 47,
+          "records_written": 47,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:50:15.266594+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 7,
+            "error": null,
+            "finished_at": "2026-10-21T08:50:12.735702+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:50:05.914792+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:49:58.407125+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"533\"}",
+      "params": {
+        "team": "533",
+        "season": 2023
+      },
+      "status": "BLOCKED_BY_PLAN",
+      "checkpoint_status": "BLOCKED_BY_PLAN",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_PLAN_LIMIT",
+      "plan_page_max": 3,
+      "errors": [
+        "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}"
+      ],
+      "note": "club squad: Villarreal"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"534\"}",
+      "params": {
+        "team": "534",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"534\"}",
+        "params": {
+          "team": "534",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"534\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 49,
+          "records_written": 49,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:50:58.132492+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 9,
+            "error": null,
+            "finished_at": "2026-10-21T08:50:55.040679+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:50:48.075333+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:50:41.071565+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"536\"}",
+      "params": {
+        "team": "536",
+        "season": 2023
+      },
+      "status": "BLOCKED_BY_PLAN",
+      "checkpoint_status": "BLOCKED_BY_PLAN",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_PLAN_LIMIT",
+      "plan_page_max": 3,
+      "errors": [
+        "ProviderPlanLimitError: API-Football returned errors in a 200 response: {'plan': 'Free plans are limited to a maximum value of 3 for the Page parameter'}"
+      ],
+      "note": "club squad: Sevilla"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"538\"}",
+      "params": {
+        "team": "538",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"538\"}",
+        "params": {
+          "team": "538",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"538\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 46,
+          "records_written": 46,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:51:40.655392+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 6,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:38.105503+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:31.273889+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:24.433577+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"541\"}",
+      "params": {
+        "team": "541",
+        "season": 2023
+      },
+      "action": "SKIPPED_ALREADY_COMPLETE",
+      "current_state": {
+        "scope_key": "{\"season\": 2023, \"team\": \"541\"}",
+        "params": {
+          "team": "541",
+          "season": 2023
+        },
+        "checkpoint": {
+          "provider": "api-football",
+          "entity_type": "players",
+          "scope_key": "{\"season\": 2023, \"team\": \"541\"}",
+          "page": 3,
+          "status": "COMPLETE_FOR_DECLARED_SCOPE",
+          "records_seen": 47,
+          "records_written": 47,
+          "declared_total_pages": 3,
+          "last_error": null,
+          "last_success_at": "2026-10-21T08:51:59.579204+00:00"
+        },
+        "runs": [
+          {
+            "page": 3,
+            "status": "SUCCESS",
+            "record_count": 7,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:56.078466+00:00"
+          },
+          {
+            "page": 2,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:49.099116+00:00"
+          },
+          {
+            "page": 1,
+            "status": "SUCCESS",
+            "record_count": 20,
+            "error": null,
+            "finished_at": "2026-10-21T08:51:41.617101+00:00"
+          }
+        ]
+      }
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"542\"}",
+      "params": {
+        "team": "542",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Alaves"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"543\"}",
+      "params": {
+        "team": "543",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Real Betis"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"546\"}",
+      "params": {
+        "team": "546",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Getafe"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"547\"}",
+      "params": {
+        "team": "547",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Girona"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"548\"}",
+      "params": {
+        "team": "548",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Real Sociedad"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"715\"}",
+      "params": {
+        "team": "715",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Granada CF"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"723\"}",
+      "params": {
+        "team": "723",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Almeria"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"724\"}",
+      "params": {
+        "team": "724",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Cadiz"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"727\"}",
+      "params": {
+        "team": "727",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Osasuna"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"728\"}",
+      "params": {
+        "team": "728",
+        "season": 2023
+      },
+      "status": "FAILED",
+      "checkpoint_status": "FAILED",
+      "pages_requested": 1,
+      "pages_succeeded": 0,
+      "records_fetched": 0,
+      "records_normalised": 0,
+      "declared_total_pages": null,
+      "stop_reason": "PROVIDER_FAILURE",
+      "plan_page_max": null,
+      "errors": [
+        "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+      ],
+      "note": "club squad: Rayo Vallecano"
+    },
+    {
+      "scope_key": "{\"season\": 2023, \"team\": \"798\"}",
+      "params": {
+        "team": "798",
+        "season": 2023
+      },
+      "action": "SKIPPED_REQUEST_LIMIT"
+    }
+  ],
+  "provider_budget_at_start": {
+    "available": false,
+    "error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+  },
+  "plans": [
+    {
+      "season": 2023,
+      "plan": {
+        "scope_count": 21,
+        "estimated_requests": 61,
+        "scopes": [
+          {
+            "provider": "api-football",
+            "resource": "teams",
+            "entity_type": "teams",
+            "params": {
+              "league": "140",
+              "season": 2023
+            },
+            "priority": 2000,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 1,
+            "paginated": false,
+            "scope_key": "{\"league\": \"140\", \"season\": 2023}",
+            "note": "club discovery for the scope"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "529",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"529\"}",
+            "note": "club squad: Barcelona"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "530",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"530\"}",
+            "note": "club squad: Atletico Madrid"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "531",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"531\"}",
+            "note": "club squad: Athletic Club"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "532",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"532\"}",
+            "note": "club squad: Valencia"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "533",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"533\"}",
+            "note": "club squad: Villarreal"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "534",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"534\"}",
+            "note": "club squad: Las Palmas"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "536",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"536\"}",
+            "note": "club squad: Sevilla"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "538",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"538\"}",
+            "note": "club squad: Celta Vigo"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "541",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"541\"}",
+            "note": "club squad: Real Madrid"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "542",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"542\"}",
+            "note": "club squad: Alaves"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "543",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"543\"}",
+            "note": "club squad: Real Betis"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "546",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"546\"}",
+            "note": "club squad: Getafe"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "547",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"547\"}",
+            "note": "club squad: Girona"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "548",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"548\"}",
+            "note": "club squad: Real Sociedad"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "715",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"715\"}",
+            "note": "club squad: Granada CF"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "723",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"723\"}",
+            "note": "club squad: Almeria"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "724",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"724\"}",
+            "note": "club squad: Cadiz"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "727",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"727\"}",
+            "note": "club squad: Osasuna"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "728",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"728\"}",
+            "note": "club squad: Rayo Vallecano"
+          },
+          {
+            "provider": "api-football",
+            "resource": "players",
+            "entity_type": "players",
+            "params": {
+              "team": "798",
+              "season": 2023
+            },
+            "priority": 2010,
+            "competition": "La Liga",
+            "season": "2023",
+            "max_pages": 3,
+            "paginated": true,
+            "scope_key": "{\"season\": 2023, \"team\": \"798\"}",
+            "note": "club squad: Mallorca"
+          }
+        ],
+        "warnings": []
+      }
+    }
+  ],
+  "finished_at": "2026-10-21T08:52:25.595750+00:00",
+  "provider_requests_spent": 13,
+  "provider_budget": {
+    "available": false,
+    "error": "ProviderRateLimitError: API-Football returned errors in a 200 response: {'requests': 'You have reached the request limit for the day, Go to https://dashboard.api-football.com to upgrade your plan.'}"
+  },
+  "resume_command": "python tools/ingest_expansion.py run --competition la-liga --season 2023 --resume",
+  "status": "PARTIAL"
+}
