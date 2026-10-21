@@ -1,6 +1,10 @@
 # Config reviewed but NOT executed in the remediation sandbox (no runner, no network). Verify on first push.
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # Manual trigger: the same gates can be re-run for a branch without pushing a commit.
+  workflow_dispatch:
 jobs:
   backend:
     runs-on: ubuntu-latest
